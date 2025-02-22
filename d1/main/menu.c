@@ -66,6 +66,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "strutil.h"
 #include "multi.h"
 #include "vers_id.h"
+#include "solarmap.h"
 #ifdef USE_UDP
 #include "net_udp.h"
 #endif
@@ -968,6 +969,13 @@ int do_new_game_menu()
 		int n_items;
 		int valid = 0;
 
+		if (PLAYING_BUILTIN_MISSION) {
+			if ((new_level_num = solarmap_show(-100)) == -1)
+				return 0;
+		} else
+			new_level_num = -2;
+		if (new_level_num < 0) {
+		new_level_num = 1;
 		while (!valid)
 		{
 			sprintf(info_text, "%s %d", TXT_START_ANY_LEVEL, player_highest_level);
@@ -992,6 +1000,7 @@ int do_new_game_menu()
 			}
 			else
 				valid = 1;
+		}
 		}
 	}
 

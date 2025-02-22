@@ -56,6 +56,7 @@ add_executable (d1x-redux
     slew.c
     snddecom.c
     songs.c
+    solarmap.c
     state.c
     switch.c
     terrain.c

@@ -102,6 +102,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "multibot.h"
 #include "player.h"
 #include "math.h"
+#include "solarmap.h"
 
 void init_player_stats_new_ship(ubyte pnum);
 void copy_defaults_to_robot_all(void);
@@ -1491,6 +1492,8 @@ int AdvanceLevel(int secret_flag)
 
 				Next_level_num = Secret_level_table[(-Current_level_num) - 1] + 1;
 			}
+
+			solarmap_show(Next_level_num);
 
 			StartNewLevel(Next_level_num);
 			Ranking.warmStart = 1;
