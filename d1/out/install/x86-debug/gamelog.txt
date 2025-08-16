@@ -1,6 +1,0 @@
-15:57:53 
-Error: Could not find a valid hog file (descent.hog)
-Possible locations are:
-	C:\development\dxx-redux-ranked\d1\out\install\x86-debug
-	In a subdirectory called 'Data'
-Or use the -hogdir option to specify an alternate location.
