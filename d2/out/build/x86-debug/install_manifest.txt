@@ -1,7 +1,0 @@
-C:/development/dxx-redux-ranked/d2/out/install/x86-debug/./SDL.dll
-C:/development/dxx-redux-ranked/d2/out/install/x86-debug/./physfs.dll
-C:/development/dxx-redux-ranked/d2/out/install/x86-debug/./zlibd1.dll
-C:/development/dxx-redux-ranked/d2/out/install/x86-debug/./SDL_mixer.dll
-C:/development/dxx-redux-ranked/d2/out/install/x86-debug/./glew32d.dll
-C:/development/dxx-redux-ranked/d2/out/install/x86-debug/./libpng16d.dll
-C:/development/dxx-redux-ranked/d2/out/install/x86-debug/./d2x-redux.exe

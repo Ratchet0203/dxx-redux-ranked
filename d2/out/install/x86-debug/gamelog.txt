@@ -1,6 +1,0 @@
-23:16:20 
-Error: Could not find a valid hog file (descent2.hog or d2demo.hog)
-Possible locations are:
-	C:\development\dxx-redux-ranked\d2\out\install\x86-debug
-	In a subdirectory called 'Data'
-Or use the -hogdir option to specify an alternate location.
