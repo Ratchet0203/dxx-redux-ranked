@@ -342,7 +342,7 @@ if ((objp->type == OBJ_ROBOT) && (objp->ctype.ai_info.behavior == AIB_RUN_FROM))
 			if (random_flag)
 				snum = random_xlate[sidenum];
 
-			if (check_gap_size(cur_seg, snum) || ((currentObjectiveType == 2 && Walls[currentObjectiveID].type != WALL_OPEN) ||
+			if (check_gap_size(cur_seg, snum) || ((currentObjectiveType == 2 && !(Walls[currentObjectiveID].type == WALL_OPEN || Walls[currentObjectiveID].type == WALL_ILLUSION)) ||
 			currentObjectiveType == 3 ||
 			(currentObjectiveType == 1 && (Objects[currentObjectiveID].type == OBJ_CNTRLCEN || (Objects[currentObjectiveID].type == OBJ_ROBOT && Robot_info[Objects[currentObjectiveID].id].boss_flag)))))
 				if (IS_CHILD(segp->children[snum]) && ((WALL_IS_DOORWAY(segp, snum) & WID_FLY_FLAG) || (ai_door_is_openable(objp, segp, snum, currentObjectiveType, currentObjectiveID, objectiveInaccessible, cur_seg)))) {

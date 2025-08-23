@@ -636,7 +636,6 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 		Difficulty_level = PlayerCfg.DefaultDifficulty;
 		if (citem < Current_mission->last_level) {
 			if (calculateRank(citem + 1, 1)) {
-				calculateRank(citem + 1, 1);
 				DoBestRanksScoreGlitz(citem + 1);
 			} else {
 				if (!do_difficulty_menu())
@@ -646,7 +645,6 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 		}
 		else {
 			if (calculateRank(citem + 1, 1)) {
-				calculateRank(citem + 1, 1);
 				DoBestRanksScoreGlitz(citem + 1);
 			} else {
 				nm_messagebox(NULL, 1, "Ok", "Can't start on secret level!\nTry saving right before teleporter.");

@@ -2545,7 +2545,7 @@ int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiv
 				unlocked = (ParTime.loops > 1);
 	}
 	if (!(unlocked || warpBackPointCheck)) // Let Algo through anyway if the wall is transparent and we're headed toward an unlock we don't have to go directly to (EG shooting through grate at unlocked side of door like S2).
-		unlocked = (((currentObjectiveType == OBJECTIVE_TYPE_TRIGGER && Walls[currentObjectiveID].type != WALL_OPEN) ||
+		unlocked = (((currentObjectiveType == OBJECTIVE_TYPE_TRIGGER && !(Walls[currentObjectiveID].type == WALL_OPEN || Walls[currentObjectiveID].type == WALL_ILLUSION)) ||
 			currentObjectiveType == OBJECTIVE_TYPE_WALL ||
 			(currentObjectiveType == OBJECTIVE_TYPE_OBJECT && (Objects[currentObjectiveID].type == OBJ_CNTRLCEN || (Objects[currentObjectiveID].type == OBJ_ROBOT && Robot_info[Objects[currentObjectiveID].id].boss_flag)))) &&
 			check_transparency_partime(&Segments[Walls[wall_num].segnum], Walls[wall_num].sidenum));
@@ -2621,14 +2621,14 @@ partime_objective find_nearest_objective_partime(int start_seg, point_seg** path
 				if (ParTime.warpBackPoint == -1)
 					ParTime.warpBackPoint = Point_segs[i].segnum;
 			if (!thisWallUnlocked(wall_num, nearestObjective.type, nearestObjective.ID, 1))
-				if (((nearestObjective.type == OBJECTIVE_TYPE_TRIGGER && Walls[nearestObjective.ID].type != WALL_OPEN) ||
+				if (((nearestObjective.type == OBJECTIVE_TYPE_TRIGGER && !(Walls[nearestObjective.ID].type == WALL_OPEN || Walls[nearestObjective.ID].type == WALL_ILLUSION)) ||
 					nearestObjective.type == OBJECTIVE_TYPE_WALL ||
 					(nearestObjective.type == OBJECTIVE_TYPE_OBJECT && (Objects[nearestObjective.ID].type == OBJ_CNTRLCEN || (Objects[nearestObjective.ID].type == OBJ_ROBOT && Robot_info[Objects[nearestObjective.ID].id].boss_flag)))) &&
 					check_transparency_partime(&Segments[Walls[wall_num].segnum], Walls[wall_num].sidenum))
 					if (ParTime.warpBackPoint == -1)
 						ParTime.warpBackPoint = Walls[wall_num].segnum;
 			side_num = find_connecting_side(Point_segs[i + 1].segnum, Point_segs[i].segnum);
-			if (!check_gap_size(Point_segs[i + 1].segnum, side_num) && ((nearestObjective.type == OBJECTIVE_TYPE_TRIGGER && Walls[nearestObjective.ID].type != WALL_OPEN) || nearestObjective.type == OBJECTIVE_TYPE_WALL || (nearestObjective.type == OBJECTIVE_TYPE_OBJECT && (Objects[nearestObjective.ID].type == OBJ_CNTRLCEN || (Objects[nearestObjective.ID].type == OBJ_ROBOT && Robot_info[Objects[nearestObjective.ID].id].boss_flag))) || !ParTime.isSegmentAccessible[objectiveSegnum]))
+			if (!check_gap_size(Point_segs[i + 1].segnum, side_num) && ((nearestObjective.type == OBJECTIVE_TYPE_TRIGGER && !(Walls[nearestObjective.ID].type == WALL_OPEN || Walls[nearestObjective.ID].type == WALL_ILLUSION)) || nearestObjective.type == OBJECTIVE_TYPE_WALL || (nearestObjective.type == OBJECTIVE_TYPE_OBJECT && (Objects[nearestObjective.ID].type == OBJ_CNTRLCEN || (Objects[nearestObjective.ID].type == OBJ_ROBOT && Robot_info[Objects[nearestObjective.ID].id].boss_flag))) || !ParTime.isSegmentAccessible[objectiveSegnum]))
 				if (ParTime.warpBackPoint == -1)
 					ParTime.warpBackPoint = Point_segs[i].segnum;
 			if (ParTime.warpBackPoint > -1)
