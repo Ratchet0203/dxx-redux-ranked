@@ -63,7 +63,7 @@ char Gamesave_current_filename[PATH_MAX];
 
 int Gamesave_current_version;
 
-restartLevel RestartLevel;
+extern restartLevel RestartLevel;
 
 #define GAME_VERSION            32
 #define GAME_COMPATIBLE_VERSION 22

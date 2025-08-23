@@ -41,7 +41,7 @@ extern void get_color_name(char* color_name, int color_name_length, int color_va
 extern void drawSolarmapRankImage(int rank);
 extern int drawSmallRankImages(int* rankList, listbox* lb);
 
-extern void do_best_ranks_menu();
+extern int do_best_ranks_menu();
 extern int do_difficulty_menu();
 
 #endif

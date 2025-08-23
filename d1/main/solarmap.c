@@ -26,7 +26,7 @@
 
 static const char *bms_files[] = { "map01.pcx", "map02.pcx", "map03.pcx", "ship01.pcx", "ship02.pcx" };
 
-ranking Ranking;
+extern ranking Ranking;
 
 struct solarmap {
 	struct window *wind;

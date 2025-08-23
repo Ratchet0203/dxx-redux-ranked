@@ -104,7 +104,7 @@ extern void object_goto_prev_viewer(void);
 
 int	Debug_spew;
 
-restartLevel RestartLevel;
+extern restartLevel RestartLevel;
 
 //	External Variables ---------------------------------------------------------
 

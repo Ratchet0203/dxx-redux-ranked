@@ -653,7 +653,7 @@ void create_path_to_player(object *objp, int max_length, int safety_flag)
 	if (end_seg == -1) {
 		;
 	} else {
-		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, safety_flag, -1, 0, NULL, NULL);
+		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, safety_flag, -1, 0, 0, 0);
 		aip->path_length = polish_path(objp, Point_segs_free_ptr, aip->path_length);
 		aip->hide_index = Point_segs_free_ptr - Point_segs;
 		aip->cur_path_index = 0;
@@ -695,7 +695,7 @@ void create_path_to_segment(object *objp, int goalseg, int max_length, int safet
 	if (end_seg == -1) {
 		;
 	} else {
-		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, safety_flag, -1, 0, NULL, NULL);
+		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, safety_flag, -1, 0, 0, 0);
 		aip->hide_index = Point_segs_free_ptr - Point_segs;
 		aip->cur_path_index = 0;
 		Point_segs_free_ptr += aip->path_length;
@@ -736,7 +736,7 @@ void create_path_to_station(object *objp, int max_length)
 	if (end_seg == -1) {
 		;
 	} else {
-		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, 1, -1, 0, NULL, NULL);
+		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, 1, -1, 0, 0, 0);
 		aip->path_length = polish_path(objp, Point_segs_free_ptr, aip->path_length);
 		aip->hide_index = Point_segs_free_ptr - Point_segs;
 		aip->cur_path_index = 0;
@@ -768,9 +768,9 @@ void create_n_segment_path(object *objp, int path_length, int avoid_seg)
 	ai_static	*aip=&objp->ctype.ai_info;
 	ai_local		*ailp = &Ai_local_info[objp-Objects];
 
-	if (create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, path_length, 1, 0, avoid_seg, 0, NULL, NULL) == -1) {
+	if (create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, path_length, 1, 0, avoid_seg, 0, 0, 0) == -1) {
 		Point_segs_free_ptr += aip->path_length;
-		while ((create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, --path_length, 1, 0, -1, 0, NULL, NULL) == -1)) {
+		while ((create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, --path_length, 1, 0, -1, 0, 0, 0) == -1)) {
 			Assert(path_length);
 		}
 	}
@@ -1396,7 +1396,7 @@ void test_create_path_many(void)
 	for (i=0; i<Test_size; i++) {
 		Cursegp = &Segments[(d_rand() * (Highest_segment_index + 1)) / D_RAND_MAX];
 		Markedsegp = &Segments[(d_rand() * (Highest_segment_index + 1)) / D_RAND_MAX];
-		create_path_points(&Objects[0], Cursegp-Segments, Markedsegp-Segments, point_segs, &num_points, -1, 0, 0, -1, 0, NULL);
+		create_path_points(&Objects[0], Cursegp-Segments, Markedsegp-Segments, point_segs, &num_points, -1, 0, 0, -1, 0, 0);
 	}
 
 }
@@ -1406,7 +1406,7 @@ void test_create_path(void)
 	point_seg	point_segs[200];
 	short			num_points;
 
-	create_path_points(&Objects[0], Cursegp-Segments, Markedsegp-Segments, point_segs, &num_points, -1, 0, 0, -1, 0, NULL);
+	create_path_points(&Objects[0], Cursegp-Segments, Markedsegp-Segments, point_segs, &num_points, -1, 0, 0, -1, 0, 0);
 
 }
 
@@ -1422,7 +1422,7 @@ void test_create_all_paths(void)
 		if (Segments[start_seg].segnum != -1) {
 			for (end_seg=start_seg+1; end_seg<=Highest_segment_index; end_seg++) {
 				if (Segments[end_seg].segnum != -1) {
-					create_path_points(&Objects[0], start_seg, end_seg, Point_segs_free_ptr, &resultant_length, -1, 0, 0, -1, 0, NULL);
+					create_path_points(&Objects[0], start_seg, end_seg, Point_segs_free_ptr, &resultant_length, -1, 0, 0, -1, 0, 0);
 				}
 			}
 		}
@@ -1573,7 +1573,7 @@ void create_player_path_to_segment(int segnum)
 	Player_cur_path_index=0;
 	Player_following_path_flag=0;
 
-	if (create_path_points(objp, objp->segnum, segnum, Point_segs_free_ptr, &Player_path_length, 100, 0, 0, -1, 0, NULL) == -1)
+	if (create_path_points(objp, objp->segnum, segnum, Point_segs_free_ptr, &Player_path_length, 100, 0, 0, -1, 0, 0) == -1)
 		con_printf(CON_DEBUG,"Unable to form path of length %i for myself\n", 100);
 
 	Player_following_path_flag = 1;

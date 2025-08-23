@@ -68,6 +68,8 @@
 #endif
 #endif
 
+void loadRankImages();
+
 #ifdef OGLES
 int sdl_video_flags = 0;
 

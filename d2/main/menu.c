@@ -600,6 +600,7 @@ struct listbox
 
 int drawSmallRankImages(int* ranksList, listbox* lb)
 {
+	int listbox_draw(window *wind, listbox *lb);
 	int rval = listbox_draw(lb->wind, lb);
 
 	for (int i = lb->first_item; i < lb->first_item + LB_ITEMS_ON_SCREEN && i < lb->nitems; i++) {
@@ -634,18 +635,20 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 		Players[Player_num].lives = 3;
 		Difficulty_level = PlayerCfg.DefaultDifficulty;
 		if (citem < Current_mission->last_level) {
-			if (calculateRank(citem + 1, 1))
-				DoBestRanksScoreGlitz(citem + 1, calculateRank(citem + 1, 1));
-			else {
+			if (calculateRank(citem + 1, 1)) {
+				calculateRank(citem + 1, 1);
+				DoBestRanksScoreGlitz(citem + 1);
+			} else {
 				if (!do_difficulty_menu())
 					return 1;
 				StartNewGame(citem + 1);
 			}
 		}
 		else {
-			if (calculateRank(citem + 1, 1))
-				DoBestRanksScoreGlitz(citem + 1, calculateRank(citem + 1, 1));
-			else {
+			if (calculateRank(citem + 1, 1)) {
+				calculateRank(citem + 1, 1);
+				DoBestRanksScoreGlitz(citem + 1);
+			} else {
 				nm_messagebox(NULL, 1, "Ok", "Can't start on secret level!\nTry saving right before teleporter.");
 				return 1;
 			}
@@ -662,7 +665,7 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 	return 0;
 }
 
-void do_best_ranks_menu()
+int do_best_ranks_menu()
 {
 	int numlines = Current_mission->last_level - Current_mission->last_secret_level;
 	char** list = (char**)malloc(sizeof(char*) * numlines);
@@ -733,6 +736,7 @@ void do_best_ranks_menu()
 	}
 	free(list);
 	free(ranks);
+	return 0;
 }
 
 //returns flag, true means quit menu

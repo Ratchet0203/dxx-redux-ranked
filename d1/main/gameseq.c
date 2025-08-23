@@ -910,6 +910,7 @@ int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 			ogl_ubitmapm_cs(x, y, w, h, bm, -1, F1_0);
 			grs_bitmap oldbackground = nm_background1;
 			nm_background1 = transparent;
+			int newmenu_draw(window *wind, newmenu *menu);
 			int ret = newmenu_draw(newmenu_get_window(menu), menu);
 			transparent = nm_background1;
 			nm_background1 = oldbackground;

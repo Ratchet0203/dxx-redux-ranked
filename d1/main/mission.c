@@ -40,13 +40,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "playsave.h"
 #include "menu.h"
 
- //values that describe where a mission is located
-enum mle_loc
-{
-	ML_CURDIR = 0,
-	ML_MISSIONDIR = 1
-};
-
 static int num_missions = -1;
 
 Mission* Current_mission = NULL; // currently loaded mission

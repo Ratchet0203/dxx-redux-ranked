@@ -62,6 +62,13 @@ typedef struct {
 	d_fname	*secret_level_names;
 } Mission;
 
+ //values that describe where a mission is located
+enum mle_loc
+{
+	ML_CURDIR = 0,
+	ML_MISSIONDIR = 1
+};
+
 //mission list entry
 typedef struct mle {
 	char* filename;          // filename without extension

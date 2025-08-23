@@ -527,11 +527,11 @@ void create_n_segment_path(object *objp, int path_length, int avoid_seg)
 	ai_static	*aip=&objp->ctype.ai_info;
 	ai_local		*ailp = &Ai_local_info[objp-Objects];
 
-	if (create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, path_length, 1, 0, avoid_seg, 0, -1, NULL) == -1) {
+	if (create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, path_length, 1, 0, avoid_seg, 0, -1, 0) == -1) {
 		//Int3();	//	Contact Mike:  Considering removing this code.  Can I?
 		//force_dump_ai_objects_all("Error in create_n_segment_path");
 		Point_segs_free_ptr += aip->path_length;
-		while ((create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, --path_length, 1, 0, -1, 0, -1, NULL) == -1)) {
+		while ((create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, --path_length, 1, 0, -1, 0, -1, 0) == -1)) {
 			Assert(path_length);
 		}
 	}
