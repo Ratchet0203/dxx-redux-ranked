@@ -1173,7 +1173,7 @@ void DoEndLevelScoreGlitz(int network)
 		else {
 #endif	// Note link!
 			if (!strlen(Current_mission->filename) && PlayerCfg.UsePsxSolarmap) {
-				if (Current_level_num < 8)
+				if (Current_level_num > 0 && Current_level_num < 8)
 					newmenu_do2(NULL, title, c, m, endlevel_handler, NULL, 0, "map01.pcx");
 				if ((Current_level_num > 7 && Current_level_num < 18) || Current_level_num == -1)
 					newmenu_do2(NULL, title, c, m, endlevel_handler, NULL, 0, "map02.pcx");
