@@ -660,9 +660,6 @@ void LoadLevel(int level_num,int page_in_textures)
 	gr_use_palette_table( "palette.256" );
 
 	show_boxed_message(TXT_LOADING, 0);
-#ifdef RELEASE
-	timer_delay(F1_0);
-#endif
 
 #ifdef NETWORK
 	my_segments_checksum = netmisc_calc_checksum();
