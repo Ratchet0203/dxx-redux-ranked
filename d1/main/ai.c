@@ -1424,6 +1424,9 @@ int ai_door_is_openable(object* objp, segment* segp, int sidenum, int currentObj
 
 		int	wall_num = segp->sides[sidenum].wall_num;
 
+		if (wall_num == -1)		//if there's no door at all...
+			return 0;				//..then say it can't be opened
+
 		// If this is an inaccessible objective we're pathing to, always allow Algo through transparent walls.
 		// Shoutout to LOTW Operation Resq for making Algo phase through the yellow door, or the transparency check may not have made it in.
 		if (objectiveInaccessible && currentObjectiveType > -1 && check_transparency_partime(&Segments[Walls[wall_num].segnum], Walls[wall_num].sidenum))
