@@ -118,6 +118,8 @@ extern int	Global_missile_firing_count;
 
 extern int	*Toggle_var;
 
+extern int Missile_gun;
+
 extern fix	Show_view_text_timer;
 
 extern ubyte DefiningMarkerMessage;
@@ -984,6 +986,7 @@ int HandleSystemKey(int key)
 					Players[Player_num].secondary_ammo[i] = RestartLevel.secondary_ammo[i];
 				Players[Player_num].afterburner_charge = RestartLevel.afterburner_charge;
 				Omega_charge = RestartLevel.omega_charge;
+				Missile_gun = RestartLevel.Missile_gun;
 				RestartLevel.restarts++;
 				// Note: time abuse with restarts is possible due to player speed not resetting properly and idk how to fix it.
 				StartNewLevel(Current_level_num);

@@ -70,6 +70,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 extern restartLevel RestartLevel;
 
+extern int Missile_gun;
+
 struct newmenu
 {
 	window			*wind;
@@ -1061,6 +1063,7 @@ int newmenu_key_command(window *wind, d_event *event, newmenu *menu)
 					Players[Player_num].primary_ammo[i] = RestartLevel.primary_ammo[i];
 				for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
 					Players[Player_num].secondary_ammo[i] = RestartLevel.secondary_ammo[i];
+				Missile_gun = RestartLevel.Missile_gun;
 				RestartLevel.restarts = RestartLevel.restartsCache;
 				RestartLevel.restarts++;
 				RestartLevel.isResults = 2;

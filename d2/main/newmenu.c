@@ -73,6 +73,8 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 extern restartLevel RestartLevel;
 
+extern int Missile_gun;
+
 extern fix Omega_charge;
 
 struct newmenu
@@ -1070,6 +1072,7 @@ int newmenu_key_command(window *wind, d_event *event, newmenu *menu)
 					Players[Player_num].secondary_ammo[i] = RestartLevel.secondary_ammo[i];
 				Players[Player_num].afterburner_charge = RestartLevel.afterburner_charge;
 				Omega_charge = RestartLevel.omega_charge;
+				Missile_gun = RestartLevel.Missile_gun;
 				RestartLevel.restarts = RestartLevel.restartsCache;
 				RestartLevel.restarts++;
 				RestartLevel.isResults = 2;

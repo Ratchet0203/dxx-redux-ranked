@@ -133,6 +133,8 @@ int NumNetPlayerPositions = -1;
 
 extern fix ThisLevelTime;
 
+extern int Missile_gun;
+
 // Extern from game.c to fix a bug in the cockpit!
 
 extern int last_drawn_cockpit;
@@ -3163,6 +3165,7 @@ void StartNewLevel(int level_num)
 			RestartLevel.primary_ammo[i] = Players[Player_num].primary_ammo[i];
 		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
 			RestartLevel.secondary_ammo[i] = Players[Player_num].secondary_ammo[i];
+		RestartLevel.Missile_gun = Missile_gun;
 	}
 	
 	StartNewLevelSub(level_num, 1, 0);

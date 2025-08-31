@@ -162,6 +162,8 @@ int	First_secret_visit = 1;
 
 extern int descent_critical_error;
 
+extern int Missile_gun;
+
 //--------------------------------------------------------------------
 void verify_console_object()
 {
@@ -3826,6 +3828,7 @@ void DoPlayerDead()
 					RestartLevel.secondary_ammo[0] = 2 + NDL - Difficulty_level;
 					RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
 					RestartLevel.omega_charge = Omega_charge;
+					RestartLevel.Missile_gun = Missile_gun;
 					Ranking.warmStart = 0; // Don't count next level as a warm start, since the player just lost all their stuff in self destruct.
 					init_player_stats_new_ship(Player_num);	//	New, MK, 05/29/96!, fix bug with dying in secret level, advance to next level, keep powerups!
 				}
@@ -3852,6 +3855,7 @@ void DoPlayerDead()
 				RestartLevel.secondary_ammo[0] = 2 + NDL - Difficulty_level;
 				RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
 				RestartLevel.omega_charge = Omega_charge;
+				RestartLevel.Missile_gun = Missile_gun;
 				Ranking.warmStart = 0; // Don't count next level as a warm start, since the player just lost all their stuff in self destruct.
 				init_player_stats_new_ship(Player_num);
 			}
@@ -4192,6 +4196,7 @@ void StartNewLevel(int level_num)
 			RestartLevel.secondary_ammo[i] = Players[Player_num].secondary_ammo[i];
 		RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
 		RestartLevel.omega_charge = Omega_charge;
+		RestartLevel.Missile_gun = Missile_gun;
 	}
 
 	if (level_num > 0) {
