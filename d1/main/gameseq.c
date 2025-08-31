@@ -2506,6 +2506,7 @@ double calculate_path_length_partime(point_seg* path, int path_count, partime_ob
 
 int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck) // Does what the name says.
 {
+	return 1;
 	int unlocked = 1;
 	if (Walls[wall_num].type == WALL_DOOR && Walls[wall_num].keys > 1) {
 		unlocked = findKeyObjectID(Walls[wall_num].keys, 0, 1);
@@ -2729,10 +2730,10 @@ void examine_path_partime(point_seg* path, int path_count)
 											totalRobotTime += calculate_combat_time(NULL, robInfo, 0, 1);
 											if (robInfo->contains_type == OBJ_ROBOT) {
 												totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0, 1) * round((robInfo->contains_count * (robInfo->contains_prob / 16)));
-												robotHasPowerup(robInfo->contains_id, (double)(1 / num_types));
+												robotHasPowerup(robInfo->contains_id, 1.0 / num_types);
 											}
 											else
-												robotHasPowerup(legal_types[n], (double)(1 / num_types));
+												robotHasPowerup(legal_types[n], 1.0 / num_types);
 										}
 										totalAmmoUsage += ParTime.ammo_usage;
 									}
