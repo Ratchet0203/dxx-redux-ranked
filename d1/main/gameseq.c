@@ -2430,19 +2430,15 @@ void initLockedWalls(int removeUnlockableWalls)
 			for (int t = 0; t < Num_triggers; t++) {
 				if (Triggers[t].flags & TRIGGER_CONTROL_DOORS) {
 					partime_objective objective;
-					objective.type = OBJECTIVE_TYPE_INVALID;
-					objective.ID = 0;
-					for (int w = 0; w < Num_walls; w++)
-						if (Walls[w].trigger == t) {
-							objective.type = OBJECTIVE_TYPE_TRIGGER;
-							objective.ID = w;
-							break;
-						}
-					if (!objective.type)
-						break; // No wall was found. We have an orphaned trigger, skip it. (Obsidian 4 fix)
+					int connectedWallNum = findConnectedWallNum(i);
 					for (int l = 0; l < Triggers[t].num_links; l++) {
-						int connectedWallNum = findConnectedWallNum(i);
 						if ((Triggers[t].seg[l] == Walls[i].segnum && Triggers[t].side[l] == Walls[i].sidenum) || (Triggers[t].seg[l] == Walls[connectedWallNum].segnum && Triggers[t].side[l] == Walls[connectedWallNum].sidenum)) {
+							objective.type = OBJECTIVE_TYPE_TRIGGER;
+							for (int w = 0; w < Num_walls; w++)
+								if (Walls[w].trigger == t) {
+									objective.ID = w;
+									break;
+								}
 							if (removeUnlockableWalls)
 								addObjectiveToList(objective, 1);
 							else
@@ -2577,21 +2573,21 @@ int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiv
 			if (Triggers[t].flags & TRIGGER_CONTROL_DOORS) {
 				partime_objective objective;
 				objective.type = OBJECTIVE_TYPE_INVALID;
-				objective.ID = 0;
-				for (int w = 0; w < Num_walls; w++)
-					if (Walls[w].trigger == t) {
-						objective.type = OBJECTIVE_TYPE_TRIGGER;
-						objective.ID = w;
-						break;
-					}
-				if (!objective.type)
-					break; // No wall was found. We have an orphaned trigger, skip it. (Obsidian 4 fix)
+				int connectedWallNum = findConnectedWallNum(wall_num);
 				for (int l = 0; l < Triggers[t].num_links; l++) {
-					int connectedWallNum = findConnectedWallNum(wall_num);
-					if ((Triggers[t].seg[l] == Walls[wall_num].segnum && Triggers[t].side[l] == Walls[wall_num].sidenum) || (Triggers[t].seg[l] == Walls[connectedWallNum].segnum && Triggers[t].side[l] == Walls[connectedWallNum].sidenum))
+					if ((Triggers[t].seg[l] == Walls[wall_num].segnum && Triggers[t].side[l] == Walls[wall_num].sidenum) || (Triggers[t].seg[l] == Walls[connectedWallNum].segnum && Triggers[t].side[l] == Walls[connectedWallNum].sidenum)) {
+						for (int w = 0; w < Num_walls; w++)
+							if (Walls[w].trigger == t) {
+								objective.type = OBJECTIVE_TYPE_TRIGGER;
+								objective.ID = w;
+								break;
+							}
+						if (!objective.type)
+							break; // No wall was found. We have an orphaned trigger, skip it. (Obsidian 4 fix)
 						for (int n = 0; n < ParTime.doneListSize; n++)
 							if (ParTime.doneList[n].type == objective.type && ParTime.doneList[n].ID == objective.ID)
 								return 1;
+					}
 				}
 			}
 		}
