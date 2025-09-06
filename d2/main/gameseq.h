@@ -61,6 +61,7 @@ typedef struct parTime {
 	int hasQuads;
 	int segnum; // What segment Algo is in.
 	ubyte isSegmentAccessible[MAX_SEGMENTS];
+	ubyte segmentVisitedFrom[MAX_SEGMENTS];
 	int loops; // Which stage of the par time calculation process are we on?
 	int typeThreeWalls[MAX_WALLS];
 	int numTypeThreeWalls;

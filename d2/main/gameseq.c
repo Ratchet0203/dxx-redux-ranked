@@ -1814,6 +1814,25 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 	return lowestCombatTime + 1; // Give an extra second per wall to wait for the explosion to go down. Flying through it causes great damage.
 }
 
+double calculateMovementTime(double distance, int dodging) // The ship's move speed is gradual, not constant, so we account for it gradually speeding up to prevent movement times being rigged against the player.
+{ // This detail does more than you think. Without it, Algo would unfairly gain up to ~0.4s on the player per move (for reference, many levels have over 100 moves).
+	// This will be inaccurate when using custom mass/drag/thrust values for the ship, but those are extremely rare.
+  // This function is also hard to abuse advantageously. The main issue is when the ship stats are disadvantageous, in which case the player can change them back.
+	//return distance / SHIP_MOVE_SPEED; // Just in case I want to reverse this.
+	double time;
+	distance = f2fl(distance); // Convert to units, since movementTime is in seconds. Remove this line if reversing.
+	if (distance < 89.4581634) // This is the distance below which movements are considered short enough to end when the ship hasn't yet reached full speed.
+		time = pow(distance, 0.714285) * 0.08072642; // In this case, we use this formula to determine how much time is being taken with varying speeds.
+	else // Otherwise we assume a cap of the ship's max speed after two seconds to prevent the formula from skyrocketing.
+		time = distance / f2fl(SHIP_MOVE_SPEED) + 0.428571429; // Since speed is no longer changing, movement time is just a linear trend plus the amount lost throughout the speedup.
+	if (!dodging) { // When using this function for combat time, exclude afterburner stuff. It can only thrust forward, so you can't dodge with it when facing the enemy like accuracy estimation assumes.
+		ParTime.movementTimeNoAB += time; // Simulated dodge movement doesn't count towards time actually navigating the level.
+		// The move speed multiplier for the afterburner applies over time, so only long stretches of not fighting give a significant par time decrease. 11s is the time to fully use then replenish its charge.
+		time /= time > 11 ? ParTime.afterburnerMultiplier : pow(ParTime.afterburnerMultiplier, time / 11);
+	}
+	return time;
+}
+
 double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object* obj, robot_info* robInfo, int isObject)
 {
 	// Here we use various aspects of the combat situation to estimate what percentage of shots the player will hit.
@@ -1874,7 +1893,7 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 		enemy_weapon_homing_flag = 0; // These bots can't actually shoot homing things at you, even if the weapon they would've had otherwise is.
 	}
 	else
-		optimal_distance = (((player_dodge_distance * F1_0) / SHIP_MOVE_SPEED) + 0.25) * enemy_weapon_speed;
+		optimal_distance = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * enemy_weapon_speed;
 	if (robInfo->thief)
 		optimal_distance += 80 + enemy_max_speed; // Thieves are the worst of both worlds.
 	else {
@@ -1943,6 +1962,18 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 			accuracy_multiplier *= 0.6;
 		if (optimal_distance / 16 > enemy_size + projectile_size) // Middle-left and middle-right Helix projectiles are equal to Spreadfire's outer projectiles in sideways movement.
 			accuracy_multiplier *= 0.2;
+	}
+	if (ParTime.loops > 1) { // The ship rocks during self destruct. Add an additional accuracy nerf for this after reactor is blown. This is mainly for countdown levels.
+		if (Difficulty_level) { // 96 is gotten by taking the ship's average rotational offset of 0.0234375 units per physics tick as per do_countdown_frame in cntrlcen.c.
+			if (optimal_distance / 24 > enemy_size + projectile_size)
+				accuracy_multiplier *= (enemy_size + projectile_size) / (optimal_distance / 24);
+		}
+		else { // Rocking is 25% as strong on Trainee.
+			if (optimal_distance / 96 > enemy_size + projectile_size)
+				accuracy_multiplier *= (enemy_size + projectile_size) / (optimal_distance / 96);
+		}
+		// It should be kept in mind that when the countdown timer drops below 16 seconds, the rocking begins to get more and more severe.
+		// We will not be accounting for this, as that would mean different shots would have different accuracies. This is good enough.
 	}
 	// If the enemy is small enough to fit between projectiles, only one can hit at a time, so halve accuracy.
 	// This makes Algo unlikely to use something like lasers against sidearm modula, which is good because it obeys real world expectations.
@@ -2458,6 +2489,18 @@ short create_path_partime(int start_seg, int target_seg, point_seg** path_start,
 	return player_path_length;
 }
 
+int retreadingPath(point_seg* path, int index)
+{
+	if (index) // Can't look at step -1 of a path.
+		for (int c = 0; c < 6; c++)
+			if (Segments[path[index].segnum].children[c] == path[index - 1].segnum) {
+				int flag = pow(2, c);
+				if (ParTime.segmentVisitedFrom[path[index].segnum] & flag)
+					return 1;
+			}
+	return 0;
+}
+
 double calculate_path_length_partime(point_seg* path, int path_count, partime_objective objective, int path_final)
 {
 	// Find length of path in units and return it.
@@ -2465,10 +2508,15 @@ double calculate_path_length_partime(point_seg* path, int path_count, partime_ob
 	// multipliers are baked into the constants in calculateParTime already, maybe it's better to
 	// leave it for now.
 	double pathLength = 0;
+	double segmentLength; // The lengths of each piece, for things that use it.
 	ParTime.pathObstructionTime = 0;
 	if (path_count > 1) {
 		for (int i = 0; i < path_count - 1; i++) {
-			pathLength += vm_vec_dist(&path[i].point, &path[i + 1].point);
+			segmentLength = vm_vec_dist(&path[i].point, &path[i + 1].point);
+			if (!(path_final && retreadingPath(path, i)))
+				pathLength += segmentLength;
+			else
+				printf("Segment %i has already been visited from segment %i! Omitting %.3f units from path length.\n", path[i].segnum, path[i - 1].segnum, f2fl(segmentLength));
 			// For objects, once we reach the target segment we move to the object to "pick it up".
 			// Note: For now, this applies to robots, too.
 			// Now, we account for the time it'd take to fight walls on the path (Abyss 1.0 par time hotfix lol). Originally I accounted for matcen fight time as well, but the change did more harm than good.
@@ -2614,6 +2662,15 @@ partime_objective find_nearest_objective_partime(int start_seg, point_seg** path
 		int wall_num;
 		int side_num;
 		for (i = 0; i < player_path_length - 1; i++) {
+			// Let's record that we travelled to this segment from this direction.
+			// Algo will only count each segment-direction combination once to avoid inflating par times when it likely does huge unoptimal backtracking, due to the nature of the nearest neighbor objective order.
+			// Levels that loop back on themselves are susceptible to having par times that are too low, but this is rare and usually non-fatal to rank possibility.
+			// We can't reasonably account for that weakness because it would require storing the locked state of all 254 wall slots in all 54000 entries of segmentVisitedFrom, which would use over 13 MB of memory and drive up load times.
+			for (int c = 0; c < 6; c++)
+				if (Segments[Point_segs[i].segnum].children[c] == Point_segs[i - 1].segnum) {
+					int flag = pow(2, c);
+					ParTime.segmentVisitedFrom[Point_segs[i].segnum] |= flag; // Because |=ing pow(2, c) or MACRO(c) just... didn't work.
+				}
 			side_num = find_connecting_side(Point_segs[i].segnum, Point_segs[i + 1].segnum);
 			wall_num = Segments[Point_segs[i].segnum].sides[side_num].wall_num;
 			if (!ParTime.isSegmentAccessible[Point_segs[i + 1].segnum])
@@ -2866,23 +2923,23 @@ void respond_to_objective_partime(partime_objective objective)
 				else
 					Ranking.secretMaxScore += robInfo->score_value;
 				double teleportDistance = 0;
+				double teleportTime = 0;
 				short Boss_path_length = 0;
 				if (robInfo->boss_flag > 0) { // Bosses have special abilities that take additional time to counteract. Boss levels are unfair without this.
 					if (Boss_teleports[robInfo->boss_flag - BOSS_D2]) {
 						int num_teleports = combatTime / 8; // Bosses teleport on an eight second timer, meaning you can only get two seconds of damage in at a time before they move away.
 						for (i = 0; i < Num_boss_teleport_segs; i++) { // Now we measure the distance between every possible pair of points the boss can teleport between.
 							for (int n = 0; n < Num_boss_teleport_segs; n++) {
+								teleportDistance = 0;
 								create_path_points(obj, Boss_teleport_segs[i], Boss_teleport_segs[n], Point_segs_free_ptr, &Boss_path_length, MAX_POINT_SEGS, 0, 0, -1, 0, obj->id, 1); // Assume inaccesibility here so invalid paths don't get super long and drive up teleport time.
 								for (int c = 0; c < Boss_path_length - 1; c++)
 									teleportDistance += vm_vec_dist(&Point_segs[c].point, &Point_segs[c + 1].point);
+								teleportTime += calculateMovementTime(teleportDistance, 0);
 							}
 						}
-						double teleportTime = ((teleportDistance / pow(Num_boss_teleport_segs, 2)) * num_teleports) / SHIP_MOVE_SPEED; // Account for the average teleport distance, not highest.
-						// Use average teleport time, not total, for afterburner speed bonus. Each teleport is an individual move between shooting the boss.
-						if (teleportTime) { // Not putting this causes a div 0 error on levels where bosses have low enough health.
-							ParTime.movementTime += teleportTime / (teleportTime / num_teleports > 11 ? ParTime.afterburnerMultiplier : pow(ParTime.afterburnerMultiplier, (teleportTime / num_teleports) / 11));
-							ParTime.movementTimeNoAB += teleportTime;
-						}
+						teleportTime /= pow(Num_boss_teleport_segs, 2); // Account for the average teleport distance, not highest.
+						teleportTime *= num_teleports;
+						ParTime.movementTime += teleportTime;
 						printf("Teleport time: %.3fs\n", teleportTime);
 					}
 				}
@@ -3041,7 +3098,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	// Populate the locked walls list.
 	initLockedWalls(1);
 
-	for (i = 0; i <= Highest_segment_index; i++) // Iterate through every side of every segment, measuring their sizes.
+	for (i = 0; i <= Highest_segment_index; i++) { // Iterate through every side of every segment, measuring their sizes.
 		for (int s = 0; s < 6; s++)
 			if (Segments[i].children[s] > -1) { // Don't measure closed sides. We can't go through them anyway.
 				// Measure the distance between all of that side's verts to determine whether we can fit. ai_door_is_openable will use them later to disallow passage if we can't.
@@ -3055,6 +3112,8 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 			}
 			else
 				ParTime.sideSizes[i][s] = ConsoleObject->size * 2; // If a side is closed, mark it down as big enough.
+		ParTime.segmentVisitedFrom[i] = 0;
+	}
 	for (i = 0; i <= Highest_segment_index; i++) // Lay out the map for where the "inaccessible" territory is so we can mark objectives within it as such.
 		ParTime.isSegmentAccessible[i] = determineSegmentAccessibility(i);
 
@@ -3220,10 +3279,8 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 				// Cap algo's energy and ammo like the player's.
 				if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 8)
 					ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 8;
-				// Now move ourselves to the objective for the next pathfinding iteration, unless the objective wasn't reachable with just flight, in which case move ourselves as far as we COULD fly.
-				// The move speed multiplier for the afterburner applies over time, so only long stretches of not fighting give a significant par time decrease. 11s is the time to fully use then replenish its charge.
-				ParTime.movementTime += movementTimeIncrease / (movementTimeIncrease > 11 ? ParTime.afterburnerMultiplier : pow(ParTime.afterburnerMultiplier, movementTimeIncrease / 11));
-				ParTime.movementTimeNoAB += movementTimeIncrease;
+				// Now move ourselves to the objective for the next pathfinding iteration, unless the objective wasn't reachable with just flight, in which case move ourselves as far as we COULD fly.	
+				ParTime.movementTime += calculateMovementTime(pathLength - ParTime.shortestPathObstructionTime, 0);
 				lastSegnum = ParTime.segnum;
 			}
 			else
@@ -3255,7 +3312,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	// Calculate end time.
 	timer_update();
 	end_timer_value = timer_query();
- 	printf("Par time: %.3fs (%.3f movement, %.3f combat) Matcen time: %.3fs, AB saved %.3fs (%.2f percent)\nCalculation time: %.3fs\n",
+ 	printf("Par time: %.3fs (%.3f movement, %.3f combat) Matcen time: %.3fs, AB saved %.3fs (%.2f percent)\nCalculation time: %.3fs\n", // movementTimeNoAB breaks on D2 level 12, but it's not important since it doesn't actually influence par time.
 		ParTime.movementTime + ParTime.combatTime,
 		ParTime.movementTime,
 		ParTime.combatTime,
