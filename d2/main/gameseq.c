@@ -1815,16 +1815,19 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 }
 
 double calculateMovementTime(double distance, int dodging) // The ship's move speed is gradual, not constant, so we account for it gradually speeding up to prevent movement times being rigged against the player.
-{ // This detail does more than you think. Without it, Algo would unfairly gain up to ~0.4s on the player per move (for reference, many levels have over 100 moves).
-	// This will be inaccurate when using custom mass/drag/thrust values for the ship, but those are extremely rare.
-  // This function is also hard to abuse advantageously. The main issue is when the ship stats are disadvantageous, in which case the player can change them back.
+{ // This detail does more than you think. Without it, Algo would unfairly gain up to ~0.4s on the player per move by default (for reference, many levels have over 100 moves).
+	// This will account for custom ship attributes as well.
 	//return distance / SHIP_MOVE_SPEED; // Just in case I want to reverse this.
-	double time;
-	distance = f2fl(distance); // Convert to units, since movementTime is in seconds. Remove this line if reversing.
-	if (distance < 89.4581634) // This is the distance below which movements are considered short enough to end when the ship hasn't yet reached full speed.
-		time = pow(distance, 0.714285) * 0.08072642; // In this case, we use this formula to determine how much time is being taken with varying speeds.
-	else // Otherwise we assume a cap of the ship's max speed after two seconds to prevent the formula from skyrocketing.
-		time = distance / f2fl(SHIP_MOVE_SPEED) + 0.428571429; // Since speed is no longer changing, movement time is just a linear trend plus the amount lost throughout the speedup.
+	distance = f2fl(distance); // Convert to actual unit amount.
+	double curDistance = 0;
+	double speed = 0;
+	int i;
+	for (i = 0; curDistance < distance; i++) { // Track number of physics ticks it takes to move the given distance. One tick = 1/64 of a second.
+		speed += (double)Player_ship->max_thrust / Player_ship->mass;
+		speed *= 1 - f2fl(Player_ship->drag);
+		curDistance += speed / 64;
+	}
+	double time = i / 64.0;
 	if (!dodging) { // When using this function for combat time, exclude afterburner stuff. It can only thrust forward, so you can't dodge with it when facing the enemy like accuracy estimation assumes.
 		ParTime.movementTimeNoAB += time; // Simulated dodge movement doesn't count towards time actually navigating the level.
 		// The move speed multiplier for the afterburner applies over time, so only long stretches of not fighting give a significant par time decrease. 11s is the time to fully use then replenish its charge.
@@ -1891,7 +1894,17 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	if (enemy_attack_type) { // In the case of melee enemies, the optimal distance depends on them instead of their weapon, since they use themselves to attack you.
 		player_dodge_distance = player_size + enemy_size > enemy_splash_radius ? player_size + enemy_size : enemy_splash_radius; // Stay further away from bots with splash attacks.
 		enemy_weapon_homing_flag = 0; // These bots can't actually shoot homing things at you, even if the weapon they would've had otherwise is.
-		optimal_distance = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * enemy_max_speed;
+		// Account for robot acceleration, since we're not measuring shots anymore here. Luckily mass isn't an element so it's simpler than player acceleration calculations.
+		optimal_distance = 0;
+		int num_frames = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * 64;
+		double speed = 0;
+		for (int i = 0; i < num_frames; i++) { // Step through how far the robot will move in the number of physics ticks it takes the player to move out of its way (the bot would actually turn to account for this but blegh simplification).
+			speed += (Difficulty_level + 5) / 4.0;
+			speed *= 1 - f2fl(robInfo->drag);
+			if (speed > enemy_max_speed)
+				speed = enemy_max_speed;
+			optimal_distance += speed / 64;
+		}
 	}
 	else {
 		player_dodge_distance = player_size + enemy_weapon_size > enemy_splash_radius ? player_size + enemy_weapon_size : enemy_splash_radius;
