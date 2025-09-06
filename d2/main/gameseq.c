@@ -1887,13 +1887,16 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	// Once the player's ship can start moving 250ms (avg human reaction time) after the enemy shoots, and get far enough out of the way for the enemy's shots to miss, it's at the optimal distance.
 	// Any closer, and the player is put in too much danger. Any further, and the player faces potential accuracy loss due to the enemy having more time to dodge themselves.
 	double optimal_distance;
-	double player_dodge_distance = player_size + enemy_weapon_size > enemy_splash_radius ? player_size + enemy_weapon_size : enemy_splash_radius; // Stay further away from bots with splash attacks.
-	if (enemy_attack_type) { // In the case of enemies that don't shoot at you, the optimal distance depends on their speed, as generally you wanna stand further back the quicker they can approach you.
-		optimal_distance = enemy_max_speed / 4; // The /4 is in reference to the 250ms benchmark from earlier. When they start charging you, you've gotta react and start backing up.
+	double player_dodge_distance;
+	if (enemy_attack_type) { // In the case of melee enemies, the optimal distance depends on them instead of their weapon, since they use themselves to attack you.
+		player_dodge_distance = player_size + enemy_size > enemy_splash_radius ? player_size + enemy_size : enemy_splash_radius; // Stay further away from bots with splash attacks.
 		enemy_weapon_homing_flag = 0; // These bots can't actually shoot homing things at you, even if the weapon they would've had otherwise is.
+		optimal_distance = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * enemy_max_speed;
 	}
-	else
+	else {
+		player_dodge_distance = player_size + enemy_weapon_size > enemy_splash_radius ? player_size + enemy_weapon_size : enemy_splash_radius;
 		optimal_distance = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * enemy_weapon_speed;
+	}
 	if (robInfo->thief)
 		optimal_distance += 80 + enemy_max_speed; // Thieves are the worst of both worlds.
 	else {
@@ -1964,7 +1967,7 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 			accuracy_multiplier *= 0.2;
 	}
 	if (ParTime.loops > 1) { // The ship rocks during self destruct. Add an additional accuracy nerf for this after reactor is blown. This is mainly for countdown levels.
-		if (Difficulty_level) { // 96 is gotten by taking the ship's average rotational offset of 0.0234375 units per physics tick as per do_countdown_frame in cntrlcen.c.
+		if (Difficulty_level) { // 24 is gotten by taking the ship's average rotational offset per physics tick as per do_countdown_frame in cntrlcen.c.
 			if (optimal_distance / 24 > enemy_size + projectile_size)
 				accuracy_multiplier *= (enemy_size + projectile_size) / (optimal_distance / 24);
 		}
