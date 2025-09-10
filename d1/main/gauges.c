@@ -1767,7 +1767,10 @@ void draw_numerical_display(int shield, int energy)
 #endif
 	// cockpit is not 100% geometric so we need to divide shield and energy X position by 1.951 which should be most accurate
 	// gr_get_string_size is used so we can get the numbers finally in the correct position with sw and ew
-	gr_set_fontcolor(BM_XRGB(14,14,23),-1 );
+	if (Ranking.noDamage && !Ranking.quickload)
+		gr_set_fontcolor(BM_XRGB(255,215,0),-1);
+	else
+		gr_set_fontcolor(BM_XRGB(14,14,23),-1);
 	gr_get_string_size((shield>199)?"200":(shield>99)?"100":(shield>9)?"00":"0",&sw,&sh,&saw);
 	gr_printf(	(grd_curscreen->sc_w/1.951)-(sw/2),
 			(grd_curscreen->sc_h/1.365),"%d",shield);
@@ -2044,7 +2047,10 @@ void sb_draw_shield_num(int shield)
 
 	//draw numbers
 	gr_set_curfont( GAME_FONT );
-	gr_set_fontcolor(BM_XRGB(14,14,23),-1 );
+	if (Ranking.noDamage && !Ranking.quickload)
+		gr_set_fontcolor(BM_XRGB(255,215,0),-1);
+	else
+		gr_set_fontcolor(BM_XRGB(14,14,23),-1);
 
 	//erase old one
 	PIGGY_PAGE_IN( cockpit_bitmap[PlayerCfg.CurrentCockpitMode] );
