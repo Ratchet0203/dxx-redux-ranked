@@ -1,0 +1,107 @@
+                              Project: H.Y.D.R.O.
+                  A Descent 2 Level Series by Jeremey Poparad
+
+Designed by:    Jeremey Poparad
+E-mail:         jeremey@nci2000.net
+Version:        1.0
+Date:           4/02/00
+
+Official Project: H.Y.D.R.O. Web Site:
+http://members.tripod.com/~JeremeyP/hydro.html
+
+--------
+FEATURES
+--------
+
+*       Eighteen new Descent levels filled with new traps and mazes.
+*	Over 15 new robots to blow away.
+*       Tons of secret areas and places off the beaten paths to find
+	and explore.
+*	A new storyline to compliment the mission.
+*	5 new bosses to pick a fight with.
+
+-----
+STORY
+-----
+        
+
+------------
+REQUIREMENTS
+------------
+
+Project: H.Y.D.R.O. requires Descent 2 v1.2 to take advantage of the
+custom textures, robots, and briefings.  If you don't have v1.2, patches
+are available on numerous Descent websites.
+
+NOTE:
+
+ZIP Contents:
+HYDRO.HOG               Main HOG file
+HYDRO.MN2               Mission file
+HYDRO.TXT               This document (TXT format)
+
+ALL of these files must be present in the ZIP if you plan on
+distributing Project: H.Y.D.R.O.
+
+
+-------
+CREDITS
+-------
+
+Level design and construction:  Poparad
+Story and writing:              Poparad
+Robot designers:                Poparad
+Textures:
+
+The textures in H.Y.D.R.O. are the works of Scorch (ktz75a@mizzou.edu)
+and Midgard (midgard@midgard.descent3.net) and have been used with
+permission. You can visit their sites at the addresses below:
+Scorch:		http://www.mu.org/~karl/
+Midgard:	http://midgard.descent3.net/
+
+Scorch's Textures:
+	All oil textures that replace some lava/water textures.
+
+Midgard's Textues:
+	All textures used on level 18 for launch base and missle.
+
+
+-----
+SPECS
+-----
+
+Editors used:
+        Devil 2.1h              Level construction
+        Devil 2.2l              Secret level start points
+        DMB2 v2.6               Curve generator
+        YAHOMA                  HOG compilation
+        DTX2                    POG compilation
+	Polytron 		Robot design
+	Polytron 2              Submodel and BSP tree placement
+	HXMEdit                 HXM modifications
+	PMView			Robot viewing
+	RBotEdit		HXM compilation	
+
+Game modes supported:
+Single Player:          Yes (intended)
+Anarchy:                Yes
+Team Anarchy:           Yes
+Robo-Anarchy:           Yes
+Cooperative:            Yes
+Capture the Flag:       Yes
+Hoard/Team Hoard:       Yes
+
+Please report all bugs/flaws to me at jeremey@nci2000.net
+
+-----------
+LEGAL STUFF
+-----------
+
+You may NOT distribute the Project: Mandrill files without this
+TXT file.  All graphics found in this mission must be used with
+artists consent.
+
+The Project: H.Y.D.R.O. files are provided as-is and may NOT
+be distributed for profit.
+
+

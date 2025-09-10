@@ -1,0 +1,87 @@
+               	  A Dark Flame Production
+                     BAHAGAD OUTBREAK
+                   Version 1.1 - 4/1/99
+
+                Descent II Add-On Mission  
+
+IMPORTANT NOTE: Descent II Vertigo Enhanced is NOT required
+to play Bahagad Outbreak.
+
+Introduction:
+
+Bahagad Outbreak is the continuation to the Kragg 
+mission, Bahagad Outbreak contains many features including:
+ *8 mission-oriented/key-based levels
+ *4 new (sort of) polygon models
+ *6 new enemies and over 18 different robot behaviors
+ *Custom MIDI soundtrack
+ *Full briefings and Vertigo backgrounds
+
+NOTES: There are two modes to Bahagad Outbreak:
+ *The easy-cheesy mode with Descent 1 robots and weapons.
+ *The normal mode with Descent 2 robots and weapons.
+Differences:
+-Bahagad EASYMODE:
+ *Only Descent 1 robots (which are really easy to beat)
+ *Only Descent 1 weapons (Since you are facin Descent 1 robots, might
+  as well make it fair for the robots)
+ *No briefings (since you chose the easy path, we won't give you the
+  full in-depth story!)
+ *No new music
+ *No secret levels (yes, it is true, you can find the exits, but there
+  will be no secret levels, again, you chose the easy mode!)
+ *None of the new bosses (the two new bosses won't appear and only
+  bosses 1 and 2 of Descent 1 will take their place!)
+
+-Bahagad NORMALMODE:
+ *Lots of Descent 2 robots!
+ *Lots of Descent 2 weapons!
+ *Full in-depth briefings! (runs 25 pages in length when printed out!)
+ *New Music soundtrack!
+ *Only three thief bots!
+ *Both secret levels!
+ *New bosses and new enemies!
+ *Much harder too!
+ *Finally can see the real ending!
+
+
+Contact Information:
+
+Please feel free to contact me with any feedback you may 
+have on Bahagad Outbreak.  
+Email:
+ eifel1@worldnet.att.net
+The official Bahagad Outbreak homepage:
+ http://www.descent2.com/bahagad
+
+Legal Information:
+
+Please distribute the original archive as is.  Do not 
+disassemble the HOG file except for your own personal use.  
+You may not use any part of the included files without the 
+written consent of WOLF or WOLF3025. (Any new robots, you must
+have written consent from their respective owners before using!) 
+All music is copyrighted by their respective owners!
+
+Ownership:
+
+Game01.mid-Sega
+Game02.mid-Jenna Ramsey (may not use this one for any reason, must
+                         have written consent from both me and Jenna)
+Game03.mid-
+Game04.mid-Chris Tilton (may not use this one for any reason, must
+                         have written consent from both me and Chris)
+
+"Scouter Razor"-Luke Schneider
+"PSDR"-Razor Blade
+"Tubby"-Razor Blade
+"Devestator"-Peter Hodge
+Thank you all again!
+
+
+Notes: This mission is not for the faint of heart, it is quite tough, so
+stay alert! Also, if you did the medium or minimal install option for Descent2,
+I highly suggest you keep the CD-ROM in your drive throughout your playing
+in Bahagad, because the breifings will come up and sometimes require robot movies
+that are on the CD. Unless you did large or crazy install, then you just 
+need the CD-ROM just to start the game.

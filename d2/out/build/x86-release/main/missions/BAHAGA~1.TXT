@@ -1,0 +1,441 @@
+<->HOG File:      bahagad.hog
+Path:          C:\Descent2\missions\
+Size:          3,290,354 bytes
+Last Modified: 3/21/99 2:27:58 PM
+
+<->File:    world1a.rl2
+Size:    149,663
+Offset:  21
+Name:    Noami Ducren'uble
+Version: D2 with v1.1 light extensions (7)
+
+            Blue:       Red:
+Goals:          1          1
+Flags:          1          1
+This level supports flag and hoard modes.
+
+Reactor: Limefrost Spiral Reactor
+Exits: 1
+It is possible to finish and exit this level.
+
+         SP:  1:  2:  3:  4:  5:  6:  7:
+Starts:  Yes Yes Yes Yes Yes Yes Yes Yes
+Coop Starts: 3
+Supports up to 8 players
+and 4 players in coop mode.
+
+              Blue:  Yellow:     Red:
+Keys:          Yes       No      Yes
+Doors:           4     None        2
+
+Guide-bot:      Present
+Hostages:       5
+Mines:          10
+Control Panels: 8
+Energy Centres: 4
+Producers:      2
+No. Robots:     78
+No. Items:      67
+
+Mine Data offset: 76
+Game Data offset: 66458
+No. Vertices:     1284
+No. Cubes:        367
+
+                offset:     number:
+Things:           68895         172
+Walls:            98595         185
+Switches:        103035          15
+Links:                0           0
+Producers:       103857           2
+
+Header Length:  143 bytes
+
+<->File:    world1b.rl2
+Size:    144,027
+Offset:  151,202
+Name:    Y'tor Du'crabni
+Version: D2 with v1.1 light extensions (7)
+
+            Blue:       Red:
+Goals:          1          1
+Flags:          1          1
+This level supports flag and hoard modes.
+
+Reactor: Limefrost Spiral Reactor
+Exits: 1
+It is possible to finish and exit this level.
+
+         SP:  1:  2:  3:  4:  5:  6:  7:
+Starts:  Yes Yes Yes Yes Yes Yes Yes Yes
+Coop Starts: 3
+Supports up to 8 players
+and 4 players in coop mode.
+
+              Blue:  Yellow:     Red:
+Keys:          Yes      Yes      Yes
+Doors:           2        6        2
+
+Guide-bot:      Present
+Hostages:       5
+Mines:          11
+Control Panels: 7
+Energy Centres: 6
+Producers:      3
+No. Robots:     82
+No. Items:      92
+
+Mine Data offset: 92
+Game Data offset: 68611
+No. Vertices:     1355
+No. Cubes:        373
+
+                offset:     number:
+Things:           71046         202
+Walls:           104209         144
+Switches:        107665          19
+Links:                0           0
+Producers:       108695           3
+
+Header Length:  143 bytes
+
+<->File:    world1c.rl2
+Size:    182,988
+Offset:  305,327
+Name:    Nu'crow Duno'rble
+Version: D2 with v1.1 light extensions (7)
+
+            Blue:       Red:
+Goals:          1          1
+Flags:          2          2
+This level supports flag and hoard modes.
+
+Reactor: Limefrost Spiral Reactor
+Exits: 1 normal, 1 secret
+It is possible to finish and exit this level.
+
+         SP:  1:  2:  3:  4:  5:  6:  7:
+Starts:  Yes Yes Yes Yes Yes Yes Yes Yes
+Coop Starts: 3
+Supports up to 8 players
+and 4 players in coop mode.
+
+              Blue:  Yellow:     Red:
+Keys:          Yes      Yes      Yes
+Doors:           2        4        2
+
+Guide-bot:      Present
+Hostages:       7
+Mines:          19
+Control Panels: 11
+Energy Centres: 8
+Producers:      1
+No. Robots:     87
+No. Items:      111
+
+Mine Data offset: 332
+Game Data offset: 96173
+No. Vertices:     1896
+No. Cubes:        555
+
+                offset:     number:
+Things:           98610         236
+Walls:           136664         154
+Switches:        140360          21
+Links:                0           0
+Producers:       141494           1
+
+Header Length:  143 bytes
+
+<->File:    world1s.rl2
+Size:    48,092
+Offset:  505,403
+Name:    Terra Firma Facility
+Version: D2 with v1.1 light extensions (7)
+
+            Blue:       Red:
+Goals:          0          0
+Flags:          0          0
+This level doesn't support flag or hoard modes.
+
+Reactor: Limefrost Spiral Reactor
+Exits: 3
+It is possible to finish and exit this level.
+
+         SP:  1:  2:  3:  4:  5:  6:  7:
+Starts:  Yes  No  No  No  No  No  No  No
+Coop Starts: 3
+Support single-player mode and 4 in coop mode.
+
+              Blue:  Yellow:     Red:
+Keys:           No       No       No
+Doors:        None     None     None
+
+Guide-bot:      None
+Hostages:       0
+Mines:          2
+Control Panels: 7
+Energy Centres: 0
+Producers:      2
+No. Robots:     23 normal, 5 dropped
+No. Items:      41 normal, 6 dropped
+
+Mine Data offset: 76
+Game Data offset: 24774
+No. Vertices:     490
+No. Cubes:        131
+
+                offset:     number:
+Things:           27214          71
+Walls:            37848          63
+Switches:         39360          20
+Links:                0           0
+Producers:        40442           2
+
+Header Length:  143 bytes
+
+<->File:    world1d.rl2
+Size:    104,235
+Offset:  562,625
+Name:    Tomai Mun'cra
+Version: D2 with v1.1 light extensions (7)
+
+            Blue:       Red:
+Goals:          1          1
+Flags:          1          1
+This level supports flag and hoard modes.
+
+Boss: D1 Lv. 7 Boss (17)
+Reactor: Limefrost Spiral Reactor
+Exits: 1
+It is possible to finish and exit this level.
+
+         SP:  1:  2:  3:  4:  5:  6:  7:
+Starts:  Yes Yes Yes Yes Yes Yes Yes Yes
+Coop Starts: 3
+Supports up to 8 players
+and 4 players in coop mode.
+
+              Blue:  Yellow:     Red:
+Keys:          Yes      Yes      Yes
+Doors:           2        2        2
+
+Guide-bot:      Present
+Hostages:       4
+Mines:          8
+Control Panels: 7
+Energy Centres: 2
+Producers:      2
+No. Robots:     52
+No. Items:      87
+
+Mine Data offset: 76
+Game Data offset: 57800
+No. Vertices:     1136
+No. Cubes:        333
+
+                offset:     number:
+Things:           60233         163
+Walls:            85125          99
+Switches:         87501          16
+Links:                0           0
+Producers:        88375           2
+
+Header Length:  143 bytes
+
+<->File:    world2a.rl2
+Size:    156,357
+Offset:  691,392
+Name:    PTMC Boring Hole
+Version: D2 with v1.1 light extensions (7)
+
+            Blue:       Red:
+Goals:          1          1
+Flags:          1          1
+This level supports flag and hoard modes.
+
+Reactor: Omega System Reactor
+Exits: 1 normal, 1 secret
+It is possible to finish and exit this level.
+
+         SP:  1:  2:  3:  4:  5:  6:  7:
+Starts:  Yes Yes Yes Yes Yes Yes Yes Yes
+Coop Starts: 3
+Supports up to 8 players
+and 4 players in coop mode.
+
+              Blue:  Yellow:     Red:
+Keys:      Dropped      Yes      Yes
+Doors:           4        2        4
+
+Guide-bot:      Present
+Hostages:       6
+Mines:          12
+Control Panels: 9
+Energy Centres: 4
+Producers:      4
+No. Robots:     91
+No. Items:      96 normal, 1 dropped
+
+Mine Data offset: 95
+Game Data offset: 87314
+No. Vertices:     1714
+No. Cubes:        506
+
+                offset:     number:
+Things:           89750         217
+Walls:           125711         154
+Switches:        129407          22
+Links:                0           0
+Producers:       130593           4
+
+Header Length:  143 bytes
+
+<->File:    world2s.rl2
+Size:    74,451
+Offset:  884,367
+Name:    Subterranean Abyss
+Version: D2 with v1.1 light extensions (7)
+
+            Blue:       Red:
+Goals:          0          0
+Flags:          0          0
+This level doesn't support flag or hoard modes.
+
+Reactor: Omega System Reactor
+Exits: 6
+It is possible to finish and exit this level.
+
+         SP:  1:  2:  3:  4:  5:  6:  7:
+Starts:  Yes  No  No  No  No  No  No  No
+Coop Starts: 3
+Support single-player mode and 4 in coop mode.
+
+              Blue:  Yellow:     Red:
+Keys:           No       No       No
+Doors:        None     None     None
+
+Guide-bot:      None
+Hostages:       0
+Mines:          0
+Control Panels: 5
+Energy Centres: 0
+Producers:      0
+No. Robots:     35
+No. Items:      49
+
+Mine Data offset: 79
+Game Data offset: 46197
+No. Vertices:     835
+No. Cubes:        298
+
+                offset:     number:
+Things:           48635          89
+Walls:            62379         177
+Switches:         66627          26
+Links:                0           0
+Producers:        68021           0
+
+Header Length:  143 bytes
+
+<->File:    world2b.rl2
+Size:    167,252
+Offset:  1,015,714
+Name:    Ma'kraeg Guard Tower
+Version: D2 with v1.1 light extensions (7)
+
+            Blue:       Red:
+Goals:          1          1
+Flags:          1          1
+This level supports flag and hoard modes.
+
+Reactor: Omega System Reactor
+Exits: 1
+It is possible to finish and exit this level.
+
+         SP:  1:  2:  3:  4:  5:  6:  7:
+Starts:  Yes Yes Yes Yes Yes Yes Yes Yes
+Coop Starts: 3
+Supports up to 6 players
+and 4 players in coop mode.
+
+              Blue:  Yellow:     Red:
+Keys:          Yes      Yes      Yes
+Doors:           2        2        2
+
+Guide-bot:      Present
+Hostages:       4
+Mines:          25
+Control Panels: 4
+Energy Centres: 4
+Producers:      1
+No. Robots:     88
+No. Items:      87
+
+Mine Data offset: 159
+Game Data offset: 81887
+No. Vertices:     1587
+No. Cubes:        476
+
+                offset:     number:
+Things:           84327         214
+Walls:           121040         153
+Switches:        124712          16
+Links:                0           0
+Producers:       125586           1
+
+Header Length:  143 bytes
+
+<->File:    world2d.rl2
+Size:    168,135
+Offset:  1,509,393
+Name:    War Falcon
+Version: D2 with v1.1 light extensions (7)
+
+            Blue:       Red:
+Goals:          1          1
+Flags:          2          2
+This level supports flag and hoard modes.
+
+Boss: D2 Lv. 20 Boss (52)
+Reactor: Omega System Reactor
+Exits: 1
+It is possible to finish and exit this level.
+
+         SP:  1:  2:  3:  4:  5:  6:  7:
+Starts:  Yes Yes Yes Yes Yes Yes Yes Yes
+Coop Starts: 3
+Supports up to 8 players
+and 4 players in coop mode.
+
+              Blue:  Yellow:     Red:
+Keys:      Dropped  Dropped   3 drpd
+Doors:           2        2        4
+
+Guide-bot:      None
+Hostages:       0
+Mines:          18
+Control Panels: 12
+Energy Centres: 7
+Producers:      2
+No. Robots:     67
+No. Items:      89 normal, 5 dropped
+
+Mine Data offset: 719
+Game Data offset: 90440
+No. Vertices:     1740
+No. Cubes:        562
+
+                offset:     number:
+Things:           92870         186
+Walls:           123333         104
+Switches:        125829          18
+Links:                0           0
+Producers:       126807           2
+
+Header Length:  143 bytes
+
+<->Note: Due to the inadequecies of DCheck which I used to make this 
+file, it could not read level 7 because of Cube Data overflow. The 
+level runs fine but I have no idea what might have caused such a 
+error.

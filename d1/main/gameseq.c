@@ -778,17 +778,15 @@ int calculateRank(int level_num, int update_warm_start_status)
 	PHYSFS_close(fp);
 	double maxScore = levelPoints * 3;
 	maxScore = (int)maxScore;
-	double skillPoints = ceil((playerPoints * (difficulty / 4)));
 	double timePoints = (maxScore / 1.5) / pow(2, secondsTaken / parTime);
-	if (secondsTaken < parTime)
-		timePoints = (maxScore / 2.4) * (1 - (secondsTaken / parTime) * 0.2);
 	if (!parTime)
 		timePoints = 0;
 	timePoints = (int)timePoints;
-	hostagePoints = playerHostages * 2500 * ((difficulty + 8) / 12);
+	hostagePoints = playerHostages * 2500 * (2.0 / 3);
 	if (playerHostages == levelHostages)
 		hostagePoints *= 3;
 	hostagePoints = round(hostagePoints); // Round this because I got 24999 hostage bonus once.
+	double skillPoints = ceil(((playerPoints + timePoints + hostagePoints) * (difficulty / 8)));
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
 	maxScore += levelHostages * 7500;
 	double deathPoints;
@@ -961,23 +959,15 @@ void DoEndLevelScoreGlitz(int network)
 	Ranking.rankScore = level_points - Ranking.excludePoints;
 
 	skill_points = 0, skill_points2 = 0;
-	if (Difficulty_level == 1) {
-		skill_points2 = Ranking.rankScore / 4;
-	}
-	if (Difficulty_level > 1) {
+	if (Difficulty_level > 1)
 		skill_points = level_points * (Difficulty_level - 1) / 2;
-		skill_points2 = Ranking.rankScore * ((double)Difficulty_level / 4);
-	}
 	skill_points -= skill_points % 100;
-	skill_points2 = ceil(skill_points2); // Round this up so you can't theoretically miss a rank by a point on levels or difficulties with weird scoring.
 
 	shield_points = f2i(Players[Player_num].shields) * 10 * (Difficulty_level + 1);
 	energy_points = f2i(Players[Player_num].energy) * 5 * (Difficulty_level + 1);
 	time_points = ((Ranking.maxScore - Players[Player_num].hostages_level * 7500) / 1.5) / pow(2, Ranking.level_time / Ranking.parTime);
-	if (Ranking.level_time < Ranking.parTime)
-		time_points = ((Ranking.maxScore - Players[Player_num].hostages_level * 7500) / 2.4) * (1 - (Ranking.level_time / Ranking.parTime) * 0.2);
 	hostage_points = Players[Player_num].hostages_on_board * 500 * (Difficulty_level + 1);
-	hostage_points2 = Players[Player_num].hostages_on_board * 2500 * (((double)Difficulty_level + 8) / 12);
+	hostage_points2 = Players[Player_num].hostages_on_board * 2500 * (2.0 / 3);
 
 	all_hostage_text[0] = 0;
 	endgame_text[0] = 0;
@@ -990,6 +980,8 @@ void DoEndLevelScoreGlitz(int network)
 		all_hostage_points = 0;
 	hostage_points2 = round(hostage_points2); // Round this because I got 24999 hostage bonus once.
 
+	skill_points2 = ceil(Ranking.rankScore + time_points + hostage_points2) * ((double)Difficulty_level / 8); // Round this up so you can't theoretically miss a rank by a point on levels or difficulties with weird scoring.
+
 	if (!cheats.enabled && !(Game_mode & GM_MULTI) && (Players[Player_num].lives) && (Current_level_num == Last_level)) {		//player has finished the game!
 		endgame_points = Players[Player_num].lives * 10000;
 		is_last_level = 1;
@@ -1001,7 +993,7 @@ void DoEndLevelScoreGlitz(int network)
 	death_points = -(Ranking.maxScore * 0.4 - Ranking.maxScore * (0.4 / pow(2, Ranking.deathCount / (Ranking.parTime / 360))));
 	if (Ranking.noDamage)
 		death_points = ceil(Ranking.maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
-	Ranking.missedRngSpawn *= ((double)Difficulty_level + 4) / 4; // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
+	Ranking.missedRngSpawn *= ((double)Difficulty_level + 4) / 8; // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
 	missed_rng_drops = Ranking.missedRngSpawn;
 	Ranking.rankScore += skill_points2 + time_points + hostage_points2 + death_points + missed_rng_drops;
 
@@ -1249,17 +1241,15 @@ void DoBestRanksScoreGlitz(int level_num)
 	PHYSFS_close(fp);
 	double maxScore = levelPoints * 3;
 	maxScore = (int)maxScore;
-	double skillPoints = ceil(playerPoints * (difficulty / 4));
 	double timePoints = (maxScore / 1.5) / pow(2, secondsTaken / parTime);
-	if (secondsTaken < parTime)
-		timePoints = (maxScore / 2.4) * (1 - (secondsTaken / parTime) * 0.2);
 	if (!parTime)
 		timePoints = 0;
 	timePoints = (int)timePoints;
-	hostagePoints = playerHostages * 2500 * ((difficulty + 8) / 12);
+	hostagePoints = playerHostages * 2500 * (2.0 / 3);
 	if (playerHostages == levelHostages)
 		hostagePoints *= 3;
 	hostagePoints = round(hostagePoints); // Round this because I got 24999 hostage bonus once.
+	double skillPoints = ceil((playerPoints + timePoints + hostagePoints) * (difficulty / 8));
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
 	maxScore += levelHostages * 7500;
 	double deathPoints;

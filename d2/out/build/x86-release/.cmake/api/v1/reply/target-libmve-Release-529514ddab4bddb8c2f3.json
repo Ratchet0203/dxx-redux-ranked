@@ -1,0 +1,255 @@
+{
+	"archive" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "/machine:X86",
+				"role" : "flags"
+			}
+		]
+	},
+	"artifacts" : 
+	[
+		{
+			"path" : "libmve/libmve.lib"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"_add_library",
+			"add_library",
+			"add_definitions",
+			"include_directories",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"C:/Program Files/Microsoft Visual Studio/2022/Community/VC/vcpkg/scripts/buildsystems/vcpkg.cmake",
+			"libmve/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 1,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 639,
+				"parent" : 1
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 71,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 81,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 31,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 33,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 74,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 44,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 67,
+				"parent" : 3
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 65,
+				"parent" : 3
+			},
+			{
+				"command" : 3,
+				"file" : 1,
+				"line" : 9,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 12,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/DWIN32 /D_WINDOWS /O2 /Ob2 /DNDEBUG -DRELEASE -MD"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 4,
+					"define" : "HAVE_LIBPNG"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "HAVE_STRUCT_TIMEVAL"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "NETWORK"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "OGL"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "OGL_MERGE"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "USE_SDLMIXER"
+				},
+				{
+					"backtrace" : 10,
+					"define" : "USE_TRACKER"
+				},
+				{
+					"backtrace" : 11,
+					"define" : "USE_UDP"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "WINDOWS"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "WINDOWS_IGNORE_PACKING_MISMATCH"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 12,
+					"path" : "C:/development/dxx-redux-ranked/d2/libmve/../include"
+				},
+				{
+					"backtrace" : 12,
+					"path" : "C:/development/dxx-redux-ranked/d2/libmve/../arch/include"
+				},
+				{
+					"backtrace" : 12,
+					"path" : "C:/development/dxx-redux-ranked/d2/libmve/../main"
+				},
+				{
+					"backtrace" : 13,
+					"path" : "C:/development/dxx-redux-ranked/d2/out/build/x86-release/vcpkg_installed/x86-windows/include/SDL"
+				}
+			],
+			"language" : "C",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4
+			]
+		}
+	],
+	"id" : "libmve::@e744f295d77abcf31090",
+	"name" : "libmve",
+	"nameOnDisk" : "libmve.lib",
+	"paths" : 
+	{
+		"build" : "libmve",
+		"source" : "libmve"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "libmve/decoder8.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "libmve/decoder16.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "libmve/mve_audio.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "libmve/mvelib.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "libmve/mveplay.c",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

@@ -1,0 +1,73 @@
+Descent- Maximum
+     and...
+Descent- Maximum Anarchy
+brought to you by Jeff250
+originally by Parallax Software
+
+Descent- Maximum was a game originally released for the Playstation.
+Although its similarities to Descent 2 were striking, it did feature unique
+levels, although generally smaller and simpler.  The 24 level (plus 6 secret
+level) campaign was intended to parallel the same Descent 2 plot, although
+movies and such could not be implemented in this PC version of the game due to
+limitations with custom campaigns.  Likewise, Descent- Maximum also included a
+6 level anarchy campaign for one on one action.
+
+After out-of-curiosity purchasing Descent- Maximum (despite the fact I didn't
+own a Playstation), I wondered if it were possible to bring the same levels
+to PC.  I noticed that, like all other Descent's, this one also included a Hog
+file, but, unfortunately, this one was not like others in format.  Fortunately,
+the format was easy enough to figure out, and I wrote a small program to
+extract the contents.  I made with them what I could, and what is included in
+this zip is the product of my endeavors, the PC campaign of Descent- Maximum.
+
+Other modifications I performed are as follows:
+ * Added 2 (up to 4-- max) coop players in the Descent- Maximum single player
+   campaign
+ * Added 6 (up to 8-- max) anarchy players in the Descent- Maximum Anarchy
+   campaign
+ * Added custom briefing interplay to simulate the original experience
+
+This Descent- Maximum port has been tested on the DOS Descent2 exe, the
+Win95 Descent2 exe, and D2x 1.3.27.  Although no problems are known, they may
+exist, and I am not responsible for any harm that may come to anything as a
+result.
+
+Email any bugs to jeff250@gmx.net.
+
+Enjoy!
+
+
+Addendum by Ryusei117
+=====================
+
+This is a modified version of Jeff250's Descent Maximum port. The following
+changes were made:
+
+	* Corrected the names of all levels. The level names in the original
+	  version were different from the level names in the PlayStation game.
+	* Removed all of the pre-placed mines, since they don't exist in the
+	  PlayStation game. Strangely, the mines are present in the level files
+	  on the PlayStation game's disc, but do not appear in the game itself.
+	* Fixed a few problems with the briefing images, such as brightly-
+	  colored backgrounds on the "Prepare for Descent..." screens and green
+	  stars in the Zeta Aquilae image.
+	* Switched the mission type of the Anarchy mission. It now appears in
+	  the mission list only when hosting a multiplayer game.
+	* Changed the file names and mission names to distinguish this version
+	  from the original version when hosting and joining multiplayer games.
+	  This also allows players to install both versions in the same folder.
+
+Please note that this version of Descent Maximum is incompatible with Jeff250's
+original version because of the corrected level names. All players in a
+multiplayer game will need the same version.
+
+Many thanks to the following people:
+
+	* pip5528 from the Descent Mission Database for removing the pre-placed
+	  mines.
+	* ThugsRook from the DXX-Rebirth forum for fixing briefing problems
+	* Yarn from the DXX-Rebirth forum for extracting the Anarchy-level names
+	  from the PlayStation game and fixing briefing problems
+	* Jeff250 for porting the levels
+	* And of course, everyone at Parallax Software for creating Descent
+	  Maximum
