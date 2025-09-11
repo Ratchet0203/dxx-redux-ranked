@@ -4379,6 +4379,8 @@ void draw_hud()
 			hud_show_energy();
 			hud_show_shield();
 			hud_show_weapons();
+			if (PlayerCfg.Speedometer) // Okay so maybe the mod isn't COMPLETELY disabled during demos...
+				hud_show_speedometer();
 			if (!PCSharePig)
 				hud_show_keys();
 			hud_show_cloak_invuln();
@@ -4388,9 +4390,6 @@ void draw_hud()
 				newdemo_record_player_flags(Players[pnum].flags);
 			}
 		}
-
-		if (PlayerCfg.Speedometer) // Okay so maybe the mod isn't COMPLETELY disabled during demos...
-			hud_show_speedometer();
 
 		HUD_render_message_frame();
 

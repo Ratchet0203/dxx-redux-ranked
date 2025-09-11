@@ -4747,6 +4747,8 @@ void draw_hud()
 		if (PlayerCfg.CurrentCockpitMode == CM_FULL_SCREEN) {
 			hud_show_energy();
 			hud_show_shield();
+			if (PlayerCfg.Speedometer) // Okay so maybe the mod isn't COMPLETELY disabled during demos...
+				hud_show_speedometer();
 			hud_show_afterburner();
 			hud_show_weapons();
 			hud_show_keys();
@@ -4757,9 +4759,6 @@ void draw_hud()
 				newdemo_record_player_flags(Players[pnum].flags);
 			}
 		}
-
-		if (PlayerCfg.Speedometer) // Okay so maybe the mod isn't COMPLETELY disabled during demos...
-			hud_show_speedometer();
 
 		if (PlayerCfg.CurrentCockpitMode != CM_LETTERBOX && PlayerCfg.CurrentCockpitMode != CM_REAR_VIEW)
 		{
