@@ -786,7 +786,8 @@ int calculateRank(int level_num, int update_warm_start_status)
 	if (playerHostages == levelHostages)
 		hostagePoints *= 3;
 	hostagePoints = round(hostagePoints); // Round this because I got 24999 hostage bonus once.
-	double skillPoints = ceil(((playerPoints + timePoints + hostagePoints) * (difficulty / 8)));
+	double skillPoints = ceil((playerPoints + timePoints + hostagePoints) * (difficulty / 8));
+	missedRngSpawn *= ceil(((double)Difficulty_level + 8) / 8); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
 	maxScore += levelHostages * 7500;
 	double deathPoints;
@@ -993,8 +994,7 @@ void DoEndLevelScoreGlitz(int network)
 	death_points = -(Ranking.maxScore * 0.4 - Ranking.maxScore * (0.4 / pow(2, Ranking.deathCount / (Ranking.parTime / 360))));
 	if (Ranking.noDamage)
 		death_points = ceil(Ranking.maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
-	Ranking.missedRngSpawn *= ((double)Difficulty_level + 4) / 8; // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
-	missed_rng_drops = Ranking.missedRngSpawn;
+	missed_rng_drops = Ranking.missedRngSpawn * ((double)Difficulty_level + 8) / 8; // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
 	Ranking.rankScore += skill_points2 + time_points + hostage_points2 + death_points + missed_rng_drops;
 
 	int minutes = Ranking.level_time / 60;
@@ -1250,6 +1250,7 @@ void DoBestRanksScoreGlitz(int level_num)
 		hostagePoints *= 3;
 	hostagePoints = round(hostagePoints); // Round this because I got 24999 hostage bonus once.
 	double skillPoints = ceil((playerPoints + timePoints + hostagePoints) * (difficulty / 8));
+	missedRngSpawn *= ceil(((double)Difficulty_level + 8) / 8); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
 	maxScore += levelHostages * 7500;
 	double deathPoints;
