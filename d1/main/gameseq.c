@@ -1951,7 +1951,7 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 double calculateMovementTime(double distance) // The ship's move speed is gradual, not constant, so we account for it gradually speeding up to prevent movement times being rigged against the player.
 { // This detail does more than you think. Without it, Algo would unfairly gain up to ~0.4s on the player per move by default (for reference, many levels have over 100 moves).
 	// This will account for custom ship attributes as well.
-	//return distance / SHIP_MOVE_SPEED; // Just in case I want to reverse this.
+	return distance / SHIP_MOVE_SPEED; // Just in case I want to reverse this.
 	distance = f2fl(distance); // Convert to actual unit amount.
 	double curDistance = 0;
 	double speed = 0;
@@ -2496,7 +2496,7 @@ short create_path_partime(int start_seg, int target_seg, point_seg** path_start,
 
 int retreadingPath(point_seg* path, int index)
 {
-	//return 0; // If I wanna disable this.
+	return 0; // If I wanna disable this.
 	if (index) // Can't look at step -1 of a path.
 		for (int c = 0; c < 6; c++)
 			if (Segments[path[index].segnum].children[c] == path[index - 1].segnum) {

@@ -904,6 +904,7 @@ int calculateRank(int level_num, int update_warm_start_status)
 		hostagePoints *= 3;
 	hostagePoints = round(hostagePoints); // Round this because I got 24999 hostage bonus once.
 	double skillPoints = ceil(((playerPoints + timePoints + hostagePoints) * (difficulty / 8)));
+	missedRngSpawn *= ceil(((double)Difficulty_level + 8) / 8); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
 	maxScore += levelHostages * 7500;
 	double deathPoints;
@@ -1120,8 +1121,7 @@ void DoEndLevelScoreGlitz(int network)
 	death_points = -(Ranking.maxScore * 0.4 - Ranking.maxScore * (0.4 / pow(2, Ranking.deathCount / (Ranking.parTime / 360))));
 	if (Ranking.noDamage)
 		death_points = ceil(Ranking.maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
-	Ranking.missedRngSpawn *= ((double)Difficulty_level + 4) / 8; // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
-	missed_rng_drops = Ranking.missedRngSpawn;
+	missed_rng_drops = Ranking.missedRngSpawn * ((double)Difficulty_level + 8) / 8; // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.	
 	Ranking.rankScore += skill_points2 + time_points + hostage_points2 + death_points + missed_rng_drops;
 
 	int minutes = Ranking.level_time / 60;
@@ -1310,8 +1310,7 @@ void DoEndSecretLevelScoreGlitz()
 	death_points = -(Ranking.secretMaxScore * 0.4 - Ranking.secretMaxScore * (0.4 / pow(2, Ranking.secretDeathCount / (Ranking.secretParTime / 360))));
 	if (Ranking.secretNoDamage)
 		death_points = ceil(Ranking.secretMaxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
-	Ranking.secretMissedRngSpawn *= ((double)Difficulty_level + 4) / 8; // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
-	missed_rng_drops = Ranking.secretMissedRngSpawn;
+	missed_rng_drops = Ranking.secretMissedRngSpawn * ((double)Difficulty_level + 8) / 8; // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
 	Ranking.secretRankScore += skill_points + time_points + hostage_points + death_points + missed_rng_drops;
 
 	int minutes = Ranking.secretlevel_time / 60;
@@ -1514,6 +1513,7 @@ void DoBestRanksScoreGlitz(int level_num)
 		hostagePoints *= 3;
 	hostagePoints = round(hostagePoints); // Round this because I got 24999 hostage bonus once.
 	double skillPoints = ceil(((playerPoints + timePoints + hostagePoints) * (difficulty / 8)));
+	missedRngSpawn *= ceil(((double)Difficulty_level + 8) / 8); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
 	maxScore += levelHostages * 7500;
 	double deathPoints;
@@ -1804,7 +1804,7 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 double calculateMovementTime(double distance, int dodging) // The ship's move speed is gradual, not constant, so we account for it gradually speeding up to prevent movement times being rigged against the player.
 { // This detail does more than you think. Without it, Algo would unfairly gain up to ~0.4s on the player per move by default (for reference, many levels have over 100 moves).
 	// This will account for custom ship attributes as well.
-	//return distance / SHIP_MOVE_SPEED; // Just in case I want to reverse this.
+	return distance / SHIP_MOVE_SPEED; // Just in case I want to reverse this.
 	distance = f2fl(distance); // Convert to actual unit amount.
 	double curDistance = 0;
 	double speed = 0;
@@ -2490,6 +2490,7 @@ short create_path_partime(int start_seg, int target_seg, point_seg** path_start,
 
 int retreadingPath(point_seg* path, int index)
 {
+	return 0; // If I wanna disable this.
 	if (index) // Can't look at step -1 of a path.
 		for (int c = 0; c < 6; c++)
 			if (Segments[path[index].segnum].children[c] == path[index - 1].segnum) {
