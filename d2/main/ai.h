@@ -80,7 +80,7 @@ extern void update_player_awareness(object *objp, fix new_awareness);
 extern void create_awareness_event(object *objp, int type);         // object *objp can create awareness of player, amount based on "type"
 extern void do_ai_frame_all(void);
 extern void reset_ai_states(object *objp);
-extern int create_path_points(object *objp, int start_seg, int end_seg, point_seg *point_segs, short *num_points, int max_depth, int random_flag, int safety_flag, int avoid_seg, int currentObjectiveType, int currentObjectiveID, int objectiveInaccessible);
+extern int create_path_points(object *objp, int start_seg, int end_seg, point_seg *point_segs, short *num_points, int max_depth, int random_flag, int safety_flag, int avoid_seg, int currentObjectiveType, int currentObjectiveID, int objectiveInaccessible, int index);
 extern void create_all_paths(void);
 extern void create_path_to_station(object *objp, int max_length);
 extern void ai_follow_path(object *objp, int player_visibility, int previous_visibility, vms_vector *vec_to_player);
@@ -106,7 +106,7 @@ extern void attempt_to_resume_path(object *objp);
 // When a robot and a player collide, some robots attack!
 extern void do_ai_robot_hit_attack(object *robot, object *player, vms_vector *collision_point);
 extern void ai_open_doors_in_segment(object *robot);
-extern int ai_door_is_openable(object *objp, segment *segp, int sidenum, int currentObjectiveType, int currentObjectiveID, int objectiveInaccessible, int segnum);
+extern int ai_door_is_openable(object *objp, segment *segp, int sidenum, int currentObjectiveType, int currentObjectiveID, int objectiveInaccessible, int segnum, int index);
 extern int player_is_visible_from_object(object *objp, vms_vector *pos, fix field_of_view, vms_vector *vec_to_player);
 extern void ai_reset_all_paths(void);   // Reset all paths.  Call at the start of a level.
 extern int ai_multiplayer_awareness(object *objp, int awareness_level);

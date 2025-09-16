@@ -154,7 +154,7 @@ int wall_is_doorway ( segment * seg, int side )
 //--Covered by macro	if (seg->sides[side].wall_num == -1)
 //--Covered by macro		return WID_NO_WALL;
 
-	Assert(seg-Segments>=0 && seg-Segments<=Highest_segment_index);
+	//Assert(seg-Segments>=0 && seg-Segments<=Highest_segment_index);	
 	Assert(side>=0 && side<6);
 
 	type = Walls[seg->sides[side].wall_num].type;

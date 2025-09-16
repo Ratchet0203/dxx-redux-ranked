@@ -44,7 +44,10 @@ typedef struct parTime {
 	partime_objective toDoList[MAX_OBJECTS + MAX_WALLS];
 	int toDoListSize;
 	partime_objective doneList[MAX_OBJECTS + MAX_WALLS];
+	partime_objective secondaryDoneList[MAX_OBJECTS + MAX_WALLS]; // A side list to keep track of blastable walls and ammo pickups, that doesn't interfere with Algo's path.
 	int doneListSize;
+	int doneListIndex;
+	int secondaryDoneListSize;
 	vms_vector lastPosition; // Tracks the last place algo went to within the same segment.
 	int matcenLives[20]; // We need to track how many times we trip matcens, since each one can only be tripped three times.
 	// Time spent clearing matcens.
@@ -57,11 +60,9 @@ typedef struct parTime {
 	double heldWeapons[36]; // Which weapons algo has.
 	int laser_level; // It's possible to make things work without this, but just tracking laser level directly makes things a lot easier.
 	double pathObstructionTime; // Amount of time spent dealing with walls or matcens on the way to an objective (basically an Abyss 1.0 hotfix for the 32k HP wall let's be real lol).
-	double shortestPathObstructionTime;
 	int hasQuads;
 	int segnum; // What segment Algo is in.
 	ubyte isSegmentAccessible[MAX_SEGMENTS];
-	ubyte segmentVisitedFrom[MAX_SEGMENTS];
 	int loops; // Which stage of the par time calculation process are we on?
 	int typeThreeWalls[MAX_WALLS];
 	int numTypeThreeWalls;
@@ -150,7 +151,7 @@ extern void DoEndLevelScoreGlitz(int network);
 extern void DoEndSecretLevelScoreGlitz();
 extern void DoBestRanksScoreGlitz(int level_num);
 
-extern int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck);
+extern int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck, int index);
 extern int check_gap_size(int seg, int side);
 
 // stuff for multiplayer

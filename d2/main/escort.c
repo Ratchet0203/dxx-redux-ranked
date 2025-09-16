@@ -147,7 +147,7 @@ int segment_is_reachable(int curseg, int sidenum)
 	if (wall_num == -1)
 		return 1;
 
-	rval = ai_door_is_openable(NULL, segp, sidenum, 0, 0, 0, curseg);
+	rval = ai_door_is_openable(NULL, segp, sidenum, 0, 0, 0, curseg, 0);
 
 	return rval;
 
