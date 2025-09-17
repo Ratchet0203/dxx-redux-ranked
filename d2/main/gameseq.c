@@ -1801,7 +1801,7 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 	return lowestCombatTime + 1; // Give an extra second per wall to wait for the explosion to go down. Flying through it causes great damage.
 }
 
-double calculateMovementTime(double distance, int dodging) // The ship's move speed is gradual, not constant, so we account for it gradually speeding up to prevent movement times being rigged against the player.
+double calculateMovementTime(double distance) // The ship's move speed is gradual, not constant, so we account for it gradually speeding up to prevent movement times being rigged against the player.
 { // This detail does more than you think. Without it, Algo would unfairly gain up to ~0.4s on the player per move by default (for reference, many levels have over 100 moves).
 	// This will account for custom ship attributes as well.
 	return distance / SHIP_MOVE_SPEED; // Just in case I want to reverse this.
@@ -1814,13 +1814,7 @@ double calculateMovementTime(double distance, int dodging) // The ship's move sp
 		speed *= 1 - f2fl(Player_ship->drag);
 		curDistance += speed / 64;
 	}
-	double time = i / 64.0;
-	if (!dodging) { // When using this function for combat time, exclude afterburner stuff. It can only thrust forward, so you can't dodge with it when facing the enemy like accuracy estimation assumes.
-		ParTime.movementTimeNoAB += time; // Simulated dodge movement doesn't count towards time actually navigating the level.
-		// The move speed multiplier for the afterburner applies over time, so only long stretches of not fighting give a significant par time decrease. 11s is the time to fully use then replenish its charge.
-		time /= time > 11 ? ParTime.afterburnerMultiplier : pow(ParTime.afterburnerMultiplier, time / 11);
-	}
-	return time;
+	return i / 64.0;
 }
 
 double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object* obj, robot_info* robInfo, int isObject)
@@ -1883,7 +1877,7 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 		enemy_weapon_homing_flag = 0; // These bots can't actually shoot homing things at you, even if the weapon they would've had otherwise is.
 		// Account for robot acceleration, since we're not measuring shots anymore here. Luckily mass isn't an element so it's simpler than player acceleration calculations.
 		optimal_distance = 0;
-		int num_frames = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * 64;
+		int num_frames = (calculateMovementTime(player_dodge_distance * F1_0) + 0.25) * 64;
 		double speed = 0;
 		for (int i = 0; i < num_frames; i++) { // Step through how far the robot will move in the number of physics ticks it takes the player to move out of its way (the bot would actually turn to account for this but blegh simplification).
 			speed += (Difficulty_level + 5) / 4.0;
@@ -1895,7 +1889,7 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	}
 	else {
 		player_dodge_distance = player_size + enemy_weapon_size > enemy_splash_radius ? player_size + enemy_weapon_size : enemy_splash_radius;
-		optimal_distance = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * enemy_weapon_speed;
+		optimal_distance = (calculateMovementTime(player_dodge_distance * F1_0) + 0.25) * enemy_weapon_speed;
 	}
 	if (robInfo->thief)
 		optimal_distance += 80 + enemy_max_speed; // Thieves are the worst of both worlds.
@@ -2220,14 +2214,6 @@ void robotHasPowerup(int robotID, double weight) {
 				if (ParTime.hasQuads <= 0.0625)
 					ParTime.hasQuads = 0;
 			}
-			if (robInfo->contains_id == POW_AFTERBURNER) {
-				ParTime.hasAfterburner *= (1 - weight) + (pow(1 - ((double)robInfo->contains_prob / 16), robInfo->contains_count) * weight);
-				if (ParTime.hasAfterburner <= 0.0625) {
-					ParTime.hasAfterburner = 0;
-					double afterburnerMultipliers[5] = { 1.2, 1.15, 1.11, 1.08, 1.05 };
-					ParTime.afterburnerMultiplier = afterburnerMultipliers[Difficulty_level];
-				}
-			}
 			if (robInfo->contains_id == POW_VULCAN_AMMO)
 				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * round(robInfo->contains_count * (robInfo->contains_prob / 16));
 		}
@@ -2281,14 +2267,6 @@ void robotHasPowerup(int robotID, double weight) {
 				ParTime.hasQuads *= (1 - weight) + (pow(1 - ((double)robInfo->contains_prob / 16), robInfo->contains_count) * weight);
 				if (ParTime.heldWeapons[weapon_id] <= 0.0625)
 					ParTime.heldWeapons[weapon_id] = 0;
-			}
-			if (robInfo->contains_id == POW_AFTERBURNER) {
-				ParTime.hasAfterburner *= (1 - weight) + (pow(1 - ((double)robInfo->contains_prob / 16), robInfo->contains_count) * weight);
-				if (ParTime.hasAfterburner <= 0.0625) {
-					ParTime.hasAfterburner = 0;
-					double afterburnerMultipliers[5] = { 1.2, 1.15, 1.11, 1.08, 1.05 };
-					ParTime.afterburnerMultiplier = afterburnerMultipliers[Difficulty_level];
-				}
 			}
 			if (robInfo->contains_id == POW_VULCAN_AMMO)
 				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * round(robInfo->contains_count * (robInfo->contains_prob / 16));
@@ -2893,11 +2871,6 @@ void respond_to_objective_partime(partime_objective objective)
 					ParTime.heldWeapons[3] = 0;
 				}
 				ParTime.heldWeapons[ParTime.laser_level] = 0;
-				if (obj->id == POW_AFTERBURNER) {
-					ParTime.hasAfterburner = 0;
-					double afterburnerMultipliers[5] = { 1.2, 1.15, 1.11, 1.08, 1.05 };
-					ParTime.afterburnerMultiplier = afterburnerMultipliers[Difficulty_level];
-				}
 				if (obj->id == POW_EXTRA_LIFE)
 					if (Current_level_num > 0)
 						Ranking.maxScore += 10000;
@@ -2934,7 +2907,7 @@ void respond_to_objective_partime(partime_objective objective)
 								create_path_points(obj, Boss_teleport_segs[i], Boss_teleport_segs[n], Point_segs_free_ptr, &Boss_path_length, MAX_POINT_SEGS, 0, 0, -1, 0, obj->id, 1); // Assume inaccesibility here so invalid paths don't get super long and drive up teleport time.
 								for (int c = 0; c < Boss_path_length - 1; c++)
 									teleportDistance += vm_vec_dist(&Point_segs[c].point, &Point_segs[c + 1].point);
-								teleportTime += calculateMovementTime(teleportDistance, 0);
+								teleportTime += calculateMovementTime(teleportDistance);
 							}
 						}
 						teleportTime /= pow(Num_boss_teleport_segs, 2); // Account for the average teleport distance, not highest.
@@ -3006,11 +2979,6 @@ void respond_to_objective_partime(partime_objective objective)
 						}
 						if (obj->contains_id == POW_QUAD_FIRE)
 							ParTime.hasQuads = 0;
-						if (obj->contains_id == POW_AFTERBURNER) {
-							ParTime.hasAfterburner = 0;
-							double afterburnerMultipliers[5] = { 1.2, 1.15, 1.11, 1.08, 1.05 };
-							ParTime.afterburnerMultiplier = afterburnerMultipliers[Difficulty_level];
-						}
 						if (obj->contains_id == POW_VULCAN_AMMO)
 							ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * obj->contains_count;
 						if (obj->contains_id == POW_EXTRA_LIFE)
@@ -3056,7 +3024,6 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	// We'll call the par time algorithm Algo for short.
 	fix64 start_timer_value, end_timer_value; // For tracking how long this algorithm takes to run.
 	ParTime.movementTime = 0; // Variable to track how much distance it's travelled.
-	ParTime.movementTimeNoAB = 0;
 	ParTime.combatTime = 0; // Variable to track how much fighting it's done.
 	// Now clear its checklists.
 	ParTime.toDoListSize = 0;
@@ -3079,9 +3046,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	ParTime.heldWeapons[FLARE_ID] = 0;
 	// Quads and afterburner work the same.
 	ParTime.hasQuads = 1;
-	ParTime.hasAfterburner = 1;
 	ParTime.laser_level = 0;
-	ParTime.afterburnerMultiplier = 1;
 	ParTime.thiefKeys = 0;
 	ParTime.matcenTime = 0;
 	ParTime.missingKeys = 0;
@@ -3254,8 +3219,6 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 					hasThisObjective = 1;
 				if (Objects[nearestObjective.ID].id == POW_QUAD_FIRE && !ParTime.hasQuads)
 					hasThisObjective = 1;
-				if (Objects[nearestObjective.ID].id == POW_AFTERBURNER && !ParTime.hasAfterburner)
-					hasThisObjective = 1;
 				if (((Objects[nearestObjective.ID].id == POW_VULCAN_WEAPON && !ParTime.heldWeapons[VULCAN_ID]) || (Objects[nearestObjective.ID].id == POW_GAUSS_WEAPON && !ParTime.heldWeapons[GAUSS_ID])) && ParTime.vulcanAmmo == STARTING_VULCAN_AMMO * 8)
 					hasThisObjective = 1;
 			}
@@ -3270,9 +3233,8 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 								ParTime.thiefKeys |= key;
 					}
 			if (!hasThisObjective) {
-				double movementTimeIncrease = ((pathLength - ParTime.shortestPathObstructionTime) / SHIP_MOVE_SPEED);
 				int nearestObjectiveSegnum = getObjectiveSegnum(nearestObjective);
-				printf("Path from segment %i to %i: %.3fs (AB mult: %.3f)\n", lastSegnum, nearestObjectiveSegnum, pathLength / SHIP_MOVE_SPEED, (movementTimeIncrease > 11 ? ParTime.afterburnerMultiplier : pow(ParTime.afterburnerMultiplier, movementTimeIncrease / 11)));
+				printf("Path from segment %i to %i: %.3fs\n", lastSegnum, nearestObjectiveSegnum, (pathLength - ParTime.shortestPathObstructionTime) / SHIP_MOVE_SPEED);
 				respond_to_objective_partime(nearestObjective);
 				if (path_start != NULL)
 					examine_path_partime(path_start, path_count);
@@ -3280,7 +3242,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 				if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 8)
 					ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 8;
 				// Now move ourselves to the objective for the next pathfinding iteration, unless the objective wasn't reachable with just flight, in which case move ourselves as far as we COULD fly.	
-				ParTime.movementTime += calculateMovementTime(pathLength - ParTime.shortestPathObstructionTime, 0);
+				ParTime.movementTime += calculateMovementTime(pathLength - ParTime.shortestPathObstructionTime);
 				lastSegnum = ParTime.segnum;
 			}
 			else
@@ -3312,13 +3274,11 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	// Calculate end time.
 	timer_update();
 	end_timer_value = timer_query();
- 	printf("Par time: %.3fs (%.3f movement, %.3f combat) Matcen time: %.3fs, AB saved %.3fs (%.2f percent)\nCalculation time: %.3fs\n", // movementTimeNoAB breaks on D2 level 12, but it's not important since it doesn't actually influence par time.
+ 	printf("Par time: %.3fs (%.3f movement, %.3f combat) Matcen time: %.3fs\nCalculation time: %.3fs\n",
 		ParTime.movementTime + ParTime.combatTime,
 		ParTime.movementTime,
 		ParTime.combatTime,
 		ParTime.matcenTime,
-		ParTime.movementTimeNoAB - ParTime.movementTime,
-		((ParTime.movementTimeNoAB - ParTime.movementTime) / (ParTime.movementTimeNoAB + ParTime.combatTime)) * 100,
 		f2fl(end_timer_value - start_timer_value));
 	
 	// Par time is rounded up to the nearest five seconds so it looks better/legible on the result screen, leaves room for the time bonus, and looks like a human set it.

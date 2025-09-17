@@ -40,7 +40,6 @@ typedef struct
 
 typedef struct parTime {
 	double movementTime;
-	double movementTimeNoAB;
 	partime_objective toDoList[MAX_OBJECTS + MAX_WALLS];
 	int toDoListSize;
 	partime_objective doneList[MAX_OBJECTS + MAX_WALLS];
@@ -68,8 +67,6 @@ typedef struct parTime {
 	int typeThreeUnlockIDs[MAX_WALLS];
 	int sideSizes[MAX_SEGMENTS][MAX_SIDES_PER_SEGMENT]; // So we can cache this and avoid having millions upon millions of vm_vec_dist calls in par time.
 	int warpBackPoint;
-	double hasAfterburner;
-	double afterburnerMultiplier;
 	ubyte thiefKeys;
 	int missingKeys; // Tells Also which keys are missing from a level, allowing it to go through cooresponding colored doors to prevent softlocks.
 } __pack__ parTime;
