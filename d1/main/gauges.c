@@ -4389,7 +4389,7 @@ void draw_hud()
 			}
 		}
 
-		if (PlayerCfg.Speedometer) // Okay so maybe the mod isn't COMPLETELY disabled during demos...
+		if (PlayerCfg.Speedometer && PlayerCfg.CurrentCockpitMode != CM_LETTERBOX) // Okay so maybe the mod isn't COMPLETELY disabled during demos...
 			hud_show_speedometer();
 
 		HUD_render_message_frame();
