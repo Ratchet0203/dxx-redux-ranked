@@ -2161,9 +2161,9 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 		ParTime.vulcanAmmo -= ammoUsed * f1_0;
 	if (isMatcen) {
 		// Now account for RNG ammo drops from matcen bots and their robot spawn.
-		if (robInfo->contains_type == OBJ_POWERUP && robInfo->contains_id == POW_VULCAN_AMMO)
+		if (robInfo->contains_type == OBJ_POWERUP && robInfo->contains_id == POW_VULCAN_AMMO && robInfo->contains_count > 0)
 			ParTime.ammo_usage -= f2fl(((double)robInfo->contains_count * ((double)robInfo->contains_prob / 16)) * (STARTING_VULCAN_AMMO / 2));
-		if (robInfo->contains_type == OBJ_ROBOT) {
+		if (robInfo->contains_type == OBJ_ROBOT && Robot_info[robInfo->contains_id].contains_count > 0) {
 			if (Robot_info[robInfo->contains_id].contains_type == OBJ_POWERUP && Robot_info[robInfo->contains_id].contains_id == POW_VULCAN_AMMO)
 				ParTime.ammo_usage -= f2fl(((double)Robot_info[robInfo->contains_id].contains_count * ((double)Robot_info[robInfo->contains_id].contains_prob / 16)) * (STARTING_VULCAN_AMMO / 2));
 		}
@@ -2247,7 +2247,7 @@ void robotHasPowerup(int robotID, double weight) {
 		}
 		else {
 			if (robInfo->contains_id == POW_LASER) {
-				for (i = 0; i < round(robInfo->contains_count * (robInfo->contains_prob / 16)); i++) {
+				for (i = 0; i < round(robInfo->contains_count * (robInfo->contains_prob / 16.0)); i++) {
 					if (ParTime.laser_level < LASER_ID_L4)
 						ParTime.laser_level++;
 					ParTime.heldWeapons[ParTime.laser_level] = 0;
@@ -2259,7 +2259,7 @@ void robotHasPowerup(int robotID, double weight) {
 					ParTime.hasQuads = 0;
 			}
 			if (robInfo->contains_id == POW_VULCAN_AMMO)
-				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * round(robInfo->contains_count * (robInfo->contains_prob / 16));
+				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * round(robInfo->contains_count * (robInfo->contains_prob / 16.0));
 		}
 	}
 	if (robInfo->contains_type == OBJ_ROBOT) {
@@ -2285,7 +2285,7 @@ void robotHasPowerup(int robotID, double weight) {
 		}
 		else {
 			if (robInfo->contains_id == POW_LASER) {
-				for (i = 0; i < round(robInfo->contains_count * (robInfo->contains_prob / 16)); i++) {
+				for (i = 0; i < round(robInfo->contains_count * (robInfo->contains_prob / 16.0)); i++) {
 					if (ParTime.laser_level < LASER_ID_L4)
 						ParTime.laser_level++;
 					ParTime.heldWeapons[ParTime.laser_level] = 0;
@@ -2297,7 +2297,7 @@ void robotHasPowerup(int robotID, double weight) {
 					ParTime.hasQuads = 0;
 			}
 			if (robInfo->contains_id == POW_VULCAN_AMMO)
-				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * round(robInfo->contains_count * (robInfo->contains_prob / 16));
+				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * round(robInfo->contains_count * (robInfo->contains_prob / 16.0));
 		}
 	}
 }
@@ -2782,8 +2782,8 @@ void examine_path_partime(point_seg* path, int path_count)
 										robot_info* robInfo = &Robot_info[legal_types[n]];
 										if (legal_types[n] != 10) { // Don't consider matcen gophers. They run.
 											totalRobotTime += calculate_combat_time(NULL, robInfo, 0, 1);
-											if (robInfo->contains_type == OBJ_ROBOT) {
-												totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0, 1) * round((robInfo->contains_count * (robInfo->contains_prob / 16)));
+											if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
+												totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0, 1) * round((robInfo->contains_count * (robInfo->contains_prob / 16.0)));
 												robotHasPowerup(robInfo->contains_id, 1.0 / num_types);
 											}
 											else
@@ -2904,14 +2904,14 @@ void respond_to_objective_partime(partime_objective objective)
 					ParTime.movementTime += teleportTime;
 					printf("Teleport time: %.3fs\n", teleportTime);
 				}
-				if (obj->contains_type == OBJ_ROBOT && obj->contains_count) {
+				if (obj->contains_type == OBJ_ROBOT && obj->contains_count > 0) {
 					robInfo = &Robot_info[obj->contains_id];
 					fightTime = calculate_combat_time(obj, robInfo, 0, 0) * obj->contains_count;
 					combatTime += fightTime;
 					Ranking.maxScore += robInfo->score_value * obj->contains_count;
 					printf("Took %.3fs to fight %i of robot type %i\n", fightTime, obj->contains_count, obj->contains_id);
 				}
-				else if (robInfo->contains_type == OBJ_ROBOT) {
+				else if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
 					int assumedOffSpringCount = round(((double)robInfo->contains_count * ((double)robInfo->contains_prob / 16)));
 					fightTime = calculate_combat_time(obj, &Robot_info[robInfo->contains_id], 0, 0) * assumedOffSpringCount;
 					combatTime += fightTime;
@@ -2920,7 +2920,7 @@ void respond_to_objective_partime(partime_objective objective)
 			}
 			ParTime.combatTime += combatTime;
 			if (ParTime.warpBackPoint == -1) { // Don't get stuff from a robot if you have kill it from a distance (fixes Hydro 17 being unfair).
-				if (obj->contains_type == OBJ_POWERUP) {
+				if (obj->contains_type == OBJ_POWERUP && obj->contains_count > 0) {
 					weapon_id = 0;
 					if (obj->contains_id == POW_VULCAN_WEAPON)
 						weapon_id = VULCAN_ID;
@@ -2953,7 +2953,7 @@ void respond_to_objective_partime(partime_objective objective)
 							Ranking.maxScore += 10000 * obj->contains_count;
 					}
 				}
-				else
+				else if (robInfo->contains_count > 0)
 					robotHasPowerup(obj->id, 1);
 			}
 		}
@@ -3069,15 +3069,24 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 				int highestBossScore = 0;
 				int targetedBossID = -1;
 				for (i = 0; i <= Highest_object_index; i++) {
-					if (Objects[i].type == OBJ_ROBOT && Robot_info[Objects[i].id].boss_flag) { // Look at every boss, adding only the highest point value.
+					robot_info* robInfo = &Robot_info[Objects[i].id];
+					if (Objects[i].type == OBJ_ROBOT && robInfo->boss_flag) { // Look at every boss, adding only the highest point value.
 						// Killing any boss in levels with multiple kills ALL of them, only giving points for the one directly killed, so the player needs to target the highest-scoring one for the best rank. Give them the time needed for that one.
-						// This means players may have to replay levels a bunch to find which boss gives most out of custom bosses/values, but I don't thinks that's a cause for great concern.
-						bossScore = Robot_info[Objects[i].id].score_value;
-						if (Objects[i].contains_type == OBJ_ROBOT && ((Objects[i].id != Robot_info[Objects[i].id].contains_id) || (Objects[i].id != Robot_info[Objects[i].contains_id].contains_id))) // So points in infinite robot drop loops aren't counted past the parent bot.
-							bossScore += Robot_info[Objects[i].contains_id].score_value * Objects[i].contains_count;
-						if (Objects[i].contains_type == OBJ_POWERUP && Objects[i].contains_id == POW_EXTRA_LIFE)
-							bossScore += Objects[i].contains_count * 10000;
-						ParTime.combatTime += 6.2; // Each boss has its own deathroll that lasts six seconds one at a time.
+						// This means players may have to replay levels a bunch to find which boss gives most out of custom bosses/values, but I don't think that's a cause for great concern.
+						bossScore = robInfo->score_value;
+						if (Objects[i].contains_count > 0) { // Shoutout to the creator of Chaos At Bay 32 from LOTW for making a heavy driller contain -61 extra lives and breaking the mod. I'm at a loss for words man...
+							if (Objects[i].contains_type == OBJ_ROBOT)
+								bossScore += Robot_info[Objects[i].contains_id].score_value * Objects[i].contains_count;
+							if (Objects[i].contains_type == OBJ_POWERUP && Objects[i].contains_id == POW_EXTRA_LIFE)
+								bossScore += Objects[i].contains_count * 10000;
+						}
+						else if (robInfo->contains_count > 0) {
+							if (robInfo->contains_type == OBJ_ROBOT)
+								bossScore += Robot_info[Objects[i].contains_id].score_value * Objects[i].contains_count;
+							if (robInfo->contains_type == OBJ_POWERUP && robInfo->contains_id == POW_EXTRA_LIFE)
+								bossScore += robInfo->contains_count * 10000;
+						}
+						ParTime.combatTime += 6.2; // Each boss has its own deathroll that lasts roughly 6.2 seconds one at a time.
 						if (bossScore > highestBossScore) {
 							highestBossScore = bossScore;
 							targetedBossID = i;
