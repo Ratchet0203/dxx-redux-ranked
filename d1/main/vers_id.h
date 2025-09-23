@@ -18,7 +18,7 @@
 
 #define BASED_VERSION "Registered v1.5 Jan 5, 1996"
 #define VERSION DXX_VERSION_MAJOR "." DXX_VERSION_MINOR "." DXX_VERSION_MICRO
-#define DESCENT_VERSION "D1X-Redux Ranked " RH_VERSION
+#define DESCENT_VERSION "D1X-Redux Ranked 1.1.2"
 
 extern const char g_descent_build_datetime[21];
 
