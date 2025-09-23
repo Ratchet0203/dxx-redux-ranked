@@ -125,6 +125,7 @@ int new_player_config()
 	PlayerCfg.ObsShareSettings = 1;
 	PlayerCfg.RankShowPlusMinus = 1;
 	PlayerCfg.Speedometer = 0;
+	PlayerCfg.ColdStart = 0;
 	PlayerCfg.UsePsxSolarmap = 0;
 	for (int obs_mode = 0; obs_mode < NUM_OBS_MODES; obs_mode++) {
 		PlayerCfg.ObsTurbo[obs_mode] = 0;
@@ -467,6 +468,8 @@ int read_player_d1x(char *filename)
 					PlayerCfg.RankShowPlusMinus = atoi(line);
 				if (!strcmp(word, "SPEEDOMETER"))
 					PlayerCfg.Speedometer = atoi(line);
+				if (!strcmp(word, "COLDSTART"))
+					PlayerCfg.ColdStart = atoi(line);
 				if (!strcmp(word, "USEPSXSOLARMAP"))
 					PlayerCfg.UsePsxSolarmap = atoi(line);
 				//if(!strcmp(word,"QUIETPLASMA"))
@@ -933,6 +936,7 @@ int write_player_d1x(char *filename)
 		PHYSFSX_printf(fout, "otherteamcolor=%i\n", PlayerCfg.OtherTeamColor);
 		PHYSFSX_printf(fout, "rankshowplusminus=%i\n", PlayerCfg.RankShowPlusMinus);
 		PHYSFSX_printf(fout, "speedometer=%i\n", PlayerCfg.Speedometer);
+		PHYSFSX_printf(fout, "coldstart=%i\n", PlayerCfg.ColdStart);
 		PHYSFSX_printf(fout, "usepsxsolarmap=%i\n", PlayerCfg.UsePsxSolarmap);
 		//PHYSFSX_printf(fout,"quietplasma=%i\n",PlayerCfg.QuietPlasma);	
 		PHYSFSX_printf(fout,"maxfps=%i\n",PlayerCfg.maxFps);	

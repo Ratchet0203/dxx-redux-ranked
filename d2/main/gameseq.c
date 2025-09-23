@@ -3671,8 +3671,8 @@ void DoEndGame(void)
 
 int checkForWarmStart()
 {
-	// First, check for too much shields, energy, concussion missiles, vulcan ammo or laser level. Also check for quads.
-	if (f2fl(Players[Player_num].shields) > 100 || f2fl(Players[Player_num].energy) > 100 || Players[Player_num].secondary_ammo[CONCUSSION_INDEX] > 7 - Difficulty_level || Players[Player_num].primary_ammo[VULCAN_INDEX] || Players[Player_num].laser_level || Players[Player_num].flags & PLAYER_FLAGS_QUAD_LASERS)
+	// First, check for too much shields, energy, lives, concussion missiles, vulcan ammo or laser level. Also check for quads.
+	if (f2fl(Players[Player_num].shields) > 100 || f2fl(Players[Player_num].energy) > 100 || Players[Player_num].lives > 3 || Players[Player_num].secondary_ammo[CONCUSSION_INDEX] > 7 - Difficulty_level || Players[Player_num].primary_ammo[VULCAN_INDEX] || Players[Player_num].laser_level || Players[Player_num].flags & PLAYER_FLAGS_QUAD_LASERS)
 		return 1;
 	// In D2, we have to check for accessories.
 	if (Players[Player_num].flags & PLAYER_FLAGS_HEADLIGHT || Players[Player_num].flags & PLAYER_FLAGS_AMMO_RACK || Players[Player_num].flags & PLAYER_FLAGS_MAP_ALL || Players[Player_num].flags & PLAYER_FLAGS_CONVERTER || Players[Player_num].flags & PLAYER_FLAGS_AFTERBURNER)
@@ -4207,6 +4207,22 @@ void StartNewLevel(int level_num)
 	Ranking.level_time = 0; // Set this to 0 despite it going unused until set to time_level, so we can save a variable when telling the in-game timer which time variable to display.
 	Ranking.fromBestRanksButton = 2; // So the result screen knows it's not just viewing record details.
 	Ranking.noDamage = 1;
+	if (PlayerCfg.ColdStart) { // Force player to have default loadout if the option to always cold start is on.
+		Players[Player_num].primary_weapon = 0;
+		Players[Player_num].secondary_weapon = 0;
+		Players[Player_num].flags = 0;
+		Players[Player_num].energy = INITIAL_ENERGY;
+		Players[Player_num].shields = StartingShields;
+		Players[Player_num].lives = 3;
+		Players[Player_num].laser_level = 0;
+		Players[Player_num].primary_weapon_flags = HAS_LASER_FLAG;
+		Players[Player_num].secondary_weapon_flags = HAS_CONCUSSION_FLAG;
+		for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
+			Players[Player_num].primary_ammo[i] = 0;
+		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+			Players[Player_num].secondary_ammo[i] = 0;
+		Players[Player_num].secondary_ammo[0] = 2 + NDL - Difficulty_level;
+	}
 	if (RestartLevel.updateRestartStuff) {
 		RestartLevel.primary_weapon = Players[Player_num].primary_weapon;
 		RestartLevel.secondary_weapon = Players[Player_num].secondary_weapon;
