@@ -1010,31 +1010,30 @@ int load_mission_by_name(char *mission_name)
 	return found;
 }
 
-int load_mission_by_name_aggregate(mle* mission_list) // Version of load_mission_by_name used to generate aggregate ranks for missions. The original function works, but loads missions^2 MSN files, causing massive load times.
+void load_mission_by_name_aggregate(mle* mission_list) // Version of load_mission_by_name used to generate aggregate ranks for missions. The original function works, but loads missions^2 MSN files, causing massive load times.
 {
 	int i;
-	bool found = 0;
 	int rankPoints;
 	int currentRank;
 	for (i = 0; i < num_missions; i++) {
-		found = load_mission(mission_list + i);
-		rankPoints = 0;
-		for (int c = 1; c <= Current_mission->last_level - Current_mission->last_secret_level; c++) {
-			currentRank = calculateRank(c, 1);
-			if (currentRank)
-				rankPoints += currentRank;
-			else {
-				rankPoints = 0; // We found an N/A somewhere, don't return an aggregate rank.
-				break;
+		if (load_mission(mission_list + i)) {
+			rankPoints = 0;
+			for (int c = 1; c <= Current_mission->last_level - Current_mission->last_secret_level; c++) {
+				currentRank = calculateRank(c, 1);
+				if (currentRank)
+					rankPoints += currentRank;
+				else {
+					rankPoints = 0; // We found an N/A somewhere, don't return an aggregate rank.
+					break;
+				}
 			}
+			// If all levels in the current mission are completed, an aggregate rank set here will show next to it.
+			if (PlayerCfg.RankShowPlusMinus)
+				Ranking.missionRanks[i] = rankPoints / (Current_mission->last_level - Current_mission->last_secret_level);
+			else
+				Ranking.missionRanks[i] = truncateRanks(rankPoints / (Current_mission->last_level - Current_mission->last_secret_level));
 		}
-		// If all levels in the current mission are completed, an aggregate rank set here will show next to it.
-		if (PlayerCfg.RankShowPlusMinus)
-			Ranking.missionRanks[i] = rankPoints / (Current_mission->last_level - Current_mission->last_secret_level);
-		else
-			Ranking.missionRanks[i] = truncateRanks(rankPoints / (Current_mission->last_level - Current_mission->last_secret_level));
 	}
-	return found;
 }
 
 typedef struct mission_menu
