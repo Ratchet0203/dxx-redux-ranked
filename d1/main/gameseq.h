@@ -39,12 +39,14 @@ typedef struct
 
 typedef struct parTime {
 	double movementTime;
+	double omittedMovementTime;
 	partime_objective toDoList[MAX_OBJECTS + MAX_WALLS];
 	int toDoListSize;
 	partime_objective doneList[MAX_OBJECTS + MAX_WALLS];
 	int doneListSize;
 	vms_vector lastPosition; // Tracks the last place algo went to within the same segment.
 	int matcenLives[MAX_ROBOT_CENTERS]; // We need to track how many times we trip matcens, since each one can only be tripped three times.
+	double matcenTriggeredAt[MAX_ROBOT_CENTERS]; // So Algo respects the cooldown matcens have.
 	// Time spent clearing matcens.
 	double matcenTime;
 	fix vulcanAmmo; // What it sounds like.
@@ -54,12 +56,11 @@ typedef struct parTime {
 	double ammo_usage; // For when using vulcan.
 	double heldWeapons[21]; // Which weapons algo has.
 	int laser_level; // It's possible to make things work without this, but just tracking laser level directly makes things a lot easier.
-	double pathObstructionTime; // Amount of time spent dealing with walls or matcens on the way to an objective (basically an Abyss 1.0 hotfix for the 32k HP wall let's be real lol).
-	double shortestPathObstructionTime;
 	int hasQuads;
 	int segnum; // What segment Algo is in.
 	ubyte isSegmentAccessible[MAX_SEGMENTS];
-	ubyte segmentVisitedFrom[MAX_SEGMENTS];
+	bool lockedWallsAt[MAX_OBJECTS + MAX_WALLS][MAX_WALLS];
+	short segmentVisitedFrom[MAX_SEGMENTS][MAX_SIDES_PER_SEGMENT];
 	int loops; // Which stage of the par time calculation process are we on?
 	int typeThreeWalls[MAX_WALLS];
 	int numTypeThreeWalls;
@@ -67,6 +68,7 @@ typedef struct parTime {
 	int sideSizes[MAX_SEGMENTS][MAX_SIDES_PER_SEGMENT]; // So we can cache this and avoid having millions upon millions of vm_vec_dist calls in par time.
 	int warpBackPoint;
 	int missingKeys; // Tells Also which keys are missing from a level, allowing it to go through cooresponding colored doors to prevent softlocks.
+	int objectives; // Keeps track of how many things we've gotten so far. Important for backtracking omission.
 } __pack__ parTime;
 
 
