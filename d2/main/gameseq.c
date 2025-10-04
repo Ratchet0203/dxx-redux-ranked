@@ -1828,7 +1828,7 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 
 	// First initialize weapon and enemy stuff. This is gonna be a long section.
 	// Everything will be doubles due to the variables' involvement in division equations.
-	// In D2, enemies can have two weapons, so we'll just take the better of the two for every stat if a second one exists.
+	// In D2, enemies can have two weapons, so we'll just take the better of the two if a second one exists.
 
 	double projectile_speed = f2fl(Weapon_info[weapon_id].speed[Difficulty_level]);
 	double player_size = f2fl(ConsoleObject->size);
@@ -1847,36 +1847,30 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 			enemy_max_speed = 0;
 	}
 	double enemy_size = f2fl(Polygon_models[robInfo->model_num].rad);
-	double enemy_weapon_speed = f2fl(Weapon_info[robInfo->weapon_type2].speed[Difficulty_level]) > f2fl(Weapon_info[robInfo->weapon_type].speed[Difficulty_level]) ? f2fl(Weapon_info[robInfo->weapon_type2].speed[Difficulty_level]) : f2fl(Weapon_info[robInfo->weapon_type].speed[Difficulty_level]);
 	double enemy_weapon_size = 1;
-	if (Weapon_info[robInfo->weapon_type].render_type)
+	if (Weapon_info[robInfo->weapon_type].render_type) {
 		if (Weapon_info[robInfo->weapon_type].render_type == 2)
 			enemy_weapon_size = f2fl(Polygon_models[Weapon_info[robInfo->weapon_type].model_num].rad) / f2fl(Weapon_info[robInfo->weapon_type].po_len_to_width_ratio);
 		else
 			enemy_weapon_size = f2fl(Weapon_info[robInfo->weapon_type].blob_size);
-	if (Weapon_info[robInfo->weapon_type2].render_type)
-		if (Weapon_info[robInfo->weapon_type2].render_type == 2) {
-			if (f2fl(Polygon_models[Weapon_info[robInfo->weapon_type2].model_num].rad) / f2fl(Weapon_info[robInfo->weapon_type2].po_len_to_width_ratio) > enemy_weapon_size)
-				enemy_weapon_size = f2fl(Polygon_models[Weapon_info[robInfo->weapon_type2].model_num].rad) / f2fl(Weapon_info[robInfo->weapon_type2].po_len_to_width_ratio);
-		}
-		else {
-			if (f2fl(Weapon_info[robInfo->weapon_type2].blob_size) > enemy_weapon_size)
-			enemy_weapon_size = f2fl(Weapon_info[robInfo->weapon_type2].blob_size);
-		}
+	}
 	double enemy_attack_type = robInfo->attack_type;
-	// Technically doing player splash radius and adding that to dodge_distance later would be consistent, but it would be unfair to the player in certain cases which we don't want.
-	double enemy_splash_radius = f2fl(Weapon_info[robInfo->weapon_type2].damage_radius) > f2fl(Weapon_info[robInfo->weapon_type].damage_radius) ? f2fl(Weapon_info[robInfo->weapon_type2].damage_radius) : f2fl(Weapon_info[robInfo->weapon_type].damage_radius);
-	double weapon_homing_flag = weapon_info->homing_flag;
-	double enemy_weapon_homing_flag = (Weapon_info[robInfo->weapon_type].homing_flag || Weapon_info[robInfo->weapon_type2].homing_flag); // Smart missiles/mines have homing capabilities, but are significantly weaker than actual homing weapons.
 	
 	// Next, find the "optimal distance" for fighting the given enemy with the given weapon. This is the distance where the enemy's fire can be dodged off of pure reaction time, without any prediction.
 	// Once the player's ship can start moving 250ms (avg human reaction time) after the enemy shoots, and get far enough out of the way for the enemy's shots to miss, it's at the optimal distance.
 	// Any closer, and the player is put in too much danger. Any further, and the player faces potential accuracy loss due to the enemy having more time to dodge themselves.
 	double optimal_distance;
+	double optimal_distance2 = 0;
 	double player_dodge_distance;
+	double enemy_weapon_speed = f2fl(Weapon_info[robInfo->weapon_type].speed[Difficulty_level]);
+	// Technically doing player splash radius and adding that to dodge_distance later would be consistent, but it would be unfair to the player in certain cases which we don't want.
+	// Cap the splash radius used for accuracy estimation at the missile's damage. If we don't, flash missiles become an extreme problem in cases like Hydro 18 where the first enemy takes OVER TWO MINUTES to fight on Insane.
+	double enemy_splash_radius = f2fl(Weapon_info[robInfo->weapon_type].damage_radius) > f2fl(Weapon_info[robInfo->weapon_type].strength[Difficulty_level]) ? f2fl(Weapon_info[robInfo->weapon_type].strength[Difficulty_level]) : f2fl(Weapon_info[robInfo->weapon_type].damage_radius);
+	double weapon_homing_flag = weapon_info->homing_flag;
+	// Smart missiles/mines have homing capabilities, but are significantly weaker than actual homing weapons. Running bots can't actually shoot homing things at you, even if the weapon they would've had otherwise is.
+	double enemy_weapon_homing_flag = ((Weapon_info[robInfo->weapon_type].homing_flag || Weapon_info[robInfo->weapon_type2].homing_flag) && enemy_behavior != AIB_RUN_FROM && !enemy_attack_type);
 	if (enemy_attack_type) { // In the case of melee enemies, the optimal distance depends on them instead of their weapon, since they use themselves to attack you.
-		player_dodge_distance = player_size + enemy_size > enemy_splash_radius ? player_size + enemy_size : enemy_splash_radius; // Stay further away from bots with splash attacks.
-		enemy_weapon_homing_flag = 0; // These bots can't actually shoot homing things at you, even if the weapon they would've had otherwise is.
+		player_dodge_distance = player_size + enemy_size;
 		// Account for robot acceleration, since we're not measuring shots anymore here. Luckily mass isn't an element so it's simpler than player acceleration calculations.
 		optimal_distance = 0;
 		int num_frames = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * 64;
@@ -1890,21 +1884,41 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 		}
 	}
 	else {
-		player_dodge_distance = player_size + enemy_weapon_size > enemy_splash_radius ? player_size + enemy_weapon_size : enemy_splash_radius;
+		player_dodge_distance = player_size + enemy_weapon_size;
+		if (player_dodge_distance < enemy_splash_radius)
+			player_dodge_distance = enemy_splash_radius;
 		optimal_distance = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * enemy_weapon_speed;
+		if (robInfo->weapon_type2 != -1) {
+			// Now set everything to the second weapon's instance and calculate optimal_distance again, taking the highest one.
+			enemy_weapon_size = 1;
+			if (Weapon_info[robInfo->weapon_type2].render_type) {
+				if (Weapon_info[robInfo->weapon_type2].render_type == 2)
+					enemy_weapon_size = f2fl(Polygon_models[Weapon_info[robInfo->weapon_type2].model_num].rad) / f2fl(Weapon_info[robInfo->weapon_type2].po_len_to_width_ratio);
+				else
+					enemy_weapon_size = f2fl(Weapon_info[robInfo->weapon_type2].blob_size);
+			}
+			enemy_weapon_speed = f2fl(Weapon_info[robInfo->weapon_type2].speed[Difficulty_level]);
+			enemy_splash_radius = f2fl(Weapon_info[robInfo->weapon_type2].damage_radius) > f2fl(Weapon_info[robInfo->weapon_type2].strength[Difficulty_level]) ? f2fl(Weapon_info[robInfo->weapon_type2].strength[Difficulty_level]) : f2fl(Weapon_info[robInfo->weapon_type2].damage_radius);
+			player_dodge_distance = player_size + enemy_weapon_size;
+			if (player_dodge_distance < enemy_splash_radius)
+				player_dodge_distance = enemy_splash_radius;
+			optimal_distance2 = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * enemy_weapon_speed;
+		}
 	}
+	if (optimal_distance2 > optimal_distance)
+		optimal_distance = optimal_distance2;
 	if (robInfo->thief)
 		optimal_distance += enemy_max_speed; // Thieves are the worst of both worlds.
 	else {
-		if (enemy_behavior == AIB_RUN_FROM) { // We don't want snipe robots to use this, as they actually shoot things.
+		if (enemy_behavior == AIB_RUN_FROM) // We don't want snipe robots to use this, as they actually shoot things.
 			optimal_distance = 0; // Ideally you want to be as close to these guys as you can.
-			enemy_weapon_homing_flag = 0; // These bots can't actually shoot homing things at you, even if the weapon they would've had otherwise is.
-		}
 		if (enemy_behavior == AIB_SNIPE)
 			optimal_distance += enemy_max_speed; // These enemies can back away from you as you shoot. Can't be exact on this or else enemies faster than your weapons will return infinite optimal distance.
 	}
 	optimal_distance = optimal_distance > robInfo->badass ? optimal_distance : robInfo->badass; // Also ensure we avoid their blast radius.
 	optimal_distance = optimal_distance > f2fl(Weapon_info[weapon_id].damage_radius) ? optimal_distance : f2fl(Weapon_info[weapon_id].damage_radius); // Don't stay close enough to get damaged by our own weapon!
+	if (optimal_distance > 200)
+		optimal_distance = 200; // Due to Descent being Descent, robots can't shoot at you from any further than 200 units.
 
 	// Next, figure out how well the enemy will dodge a player attack of this weapon coming from the optimal distance away, then base accuracy off of that.
 	// For simplicity, we assume enemies face longways and dodge sideways relative to player rotation, and that the player is shooting at the middle of the target from directly ahead.
@@ -2468,7 +2482,7 @@ short create_path_partime(int start_seg, int target_seg, point_seg** path_start,
 		if (ParTime.isSegmentAccessible[target_seg])
 			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, -1, 0);
 		else
-			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, -1, 1);
+			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, objective.type, objective.ID, 1);
 	}
 
 	*path_start = Point_segs_free_ptr;
@@ -2496,6 +2510,15 @@ double calculate_path_length_partime(point_seg* path, int path_count, partime_ob
 	else if (objective.type == OBJECTIVE_TYPE_OBJECT) // Objective is in the same segment as the player. If it's an object, we still move to it.
 		pathLength = vm_vec_dist(&ParTime.lastPosition, &Objects[objective.ID].pos);
 	return pathLength; // We still need pathLength, despite now adding to movementTime directly, because individual paths need compared.
+}
+
+int phasingAllowed(partime_objective objective) { // Because constantly having to sort through this mess of criteria is exhausting.
+	// If something is the side of a door, a reactor or a boss, Algo can phase through walls when getting to it. In D2, it's also allowed for switches.
+	if ((objective.type == OBJECTIVE_TYPE_TRIGGER && !(Walls[objective.ID].type == WALL_OPEN || Walls[objective.ID].type == WALL_ILLUSION))
+		|| objective.type == OBJECTIVE_TYPE_WALL
+		|| (objective.type == OBJECTIVE_TYPE_OBJECT && (Objects[objective.ID].type == OBJ_CNTRLCEN || (Objects[objective.ID].type == OBJ_ROBOT && Robot_info[Objects[objective.ID].id].boss_flag))))
+		return 1;
+	return 0;
 }
 
 int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck) // Does what the name says.
@@ -2545,11 +2568,12 @@ int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiv
 			if ((ControlCenterTriggers.seg[i] == Walls[wall_num].segnum && ControlCenterTriggers.side[i] == Walls[wall_num].sidenum) || (ControlCenterTriggers.seg[i] == Walls[connectedWallNum].segnum && ControlCenterTriggers.side[i] == Walls[connectedWallNum].sidenum))
 				unlocked = (ParTime.loops > 1);
 	}
-	if (!(unlocked || warpBackPointCheck)) // Let Algo through anyway if the wall is transparent and we're headed toward an unlock we don't have to go directly to (EG shooting through grate at unlocked side of door like S2).
-		unlocked = (((currentObjectiveType == OBJECTIVE_TYPE_TRIGGER && !(Walls[currentObjectiveID].type == WALL_OPEN || Walls[currentObjectiveID].type == WALL_ILLUSION)) ||
-			currentObjectiveType == OBJECTIVE_TYPE_WALL ||
-			(currentObjectiveType == OBJECTIVE_TYPE_OBJECT && (Objects[currentObjectiveID].type == OBJ_CNTRLCEN || (Objects[currentObjectiveID].type == OBJ_ROBOT && Robot_info[Objects[currentObjectiveID].id].boss_flag)))) &&
-			check_transparency_partime(&Segments[Walls[wall_num].segnum], Walls[wall_num].sidenum));
+	if (!(unlocked || warpBackPointCheck)) { // Let Algo through anyway if the wall is transparent and we're headed toward an unlock we don't have to go directly to (EG shooting through grate at unlocked side of door like S2).
+		partime_objective objective;
+		objective.type = currentObjectiveType;
+		objective.ID = currentObjectiveID;
+		unlocked = phasingAllowed(objective) && check_transparency_partime(&Segments[Walls[wall_num].segnum], Walls[wall_num].sidenum);
+	}
 	return unlocked;
 }
 
@@ -2585,27 +2609,22 @@ partime_objective find_nearest_objective_partime(int start_seg, point_seg** path
 	vms_vector start;
 	compute_segment_center(&start, &Segments[start_seg]);
 
-	// First make Algo try to get to something without phasing through walls, then if it can't, let it phase and try again.
-	for (i = 0; i < 2; i++) {
-		for (int o = 0; o < ParTime.toDoListSize; o++) {
-			objective = ParTime.toDoList[o];
-			objectiveSegnum = getObjectiveSegnum(objective);
-			// Draw a path as far as we can to the objective, avoiding currently locked doors. If we don't make it all the way, ignore any closed walls. Primarily for shooting through grates, but prevents a softlock on actual uncompletable levels.
-			player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, i);
-			// If we're shooting the unlockable side of a one-sided locked wall, make sure we have the keys needed to unlock it first.
-			// Also CAN ignore this if it's a transparent door but I'm not too worried about this.
-			if (objective.type == OBJECTIVE_TYPE_WALL && !thisWallUnlocked(objective.ID, OBJECTIVE_TYPE_WALL, objective.ID, 1))
-				continue;
-			if (!player_path_length)
-				continue;
-			pathLength = calculate_path_length_partime(*path_start, *path_count, objective);
-			if (pathLength < shortestPathLength || shortestPathLength < 0) {
-				shortestPathLength = pathLength;
-				nearestObjective = objective;
-			}
+	for (i = 0; i < ParTime.toDoListSize; i++) {
+		objective = ParTime.toDoList[i];
+		objectiveSegnum = getObjectiveSegnum(objective);
+		// Draw a path as far as we can to the objective, avoiding currently locked doors. If we don't make it all the way, ignore any closed walls. Primarily for shooting through grates, but prevents a softlock on actual uncompletable levels.
+		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, i);
+		// If we're shooting the unlockable side of a one-sided locked wall, make sure we have the keys needed to unlock it first.
+		// Also CAN ignore this if it's a transparent door but I'm not too worried about this.
+		if (objective.type == OBJECTIVE_TYPE_WALL && !thisWallUnlocked(objective.ID, OBJECTIVE_TYPE_WALL, objective.ID, 1))
+			continue;
+		if (!player_path_length)
+			continue;
+		pathLength = calculate_path_length_partime(*path_start, *path_count, objective);
+		if (pathLength < shortestPathLength || shortestPathLength < 0) {
+			shortestPathLength = pathLength;
+			nearestObjective = objective;
 		}
-		if (shortestPathLength >= 0)
-			break;
 	}
 
 	// Did we find a legal objective? Return that.
@@ -2613,7 +2632,10 @@ partime_objective find_nearest_objective_partime(int start_seg, point_seg** path
 		ParTime.warpBackPoint = -1;
 		objectiveSegnum = getObjectiveSegnum(nearestObjective);
 		// Regenerate the path since we may have checked something else in the meantime.
-		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, nearestObjective, 1);
+		// First make Algo try to get to the objective without phasing through walls, then if it can't, let it phase and try again.
+		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, nearestObjective, 0);
+		if (!player_path_length && phasingAllowed(nearestObjective))
+			player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, nearestObjective, 1);
 		*path_length = calculate_path_length_partime(*path_start, *path_count, nearestObjective);
 		// Now we need to find out where to place Algo for accessible objectives.
 		// In the case of phasing through locked walls to get certain objectives, set it before the first transparent one. In the case of going into places that are too small, set it before that.
@@ -2623,19 +2645,12 @@ partime_objective find_nearest_objective_partime(int start_seg, point_seg** path
 			side_num = find_connecting_side(Point_segs[i].segnum, Point_segs[i + 1].segnum);
 			wall_num = Segments[Point_segs[i].segnum].sides[side_num].wall_num;
 			if (!ParTime.isSegmentAccessible[Point_segs[i + 1].segnum])
-				if (ParTime.warpBackPoint == -1)
-					ParTime.warpBackPoint = Point_segs[i].segnum;
-			if (!thisWallUnlocked(wall_num, nearestObjective.type, nearestObjective.ID, 1))
-				if (((nearestObjective.type == OBJECTIVE_TYPE_TRIGGER && !(Walls[nearestObjective.ID].type == WALL_OPEN || Walls[nearestObjective.ID].type == WALL_ILLUSION)) ||
-					nearestObjective.type == OBJECTIVE_TYPE_WALL ||
-					(nearestObjective.type == OBJECTIVE_TYPE_OBJECT && (Objects[nearestObjective.ID].type == OBJ_CNTRLCEN || (Objects[nearestObjective.ID].type == OBJ_ROBOT && Robot_info[Objects[nearestObjective.ID].id].boss_flag)))) &&
-					check_transparency_partime(&Segments[Walls[wall_num].segnum], Walls[wall_num].sidenum))
-					if (ParTime.warpBackPoint == -1)
-						ParTime.warpBackPoint = Walls[wall_num].segnum;
+				ParTime.warpBackPoint = Point_segs[i].segnum;
+			if (!thisWallUnlocked(wall_num, nearestObjective.type, nearestObjective.ID, 1) && phasingAllowed(nearestObjective) && check_transparency_partime(&Segments[Walls[wall_num].segnum], Walls[wall_num].sidenum) && ParTime.warpBackPoint == -1)
+				ParTime.warpBackPoint = Walls[wall_num].segnum;
 			side_num = find_connecting_side(Point_segs[i + 1].segnum, Point_segs[i].segnum);
-			if (!check_gap_size(Point_segs[i + 1].segnum, side_num) && ((nearestObjective.type == OBJECTIVE_TYPE_TRIGGER && !(Walls[nearestObjective.ID].type == WALL_OPEN || Walls[nearestObjective.ID].type == WALL_ILLUSION)) || nearestObjective.type == OBJECTIVE_TYPE_WALL || (nearestObjective.type == OBJECTIVE_TYPE_OBJECT && (Objects[nearestObjective.ID].type == OBJ_CNTRLCEN || (Objects[nearestObjective.ID].type == OBJ_ROBOT && Robot_info[Objects[nearestObjective.ID].id].boss_flag))) || !ParTime.isSegmentAccessible[objectiveSegnum]))
-				if (ParTime.warpBackPoint == -1)
-					ParTime.warpBackPoint = Point_segs[i].segnum;
+			if (!check_gap_size(Point_segs[i + 1].segnum, side_num) && (phasingAllowed(nearestObjective) || !ParTime.isSegmentAccessible[objectiveSegnum]) && ParTime.warpBackPoint == -1)
+				ParTime.warpBackPoint = Point_segs[i].segnum;
 			if (ParTime.warpBackPoint > -1)
 				break; // We found where to put Algo. No need to go further.
 		}
@@ -2714,7 +2729,7 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 				// Now we determine whether Algo is backtracking for a good reason, and don't count the time if not.
 				for (int w = 0; w < numCurrPathWalls; w++) {
 					// Count current locked wall status differently based on whether we can phase through certain ones. This could change necessity.
-					if (ParTime.lockedWallsAt[ParTime.segmentVisitedFrom[path[i].segnum][side_num]][currPathWalls[w]] != thisWallUnlocked(currPathWalls[w], currentObjective.type, currentObjective.ID, 0))
+					if (!ParTime.isSegmentAccessible[path[path_count - 1].segnum] || ParTime.lockedWallsAt[ParTime.segmentVisitedFrom[path[i].segnum][side_num]][currPathWalls[w]] != thisWallUnlocked(currPathWalls[w], currentObjective.type, currentObjective.ID, 0))
 						backtrackingNecessary = 1;
 				}
 				if (!backtrackingNecessary) {
