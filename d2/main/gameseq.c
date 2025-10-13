@@ -970,14 +970,8 @@ void StartNewGame(int start_level)
 		if (fp == NULL) { // If this level's rank data file doesn't exist, create it now so it can be written to on the rank screen.
 			fp = PHYSFS_openWrite(filename);
 			PHYSFSX_printf(fp, "-1\n");
-			PHYSFSX_printf(fp, "\n");
-			PHYSFSX_printf(fp, "\n");
-			PHYSFSX_printf(fp, "\n");
-			PHYSFSX_printf(fp, "\n");
-			PHYSFSX_printf(fp, "\n");
-			PHYSFSX_printf(fp, "\n");
-			PHYSFSX_printf(fp, "\n");
-			PHYSFSX_printf(fp, "\n");
+			for (int n = 0; n < 9; n++)
+				PHYSFSX_printf(fp, "\n");
 			PHYSFSX_printf(fp, "???");
 		}
 		PHYSFS_close(fp);
@@ -1719,11 +1713,13 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 { // I was originally gonna ignore this since hostage doors added negligible time, but then thanks to Devil's Heart, I learned that they can have absurd HP! :D
 	double thisWeaponCombatTime = -1; // How much time does this wall take to destroy with the current weapon?
 	double lowestCombatTime = -1; // Track the time of the fastest weapon so far.
-	double ammoUsed = 0; // Same thing but vulcan.
+	double energyUsed = 0;
+	double ammoUsed = 0;
 	int topWeapon; // So when depleting energy/ammo, the right one is depleted. Also so the console shows the right weapon.
 	// Weapon values converted to a format human beings in 2024 can understand.
 	double damage;
 	double fire_rate;
+	double energy_usage;
 	double ammo_usage;
 	double splash_radius;
 	double wall_health;
@@ -1744,6 +1740,11 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 				gunpoints = 5;
 			damage = f2fl(Weapon_info[n].strength[Difficulty_level]) * gunpoints;
 			fire_rate = (double)f1_0 / Weapon_info[n].fire_wait;
+			energy_usage = f2fl(Weapon_info[n].energy_usage);
+			if (n == FUSION_ID)
+				energy_usage = 2; // Fusion always uses 2 energy, despite its energy_usage field being 0.
+			else if (Difficulty_level < 2)
+				energy_usage *= 0.5 + Difficulty_level * 0.25; // Other than that, energy usage is 50% on Trainee and 75% on Rookie.
 			ammo_usage = Weapon_info[n].ammo_usage * 12.7554168701171875; // To scale with the ammo counter. SaladBadger found out this was the real multiplier after fixed point errors(?), not 13.
 			splash_radius = f2fl(Weapon_info[n].damage_radius);
 			wall_health = f2fl(Walls[wall_num].hps + 1) - WallAnims[Walls[wall_num].clip_num].num_frames; // For some reason the "real" health of a wall is its hps minus its frame count. Refer to the last line of dxx-redux-ranked commit cb1d724's description.
@@ -1754,50 +1755,54 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 			// Assume accuracy is always 100% for walls. They're big and don't move lol.
 			int shots = ceil(wall_health / damage); // Split time into shots to reflect how players really fire. A 30 HP robot will take two laser 1 shots to kill, not one and a half.
 			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage) // Make sure we have enough ammo for this robot before using vulcan.
-				thisWeaponCombatTime = shots / fire_rate;
+				// Factor energy and ammo usage in to which weapon Algo picks (won't contribute to final combat time of course). Based off of how much time it would take to refill that much energy in a fuelcen.
+				thisWeaponCombatTime = shots / fire_rate + (shots * energy_usage) / 25;
 			else
 				thisWeaponCombatTime = INFINITY; // Make vulcan's/gauss' time infinite so algo won't use it without ammo.
 			if (thisWeaponCombatTime <= lowestCombatTime || lowestCombatTime == -1) { // If it should be used, update algo's weapon stats to the new one's for use in combat time calculation.
 				lowestCombatTime = thisWeaponCombatTime;
+				energyUsed = shots * energy_usage;
 				ammoUsed = ammo_usage * shots;
 				topWeapon = n;
 			}
 		}
+	lowestCombatTime -= energyUsed / 25;
 	if (pathFinal) { // Only announce we destroyed the wall (or drain energy/ammo) if we actually did, and aren't just simulating doing so when picking a path.
-		if (topWeapon == VULCAN_ID || topWeapon == GAUSS_ID)
-			ParTime.vulcanAmmo -= ammoUsed * f1_0;
+		ParTime.simulatedEnergy -= energyUsed;
+		ParTime.energyUsed += energyUsed;
+		ParTime.vulcanAmmo -= ammoUsed * f1_0;
 		if (!(topWeapon > LASER_ID_L4) || topWeapon == LASER_ID_L5 || topWeapon == LASER_ID_L6) {
 			if (!ParTime.hasQuads) {
 				if (!(topWeapon > LASER_ID_L4))
-					printf("Took %.3fs to fight wall %i with quad laser %i\n", lowestCombatTime + 1, wall_num, topWeapon + 1);
+					printf("Took %.3fs to fight wall %i with quad laser %i; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, topWeapon + 1, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 				else
-					printf("Took %.3fs to fight wall %i with quad laser %i\n", lowestCombatTime + 1, wall_num, topWeapon - 25);
+					printf("Took %.3fs to fight wall %i with quad laser %i; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, topWeapon - 25, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 			}
 			else {
 				if (!(topWeapon > LASER_ID_L4))
-					printf("Took %.3fs to fight wall %i with laser %i\n", lowestCombatTime + 1, wall_num, topWeapon + 1);
+					printf("Took %.3fs to fight wall %i with laser %i; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, topWeapon + 1, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 				else
-					printf("Took %.3fs to fight wall %i with laser %i\n", lowestCombatTime + 1, wall_num, topWeapon - 25);
+					printf("Took %.3fs to fight wall %i with laser %i; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, topWeapon - 25, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 			}
 		}
 		if (topWeapon == FLARE_ID)
-			printf("Took %.3fs to fight wall %i with flares\n", lowestCombatTime + 1, wall_num);
+			printf("Took %.3fs to fight wall %i with flares; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 		if (topWeapon == VULCAN_ID)
-			printf("Took %.3fs to fight wall %i with vulcan, now at %.0f vulcan ammo\n", lowestCombatTime + 1, wall_num, f2fl((int)ParTime.vulcanAmmo));
+			printf("Took %.3fs to fight wall %i with vulcan; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 		if (topWeapon == SPREADFIRE_ID)
-			printf("Took %.3fs to fight wall %i with spreadfire\n", lowestCombatTime + 1, wall_num);
+			printf("Took %.3fs to fight wall %i with spreadfire; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 		if (topWeapon == PLASMA_ID)
-			printf("Took %.3fs to fight wall %i with plasma\n", lowestCombatTime + 1, wall_num);
+			printf("Took %.3fs to fight wall %i with plasma; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 		if (topWeapon == FUSION_ID)
-			printf("Took %.3fs to fight wall %i with fusion\n", lowestCombatTime + 1, wall_num);
+			printf("Took %.3fs to fight wall %i with fusion; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 		if (topWeapon == GAUSS_ID)
-			printf("Took %.3fs to fight wall %i with gauss, now at %.0f vulcan ammo\n", lowestCombatTime + 1, wall_num, f2fl((int)ParTime.vulcanAmmo));
+			printf("Took %.3fs to fight wall %i with gauss; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 		if (topWeapon == HELIX_ID)
-			printf("Took %.3fs to fight wall %i with helix\n", lowestCombatTime + 1, wall_num);
+			printf("Took %.3fs to fight wall %i with helix; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 		if (topWeapon == PHOENIX_ID)
-			printf("Took %.3fs to fight wall %i with phoenix\n", lowestCombatTime + 1, wall_num);
+			printf("Took %.3fs to fight wall %i with phoenix; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 		if (topWeapon == OMEGA_ID)
-			printf("Took %.3fs to fight wall %i with omega\n", lowestCombatTime + 1, wall_num);
+			printf("Took %.3fs to fight wall %i with omega; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime + 1, wall_num, ParTime.simulatedEnergy, f2fl(ParTime.vulcanAmmo));
 	}
 	return lowestCombatTime + 1; // Give an extra second per wall to wait for the explosion to go down. Flying through it causes great damage.
 }
@@ -1910,8 +1915,8 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	if (robInfo->thief)
 		optimal_distance += enemy_max_speed; // Thieves are the worst of both worlds.
 	else {
-		if (enemy_behavior == AIB_RUN_FROM) // We don't want snipe robots to use this, as they actually shoot things.
-			optimal_distance = 0; // Ideally you want to be as close to these guys as you can.
+		if (enemy_behavior == AIB_RUN_FROM && isObject) // We don't want snipe robots to use this, as they actually shoot things.
+			optimal_distance = robotHasKey(obj) ? 0 : 0; // Ideally you want to be as close to these guys as you can, but give a bonus for key holders. Placeholder, might increase the 0.
 		if (enemy_behavior == AIB_SNIPE)
 			optimal_distance += enemy_max_speed; // These enemies can back away from you as you shoot. Can't be exact on this or else enemies faster than your weapons will return infinite optimal distance.
 	}
@@ -2003,12 +2008,13 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	return accuracy * accuracy_multiplier;
 }
 
-double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int isMatcen) // Tell algo to use the weapon that's fastest for the current enemy.
+double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // Tell algo to use the weapon that's fastest for the current enemy.
 {
 	int weapon_id = 0; // Just a shortcut for the relevant index in algo's inventory.
 	double thisWeaponCombatTime = -1; // How much time does this enemy take to kill with the current weapon?
 	double lowestCombatTime = -1; // Track the time of the fastest weapon so far.
-	double ammoUsed = 0; // Same thing but vulcan.
+	double energyUsed = 0;
+	double ammoUsed = 0;
 	int topWeapon = -1; // So when depleting energy/ammo, the right one is depleted. Also so the console shows the right weapon.
 	double offspringHealth; // So multipliers done to offspring don't bleed into their parents' values.
 	double accuracy; // Players are NOT perfect, and it's usually not their fault. We need to account for this if we want all par times to be reachable.
@@ -2037,12 +2043,17 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 				gunpoints = 5;
 			double damage = f2fl(weapon_info->strength[Difficulty_level]) * gunpoints;
 			double fire_rate = (double)f1_0 / weapon_info->fire_wait;
+			double energy_usage = f2fl(weapon_info->energy_usage);
 			double ammo_usage = Weapon_info[n].ammo_usage * 12.7554168701171875; // To scale with the ammo counter. SaladBadger found out this was the real multiplier after fixed point errors(?), not 13.
 			double splash_radius = f2fl(weapon_info->damage_radius);
 			double enemy_health = f2fl(robInfo->strength + 1); // We do +1 to account for robots still being alive at exactly 0 HP.
 			double enemy_size = f2fl(Polygon_models[robInfo->model_num].rad);
 			if (!(weapon_id > LASER_ID_L4) || weapon_id == LASER_ID_L5 || weapon_id == LASER_ID_L6) // For some reason, the game always uses laser 1's weapon data, even though other levels have a different fire rates in theirs.
 				fire_rate = (double)f1_0 / Weapon_info[0].fire_wait;
+			if (n == FUSION_ID)
+				energy_usage = 2; // Fusion always uses 2 energy, despite its energy_usage field being 0.
+			else if (Difficulty_level < 2)
+				energy_usage *= 0.5 + Difficulty_level * 0.25; // Other than that, energy usage is 50% on Trainee and 75% on Rookie.
 			if (isObject) {
 				if (obj->type == OBJ_CNTRLCEN) {
 					if (weapon_id == FUSION_ID)
@@ -2081,12 +2092,15 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 			accuracy = adjustedRobotHealthNoAccuracy / adjustedRobotHealth;
 			int shots = round(ceil(adjustedRobotHealthNoAccuracy / damage) / accuracy); // Split time into shots to reflect how players really fire. A 30 HP robot will take two laser 1 shots to kill, not one and a half.
 			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage) // Make sure we have enough ammo for this robot before using vulcan.
-				thisWeaponCombatTime = shots / fire_rate;
+				// Factor energy and ammo usage in to which weapon Algo picks (won't contribute to final combat time of course). Based off of how much time it would take to refill that much energy in a fuelcen.
+				thisWeaponCombatTime = shots / fire_rate + (shots * energy_usage) / 25;
 			else
 				thisWeaponCombatTime = INFINITY; // Make vulcan's/gauss' time infinite so Algo won't use it without ammo.
 			if (thisWeaponCombatTime <= lowestCombatTime || lowestCombatTime == -1) { // If it should be used, update algo's weapon stats to the new one's for use in combat time calculation.
 				lowestCombatTime = thisWeaponCombatTime;
+				ParTime.energy_usage = shots * energy_usage;
 				ParTime.ammo_usage = shots * ammo_usage;
+				energyUsed = energy_usage * shots;
 				ammoUsed = ammo_usage * shots;
 				topWeapon = weapon_id;
 				topAccuracy = accuracy * 100;
@@ -2094,57 +2108,52 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 		}
 	if (lowestCombatTime == -1)
 		lowestCombatTime = 0; // Prevent a softlock if no primaries work on a given boss.
-	if ((topWeapon == VULCAN_ID || topWeapon == GAUSS_ID) && !failsafe)
-		ParTime.vulcanAmmo -= ammoUsed * f1_0;
+	lowestCombatTime -= energyUsed / 25;
 	if (isObject && obj->ctype.ai_info.behavior == AIB_RUN_FROM) // Give extra time to chase these guys down.
 			lowestCombatTime += calculateMovementTime(lowestCombatTime * robInfo->max_speed[Difficulty_level], 1) * 2;
 	if (robInfo->thief)
 		lowestCombatTime += calculateMovementTime(lowestCombatTime * robInfo->max_speed[Difficulty_level], 1) * 2;
-	if (isMatcen) {
-		// Now account for RNG ammo drops from matcen bots and their robot spawn.
-		if (robInfo->contains_type == OBJ_POWERUP && robInfo->contains_id == POW_VULCAN_AMMO && robInfo->contains_count > 0)
-			ParTime.ammo_usage -= f2fl(((double)robInfo->contains_count * ((double)robInfo->contains_prob / 16)) * (STARTING_VULCAN_AMMO / 2));
-		if (robInfo->contains_type == OBJ_ROBOT && Robot_info[robInfo->contains_id].contains_count > 0) {
-			if (Robot_info[robInfo->contains_id].contains_type == OBJ_POWERUP && Robot_info[robInfo->contains_id].contains_id == POW_VULCAN_AMMO)
-				ParTime.ammo_usage -= f2fl(((double)Robot_info[robInfo->contains_id].contains_count * ((double)Robot_info[robInfo->contains_id].contains_prob / 16)) * (STARTING_VULCAN_AMMO / 2));
-		}
-	} else if (isObject) {
+	if (isObject) {
+		ParTime.energyUsed += energyUsed;
+		ParTime.simulatedEnergy -= energyUsed;
+		if (!failsafe)
+			ParTime.vulcanAmmo -= ammoUsed * f1_0;
 		if (!(topWeapon > LASER_ID_L4) || topWeapon == LASER_ID_L5 || topWeapon == LASER_ID_L6) {
 			if (!ParTime.hasQuads) {
 				if (!(topWeapon > LASER_ID_L4))
-					printf("Took %.3fs to fight robot type %i with quad laser %i, %.2f accuracy\n", lowestCombatTime, obj->id, topWeapon + 1, topAccuracy);
+					printf("Took %.3fs to fight robot type %i with quad laser %i, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topWeapon + 1, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 				else
-					printf("Took %.3fs to fight robot type %i with quad laser %i, %.2f accuracy\n", lowestCombatTime, obj->id, topWeapon - 25, topAccuracy);
+					printf("Took %.3fs to fight robot type %i with quad laser %i, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topWeapon - 25, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 			}
 			else {
 				if (!(topWeapon > LASER_ID_L4))
-					printf("Took %.3fs to fight robot type %i with laser %i, %.2f accuracy\n", lowestCombatTime, obj->id, topWeapon + 1, topAccuracy);
+					printf("Took %.3fs to fight robot type %i with laser %i, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topWeapon + 1, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 				else
-					printf("Took %.3fs to fight robot type %i with laser %i, %.2f accuracy\n", lowestCombatTime, obj->id, topWeapon - 25, topAccuracy);
+					printf("Took %.3fs to fight robot type %i with laser %i, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topWeapon - 25, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 			}
 		}
 		if (topWeapon == FLARE_ID)
-			printf("Took %.3fs to fight robot type %i with flares, %.2f accuracy\n", lowestCombatTime, obj->id, topAccuracy);
+			printf("Took %.3fs to fight robot type %i with flares, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 		if (topWeapon == VULCAN_ID) {
 			if (failsafe)
-				printf("Took %.3fs to fight robot type %i with vulcan (FAILSAFE), %.2f accuracy\n", lowestCombatTime, obj->id, topAccuracy);
+				printf("Took %.3fs to fight robot type %i with vulcan (FAILSAFE), %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 			else
-				printf("Took %.3fs to fight robot type %i with vulcan, %.2f accuracy, now at %.0f vulcan ammo\n", lowestCombatTime, obj->id, topAccuracy, f2fl((int)ParTime.vulcanAmmo));
+				printf("Took %.3fs to fight robot type %i with vulcan, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 		}
 		if (topWeapon == SPREADFIRE_ID)
-			printf("Took %.3fs to fight robot type %i with spreadfire, %.2f accuracy\n", lowestCombatTime, obj->id, topAccuracy);
+			printf("Took %.3fs to fight robot type %i with spreadfire, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 		if (topWeapon == PLASMA_ID)
-			printf("Took %.3fs to fight robot type %i with plasma, %.2f accuracy\n", lowestCombatTime, obj->id, topAccuracy);
+			printf("Took %.3fs to fight robot type %i with plasma, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 		if (topWeapon == FUSION_ID)
-			printf("Took %.3fs to fight robot type %i with fusion, %.2f accuracy\n", lowestCombatTime, obj->id, topAccuracy);
+			printf("Took %.3fs to fight robot type %i with fusion, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 		if (topWeapon == GAUSS_ID)
-			printf("Took %.3fs to fight robot type %i with gauss, %.2f accuracy, now at %.0f vulcan ammo\n", lowestCombatTime, obj->id, topAccuracy, f2fl((int)ParTime.vulcanAmmo));
+			printf("Took %.3fs to fight robot type %i with gauss, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 		if (topWeapon == HELIX_ID)
-			printf("Took %.3fs to fight robot type %i with helix, %.2f accuracy\n", lowestCombatTime, obj->id, topAccuracy);
+			printf("Took %.3fs to fight robot type %i with helix, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 		if (topWeapon == PHOENIX_ID)
-			printf("Took %.3fs to fight robot type %i with phoenix, %.2f accuracy\n", lowestCombatTime, obj->id, topAccuracy);
+			printf("Took %.3fs to fight robot type %i with phoenix, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 		if (topWeapon == OMEGA_ID)
-			printf("Took %.3fs to fight robot type %i with omega, %.2f accuracy\n", lowestCombatTime, obj->id, topAccuracy);
+			printf("Took %.3fs to fight robot type %i with omega, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 	}
 	return lowestCombatTime;
 }
@@ -2206,19 +2215,28 @@ void robotHasPowerup(int robotID, double weight) {
 		if (weapon_id) {
 			ParTime.heldWeapons[weapon_id] *= (1 - weight) + (pow(1 - ((double)robInfo->contains_prob / 16), robInfo->contains_count) * weight);
 			if (ParTime.heldWeapons[weapon_id] <= 0.0625) {
-				if ((weapon_id == VULCAN_ID || weapon_id == GAUSS_ID) && ParTime.heldWeapons[weapon_id])
-					ParTime.vulcanAmmo += STARTING_VULCAN_AMMO;
-				else
-					ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
+				if (weapon_id == VULCAN_ID || weapon_id == GAUSS_ID) {
+					if (ParTime.heldWeapons[weapon_id])
+						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO;
+					else
+						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
+				}
+				if (ParTime.heldWeapons[weapon_id] && weapon_id != VULCAN_ID && weapon_id != GAUSS_ID)
+					ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup;
 				ParTime.heldWeapons[weapon_id] = 0;
 			}
 		}
 		else {
-			for (i = 0; i < round(robInfo->contains_count * (robInfo->contains_prob / 16.0)); i++) {
-				if (robInfo->contains_id == POW_LASER)
+			for (i = 0; i < round(robInfo->contains_count * (robInfo->contains_prob / 16.0) * weight); i++) {
+				if (robInfo->contains_id == POW_LASER) {
 					if (ParTime.laser_level < LASER_ID_L4)
 						ParTime.laser_level++;
+					else
+						ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0) * weight);
+				}
 				if (robInfo->contains_id == POW_SUPER_LASER) {
+					if (ParTime.laser_level == LASER_ID_L6)
+						ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0) * weight);
 					if (ParTime.laser_level < LASER_ID_L5)
 						ParTime.laser_level = LASER_ID_L5;
 					else
@@ -2230,12 +2248,16 @@ void robotHasPowerup(int robotID, double weight) {
 				ParTime.heldWeapons[ParTime.laser_level] = 0;
 			}
 			if (robInfo->contains_id == POW_QUAD_FIRE) {
+				if (!ParTime.hasQuads)
+					ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
 				ParTime.hasQuads *= (1 - weight) + (pow(1 - ((double)robInfo->contains_prob / 16), robInfo->contains_count) * weight);
 				if (ParTime.hasQuads <= 0.0625)
 					ParTime.hasQuads = 0;
 			}
+			if (robInfo->contains_id == POW_ENERGY)
+				ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
 			if (robInfo->contains_id == POW_VULCAN_AMMO)
-				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * round(robInfo->contains_count * (robInfo->contains_prob / 16.0));
+				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * round(robInfo->contains_count * (robInfo->contains_prob / 16.0) * weight);
 		}
 	}
 	if (robInfo->contains_type == OBJ_ROBOT) {
@@ -2260,19 +2282,27 @@ void robotHasPowerup(int robotID, double weight) {
 		if (weapon_id) {
 			ParTime.heldWeapons[weapon_id] *= (1 - weight) + (pow(1 - ((double)robInfo->contains_prob / 16), robInfo->contains_count) * weight);
 			if (ParTime.heldWeapons[weapon_id] <= 0.0625) {
-				if ((weapon_id == VULCAN_ID || weapon_id == GAUSS_ID) && ParTime.heldWeapons[weapon_id])
-					ParTime.vulcanAmmo += STARTING_VULCAN_AMMO;
-				else
-					ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
+				if (weapon_id == VULCAN_ID || weapon_id == GAUSS_ID) {
+					if (ParTime.heldWeapons[weapon_id])
+						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO;
+					else
+						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
+				}
+				if (ParTime.heldWeapons[weapon_id] && weapon_id != VULCAN_ID && weapon_id != GAUSS_ID)
+					ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup;
 				ParTime.heldWeapons[weapon_id] = 0;
 			}
 		}
 		else {
-			for (i = 0; i < round(robInfo->contains_count * (robInfo->contains_prob / 16.0)); i++) {
+			for (i = 0; i < round(robInfo->contains_count * (robInfo->contains_prob / 16.0) * weight); i++) {
 				if (robInfo->contains_id == POW_LASER)
 					if (ParTime.laser_level < LASER_ID_L4)
 						ParTime.laser_level++;
+					else
+						ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0) * weight);
 				if (robInfo->contains_id == POW_SUPER_LASER) {
+					if (ParTime.laser_level == LASER_ID_L6)
+						ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0) * weight);
 					if (ParTime.laser_level < LASER_ID_L5)
 						ParTime.laser_level = LASER_ID_L5;
 					else
@@ -2284,12 +2314,16 @@ void robotHasPowerup(int robotID, double weight) {
 				ParTime.heldWeapons[ParTime.laser_level] = 0;
 			}
 			if (robInfo->contains_id == POW_QUAD_FIRE) {
+				if (!ParTime.hasQuads)
+					ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
 				ParTime.hasQuads *= (1 - weight) + (pow(1 - ((double)robInfo->contains_prob / 16), robInfo->contains_count) * weight);
 				if (ParTime.heldWeapons[weapon_id] <= 0.0625)
 					ParTime.heldWeapons[weapon_id] = 0;
 			}
+			if (robInfo->contains_id == POW_ENERGY)
+				ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
 			if (robInfo->contains_id == POW_VULCAN_AMMO)
-				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * round(robInfo->contains_count * (robInfo->contains_prob / 16.0));
+				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * round(robInfo->contains_count * (robInfo->contains_prob / 16.0) * weight);
 		}
 	}
 }
@@ -2579,7 +2613,7 @@ int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiv
 
 int check_gap_size(int seg, int side) // Returns 1 if the gap can be fit through by the player, else returns 0.
 {
-	if (ParTime.sideSizes[seg][side] >= ConsoleObject->size * 2)
+	if (ParTime.shipFitsThroughSide[seg][side])
 		return 1; // This side is big enough to fit through. We don't need to check the adjacent sides.
 		
 	// Each side has five adjacent sides: Above, below, left, right, and across. The only one we don't wanna check is the one directly across, as it's not connected to the original.
@@ -2694,6 +2728,8 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 	int thisWallDestroyed = 0;
 	for (int i = 0; i < path_count - 1; i++) {
 		segmentLength = vm_vec_dist(&path[i].point, &path[i + 1].point);
+		if (Segments[path[i].segnum].special == SEGMENT_IS_FUELCEN && ParTime.simulatedEnergy < 100)
+			ParTime.simulatedEnergy = 100;
 		ParTime.movementTime += segmentLength / SHIP_MOVE_SPEED;
 		side_num = find_connecting_side(path[i].segnum, path[i + 1].segnum);
 		wall_num = Segments[path[i].segnum].sides[side_num].wall_num;
@@ -2750,6 +2786,33 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 			}
 		}
 		if (backtrackingNecessary) { // If we don't actually have go somewhere, we don't actually have to fight matcens on the way to that somewhere.
+			if (Walls[wall_num].type == WALL_DOOR) { // Gotta shoot doors to open them without slowing down. That takes resources. Doesn't sound like much but it adds up over a level.
+				double lowestEnergy = -1;
+				double lowestAmmo = -1;
+				int lowestID;
+				int weapon_id;
+				for (int n = 0; n < 21; n++) {
+					if (!ParTime.heldWeapons[n])
+						weapon_id = ParTime.heldWeapons[n];
+					else
+						continue;
+					if (Weapon_info[weapon_id].energy_usage < lowestEnergy || lowestEnergy == -1) {
+						lowestEnergy = Weapon_info[weapon_id].energy_usage;
+						lowestID = weapon_id;
+					}
+					if (Weapon_info[weapon_id].ammo_usage < lowestAmmo || lowestAmmo == -1 && ParTime.vulcanAmmo) {
+						lowestAmmo = Weapon_info[weapon_id].ammo_usage;
+						lowestID = weapon_id;
+					}
+				}
+				if (lowestAmmo != -1)
+					ParTime.vulcanAmmo -= 835939 * lowestAmmo; // Silly fixed point error compensation constant.
+				else {
+					if (lowestID != FUSION_ID) // Fusion doesn't get the difficulty-based energy use nerf.
+						lowestEnergy *= Difficulty_level < 2 ? 0.5 + Difficulty_level * 0.25 : 1;
+					ParTime.simulatedEnergy -= f2fl(lowestEnergy);
+				}
+			}
 			// How much time and ammo does it take to handle the matcens along the way? Let's find out!
 			if (Num_robot_centers > 0) { // Don't bother constantly scanning the path for matcens on levels with no matcens.
 				side_num = find_connecting_side(path[i].segnum, path[i + 1].segnum); // Find the side both segments share.
@@ -2782,19 +2845,21 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 										// Find the average fight time for the robots in this matcen and multiply that by the spawn count on this difficulty.
 										int n;
 										double totalRobotTime = 0;
+										double totalEnergyUsage = 0;
 										double totalAmmoUsage = 0;
 										double averageRobotTime = 0;
 										for (n = 0; n < num_types; n++) {
 											robot_info* robInfo = &Robot_info[legal_types[n]];
 											if (!(robInfo->behavior == AIB_RUN_FROM || robInfo->thief)) { // Skip running bots and thieves.
-												totalRobotTime += calculate_combat_time(NULL, robInfo, 0, 1);
+												totalRobotTime += calculate_combat_time(NULL, robInfo, 0);
 												if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
-													totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0, 1) * round((robInfo->contains_count * (robInfo->contains_prob / 16.0)));
+													totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0) * round((robInfo->contains_count * (robInfo->contains_prob / 16.0)));
 													robotHasPowerup(robInfo->contains_id, 1.0 / num_types);
 												}
 												else
 													robotHasPowerup(legal_types[n], 1.0 / num_types);
 											}
+											totalEnergyUsage += ParTime.energy_usage;
 											totalAmmoUsage += ParTime.ammo_usage;
 										}
 										averageRobotTime = totalRobotTime / num_types;
@@ -2803,11 +2868,15 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 											ParTime.matcenLives[segp->matcen_num]--;
 										if (Triggers[Walls[wall_num].trigger].type & TF_ONE_SHOT) // So one shot triggers only work the first time.
 											ParTime.matcenLives[segp->matcen_num] = 0;
-										ParTime.vulcanAmmo -= ((totalAmmoUsage / num_types) * (f1_0 * (Difficulty_level + 3))); // and ammo, as those also change per matcen.
+										ParTime.simulatedEnergy -= (totalEnergyUsage / num_types) * (Difficulty_level + 3);
+										ParTime.energyUsed += (totalEnergyUsage / num_types) * (Difficulty_level + 3);
+										ParTime.vulcanAmmo -= ((totalAmmoUsage / num_types) * (f1_0 * (Difficulty_level + 3)));
 										if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 8) // Vulcan ammo can exceed 32768 and overflow if not capped properly. Prevent this from happening.
 											ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 8;
 										if (ParTime.vulcanAmmo < 0) // Just cap vulcan ammo at 0 if it goes negative here. This isn't the right way to handle things, but doing it right would get very complex.
 											ParTime.vulcanAmmo = 0;
+										if (ParTime.simulatedEnergy > 200)
+											ParTime.simulatedEnergy = 200;
 										if (matcenTime > 0)
 											printf("Fought matcen %i at segment %i; lives left: %i\n", segp->matcen_num, getMatcenSegnum(segp->matcen_num), ParTime.matcenLives[segp->matcen_num]);
 										totalMatcenTime += averageRobotTime; // Add up the average fight times of each link so we can add them to the minimum time later.
@@ -2831,7 +2900,7 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 		// Technically this will be a little inaccurate when Algo hits the ammo cap, because ammo powerups in D2 have a "capicity" that gets used partially until it's gone, to prevent being wasted.
 		// I don't mind this though, as Algo hitting the ammo cap typically means the level has far more than plenty to last it the entire time.
 		for (int objNum = 0; objNum <= Highest_object_index; objNum++) {
-			if (Objects[objNum].type == OBJ_POWERUP && (Objects[objNum].id == POW_VULCAN_AMMO || (Objects[objNum].id == POW_VULCAN_WEAPON && !ParTime.heldWeapons[VULCAN_ID]) || (Objects[objNum].id == POW_GAUSS_WEAPON && !ParTime.heldWeapons[GAUSS_ID])) && Objects[objNum].segnum == path[i].segnum) {
+			if (Objects[objNum].type == OBJ_POWERUP && (Objects[objNum].id == POW_VULCAN_AMMO || Objects[objNum].id == POW_ENERGY || (Objects[objNum].id == POW_VULCAN_WEAPON && !ParTime.heldWeapons[VULCAN_ID]) || (Objects[objNum].id == POW_GAUSS_WEAPON && !ParTime.heldWeapons[GAUSS_ID])) && Objects[objNum].segnum == path[i].segnum) {
 				// ...make sure we didn't already get this one
 				int thisSourceCollected = 0;
 				for (int j = 0; j < ParTime.doneListSize; j++)
@@ -2840,6 +2909,9 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 						break;
 					}
 				if (!thisSourceCollected) {
+					if (Objects[objNum].id == POW_ENERGY)
+						ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup;
+					else
 					ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
 					partime_objective ammoObjective = { OBJECTIVE_TYPE_OBJECT, objNum };
 					addObjectiveToList(ammoObjective, 1);
@@ -2879,10 +2951,12 @@ void respond_to_objective_partime(partime_objective objective)
 			if (obj->id == POW_OMEGA_WEAPON)
 				weapon_id = OMEGA_ID;
 			if (weapon_id) { // If the powerup we got is a new weapon, add it to the list of weapons algo has.
-				if ((weapon_id == VULCAN_ID || weapon_id == GAUSS_ID) && ParTime.heldWeapons[weapon_id])
-					ParTime.vulcanAmmo += STARTING_VULCAN_AMMO;
-				else
-					ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
+				if (weapon_id == VULCAN_ID || weapon_id == GAUSS_ID) {
+					if (ParTime.heldWeapons[weapon_id])
+						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO;
+					else
+						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
+				}
 				ParTime.heldWeapons[weapon_id] = 0;
 			}
 			else {
@@ -2913,14 +2987,14 @@ void respond_to_objective_partime(partime_objective objective)
 			double combatTime = 0;
 			double fightTime;
 			if (obj->type == OBJ_CNTRLCEN) {
-				combatTime += calculate_combat_time(obj, robInfo, 1, 0);
+				combatTime += calculate_combat_time(obj, robInfo, 1);
 				if (Current_level_num > 0)
 					Ranking.maxScore += CONTROL_CEN_SCORE;
 				else
 					Ranking.secretMaxScore += CONTROL_CEN_SCORE;
 			}
 			else {
-				combatTime += calculate_combat_time(obj, robInfo, 1, 0);
+				combatTime += calculate_combat_time(obj, robInfo, 1);
 				if (Current_level_num > 0)
 					Ranking.maxScore += robInfo->score_value;
 				else
@@ -2948,7 +3022,7 @@ void respond_to_objective_partime(partime_objective objective)
 				}
 				if (obj->contains_type == OBJ_ROBOT && obj->contains_count > 0) {
 					robInfo = &Robot_info[obj->contains_id];
-					fightTime = calculate_combat_time(obj, robInfo, 0, 0) * obj->contains_count;
+					fightTime = calculate_combat_time(obj, robInfo, 0) * obj->contains_count;
 					combatTime += fightTime;
 					if (Current_level_num > 0)
 						Ranking.maxScore += robInfo->score_value * obj->contains_count;
@@ -2958,7 +3032,7 @@ void respond_to_objective_partime(partime_objective objective)
 				}
 				else if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
 					int assumedOffSpringCount = round(((double)robInfo->contains_count * ((double)robInfo->contains_prob / 16)));
-					fightTime = calculate_combat_time(obj, &Robot_info[robInfo->contains_id], 0, 0) * assumedOffSpringCount;
+					fightTime = calculate_combat_time(obj, &Robot_info[robInfo->contains_id], 0) * assumedOffSpringCount;
 					combatTime += fightTime;
 					printf("Took %.3fs to fight %i of robot type %i\n", fightTime, assumedOffSpringCount, robInfo->contains_id);
 				}
@@ -2984,10 +3058,14 @@ void respond_to_objective_partime(partime_objective objective)
 					if (obj->contains_id == POW_OMEGA_WEAPON)
 						weapon_id = OMEGA_ID;
 					if (weapon_id) { // If the powerup we got is a new weapon, add it to the list of weapons algo has.
-						if ((weapon_id == VULCAN_ID || weapon_id == GAUSS_ID) && ParTime.heldWeapons[weapon_id])
-							ParTime.vulcanAmmo += STARTING_VULCAN_AMMO;
-						else
-							ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
+						if (weapon_id == VULCAN_ID || weapon_id == GAUSS_ID) {
+							if (ParTime.heldWeapons[weapon_id])
+								ParTime.vulcanAmmo += STARTING_VULCAN_AMMO;
+							else
+								ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
+						}
+						if (ParTime.heldWeapons[weapon_id] && weapon_id != VULCAN_ID && weapon_id != GAUSS_ID)
+							ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup;
 						ParTime.heldWeapons[weapon_id] = 0;
 					}
 					else {
@@ -2996,6 +3074,8 @@ void respond_to_objective_partime(partime_objective objective)
 							if (obj->contains_id == POW_LASER)
 								if (ParTime.laser_level < LASER_ID_L4)
 									ParTime.laser_level++;
+								else
+									ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * obj->contains_count;
 							if (obj->contains_id == POW_SUPER_LASER) {
 								if (ParTime.laser_level < LASER_ID_L5)
 									ParTime.laser_level = LASER_ID_L5;
@@ -3007,8 +3087,13 @@ void respond_to_objective_partime(partime_objective objective)
 							}
 							ParTime.heldWeapons[ParTime.laser_level] = 0;
 						}
-						if (obj->contains_id == POW_QUAD_FIRE)
+						if (obj->contains_id == POW_QUAD_FIRE) {
+							if (!ParTime.hasQuads)
+								ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * obj->contains_count;
 							ParTime.hasQuads = 0;
+						}
+						if (obj->contains_id == POW_ENERGY)
+							ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * obj->contains_count;
 						if (obj->contains_id == POW_VULCAN_AMMO)
 							ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * obj->contains_count;
 						if (obj->contains_id == POW_EXTRA_LIFE)
@@ -3049,6 +3134,41 @@ int determineSegmentAccessibility(int segnum)
 	return 1;
 }
 
+double findEnergyTime()
+{
+	// To get estimated time travelling to and from fuelcens, we'll take the average distance from an accessible fuelcen at any time, then multiply that by an estimated number of fuelcen trips based on energy efficiency.
+	// Trust me, I tried getting actual minimum fuelcen time the proper way... so many times. It's not feasible within an acceptable timeframe.
+	double sum = 0;
+	int count = 0;
+	double energyDebt = 0;
+	for (int i = 1; i <= ParTime.objectives; i++) {
+		if (ParTime.objectiveEnergies[i] < 0) { // Any amount of energy spent below zero will be counted as energy debt. We can't just use the lowest energy value or this would overlook some usage (like in D1 level 26).
+			if (ParTime.objectiveEnergies[i - 1] >= 0)
+				energyDebt += -ParTime.objectiveEnergies[i];
+			else
+				energyDebt += ParTime.objectiveEnergies[i - 1] - ParTime.objectiveEnergies[i] < 0 ? 0 : ParTime.objectiveEnergies[i - 1] - ParTime.objectiveEnergies[i];
+		}
+		if (ParTime.objectiveFuelcenTripTimes[i] != -1) { // Don't count objectives where the fuelcen isn't accessible yet towards the average. We can't go there then.
+			count++;
+			sum += ParTime.objectiveFuelcenTripTimes[i];
+		}
+	}
+	if (!count)
+		return 0; // No accessible fuelcen found.
+	double avgDist = sum / count;
+	double estimatedRefills;
+	// It's time to estimate refill count. Use energy debt to determine how much used energy is being regained. Using this allows us to return 0 naturally for low difficulties or short levels.
+	// Using this gain/loss ratio allows us to determine how much energy gets used before a refill is needed, then just use how many times that occurs in the total usage amount.
+	// We'll use a decimal for smoother values. Treat the decimal as the chance of another one happening. (EG: 3.5 refills = 3 refills with a 50% chance of a fourth one)
+	// Subtract 100 from energy usage in calculations because the player is guaranteed not to have run out until 100 is used.
+	if (ParTime.energyUsed > 100)
+		estimatedRefills = (ParTime.energyUsed - 100) / (100 / (energyDebt / (ParTime.energyUsed - 100)));
+	else
+		return 0;
+	printf("Average time to fuelcen: %.3fs, Estimated refills: %.3f\n", avgDist, estimatedRefills);
+	return (avgDist / 2) * estimatedRefills; // We won't actually be refueling from anywhere. We're gonna try to spend as close to no time as possible detouring, so get the average of the average and 0.
+}
+
 void calculateParTime() // Here is where we have an algorithm run a simulated path through a level to determine how long the player should take, both flying around and fighting robots.
 { // January 2024 me would crap himself if he saw this actually working lol.
 	// We'll call the par time algorithm Algo for short.
@@ -3078,6 +3198,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	// Quads work the same.
 	ParTime.hasQuads = 1;
 	ParTime.laser_level = 0;
+	ParTime.simulatedEnergy = 100;
 	ParTime.thiefKeys = 0;
 	ParTime.matcenTime = 0;
 	ParTime.missingKeys = 0;
@@ -3088,6 +3209,12 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 		Ranking.maxScore = 0;
 	else
 		Ranking.secretMaxScore = 0;
+	ParTime.energy_gained_per_pickup = 18 - Difficulty_level * 3;
+	if (!Difficulty_level)
+		ParTime.energy_gained_per_pickup = 27;
+	ParTime.objectiveEnergies[0] = 100;
+	ParTime.objectiveFuelcenTripTimes[0] = -1; // We will never refill at the start because our energy is 100. Don't even bother doing the pathfinds here.
+	ParTime.energyUsed = 0;
 
 	// Calculate start time.
 	timer_update();
@@ -3100,6 +3227,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	for (i = 0; i <= Highest_segment_index; i++) { // Iterate through every side of every segment, measuring their sizes.
 		for (int s = 0; s < MAX_SIDES_PER_SEGMENT; s++) {
 			if (Segments[i].children[s] > -1) { // Don't measure closed sides. We can't go through them anyway.
+				double size;
 				// Measure the distance between all of that side's verts to determine whether we can fit. ai_door_is_openable will use them later to disallow passage if we can't.
 				int a = vm_vec_dist(&Vertices[Segments[i].verts[Side_to_verts[s][0]]], &Vertices[Segments[i].verts[Side_to_verts[s][1]]]);
 				int b = vm_vec_dist(&Vertices[Segments[i].verts[Side_to_verts[s][1]]], &Vertices[Segments[i].verts[Side_to_verts[s][2]]]);
@@ -3107,10 +3235,11 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 				int d = vm_vec_dist(&Vertices[Segments[i].verts[Side_to_verts[s][3]]], &Vertices[Segments[i].verts[Side_to_verts[s][0]]]);
 				int min_x = max(a, c);
 				int min_y = max(b, d);
-				ParTime.sideSizes[i][s] = min(min_x, min_y); // Thanks to ProxyOne for helping with the calculations.
+				size = min(min_x, min_y);
+				ParTime.shipFitsThroughSide[i][s] = (size >= ConsoleObject->size * 2); // Thanks to ProxyOne for helping with the calculations.
 			}
 			else
-				ParTime.sideSizes[i][s] = ConsoleObject->size * 2; // If a side is closed, mark it down as big enough.
+				ParTime.shipFitsThroughSide[i][s] = 1; // If a side is closed, mark it down as big enough.
 			ParTime.segmentVisitedFrom[i][s] = -1;
 		}
 	}
@@ -3265,6 +3394,8 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 			// Cap algo's energy and ammo like the player's.
 			if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 8)
 				ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 8;
+			if (ParTime.simulatedEnergy > 200)
+				ParTime.simulatedEnergy = 200;
 			partime_objective objective;
 			int remove;
 			for (int i = 0; i < ParTime.toDoListSize; i++) { // Remove all now irrelevant objectives from to do list so Algo doesn't try to get them later (EG weapons we already have).
@@ -3316,8 +3447,26 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 				break; // Automatically break after one objective during the exits loop. We only wanna get the nearest accessible exit.
 			}
 			ParTime.objectives++;
+			ParTime.objectiveEnergies[ParTime.objectives] = ParTime.simulatedEnergy;
 			for (i = 0; i < Num_walls; i++) // Update snapshot of locked walls list so backtracking omission stays up to date.
 				ParTime.lockedWallsAt[ParTime.objectives][i] = thisWallUnlocked(i, -1, -1, 0);
+			// Fuelcen time. Find the current distance to the nearest one.
+			objective.type = 0;
+			objective.ID = 0;
+			double shortestPathLength = -1;
+			double pathLength;
+			short player_path_length;
+			for (i = 0; i < Num_fuelcenters; i++) {
+				if (Station[i].Type == 1) { // Station type 1 indicates energy.
+					create_path_points(ConsoleObject, ParTime.segnum, Station[i].segnum, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, 0, 0);
+					if (player_path_length) {
+						pathLength = calculate_path_length_partime(&Point_segs, player_path_length, objective);
+						if (pathLength < shortestPathLength || shortestPathLength == -1)
+							shortestPathLength = pathLength;
+					}
+				}
+			}
+			ParTime.objectiveFuelcenTripTimes[ParTime.objectives] = (shortestPathLength / SHIP_MOVE_SPEED);
 		}
 		ParTime.loops++;
 	}
@@ -3332,22 +3481,25 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 		Ranking.secretMaxScore += Ranking.hostages_secret_level * 7500;
 	}
 	
+	ParTime.energyTime = findEnergyTime();
+	
 	// Calculate end time.
 	timer_update();
 	end_timer_value = timer_query();
-	printf("Par time: %.3fs (%.3f movement, %.3f combat); Omitted time: %.3fs, Matcen time: %.3fs\nCalculation time: %.3fs\n",
-		ParTime.movementTime + ParTime.combatTime - ParTime.omittedMovementTime,
-		ParTime.movementTime - ParTime.omittedMovementTime,
+	printf("Par time: %.3fs (%.3f movement, %.3f combat); Omitted time: %.3fs, Fuelcen time: %.3fs, Matcen time: %.3fs\nCalculation time: %.3fs\n",
+		ParTime.movementTime + ParTime.combatTime - ParTime.omittedMovementTime + ParTime.energyTime,
+		ParTime.movementTime - ParTime.omittedMovementTime + ParTime.energyTime,
 		ParTime.combatTime,
 		ParTime.omittedMovementTime,
+		ParTime.energyTime,
 		ParTime.matcenTime,
 		f2fl(end_timer_value - start_timer_value));
 
 	// Par time is rounded up to the nearest five seconds so it looks better / legible on the result screen, leaves room for the time bonus, and looks like a human set it.
 	if (Current_level_num > 0)
-		Ranking.parTime = 5 * (1 + (int)(ParTime.movementTime + ParTime.combatTime - ParTime.omittedMovementTime) / 5);
+		Ranking.parTime = 5 * (1 + (int)(ParTime.movementTime + ParTime.combatTime - ParTime.omittedMovementTime + ParTime.energyTime) / 5);
 	else
-		Ranking.secretParTime = 5 * (1 + (int)(ParTime.movementTime + ParTime.combatTime - ParTime.omittedMovementTime) / 5);
+		Ranking.secretParTime = 5 * (1 + (int)(ParTime.movementTime + ParTime.combatTime - ParTime.omittedMovementTime + ParTime.energyTime) / 5);
 	// Also because Doom did five second increments.
 	// Par time will vary based on difficulty, so the player will always have to go fast for a high time bonus, even on lower difficulties.
 }
@@ -3450,7 +3602,24 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 
 	// Say player can use FLASH cheat to mark path to exit.
 	Last_level_path_created = -1;
-
+	
+	// Check for absence of record file here too, just in case a player never directly started this level.
+	PHYSFS_file* fp;
+	char filename[256];
+	char buffer[256];
+	sprintf(buffer, "ranks/%s/%s", Players[Player_num].callsign, Current_mission->filename);
+	PHYSFS_mkdir(buffer);
+	sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num * -1);
+	fp = PHYSFS_openRead(filename);
+	if (fp == NULL) { // If this level's rank data file doesn't exist, create it now so it can be written to on the rank screen.
+		fp = PHYSFS_openWrite(filename);
+		PHYSFSX_printf(fp, "-1\n");
+		for (int n = 0; n < 9; n++)
+			PHYSFSX_printf(fp, "\n");
+		PHYSFSX_printf(fp, "???");
+	}
+	PHYSFS_close(fp);
+	
 	if (First_secret_visit) {
 		Ranking.secretDeathCount = 0;
 		Ranking.secretlevel_time = 0;
@@ -3723,6 +3892,9 @@ void DoEndGame(void)
 
 int checkForWarmStart()
 {
+	// Does the player have a point advantage for the next life?
+	if (!(Players[Player_num].score % 50000))
+		return 1;
 	// First, check for too much shields, energy, lives, concussion missiles, vulcan ammo or laser level. Also check for quads.
 	if (f2fl(Players[Player_num].shields) > 100 || f2fl(Players[Player_num].energy) > 100 || Players[Player_num].lives > 3 || Players[Player_num].secondary_ammo[CONCUSSION_INDEX] > 7 - Difficulty_level || Players[Player_num].primary_ammo[VULCAN_INDEX] || Players[Player_num].laser_level || Players[Player_num].flags & PLAYER_FLAGS_QUAD_LASERS)
 		return 1;
@@ -4274,6 +4446,7 @@ void StartNewLevel(int level_num)
 		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
 			Players[Player_num].secondary_ammo[i] = 0;
 		Players[Player_num].secondary_ammo[0] = 2 + NDL - Difficulty_level;
+		Players[Player_num].score = 0; // This setting isn't vanilla behavior so this is okay. Make sure players always start 50k points from next life.
 	}
 	if (RestartLevel.updateRestartStuff) {
 		RestartLevel.primary_weapon = Players[Player_num].primary_weapon;
@@ -4305,8 +4478,24 @@ void StartNewLevel(int level_num)
 
 	StartNewLevelSub(level_num, 1, 0);
 
+	// Check for absence of record file here too, just in case a player never directly started this level.
+	PHYSFS_file* fp;
+	char filename[256];
+	char buffer[256];
+	sprintf(buffer, "ranks/%s/%s", Players[Player_num].callsign, Current_mission->filename);
+	PHYSFS_mkdir(buffer);
+	sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num);
+	fp = PHYSFS_openRead(filename);
+	if (fp == NULL) { // If this level's rank data file doesn't exist, create it now so it can be written to on the rank screen.
+		fp = PHYSFS_openWrite(filename);
+		PHYSFSX_printf(fp, "-1\n");
+		for (int n = 0; n < 9; n++)
+			PHYSFSX_printf(fp, "\n");
+		PHYSFSX_printf(fp, "???");
+	}
+	PHYSFS_close(fp);
+	
 	RestartLevel.isResults = 0;
-
 	if (RestartLevel.restarts) {
 		const char message[256];
 		if (RestartLevel.restarts == 1)

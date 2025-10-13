@@ -30,6 +30,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define SUPER_SEEKER        1
 #define SUPER_SMARTBOMB     2
 #define SUPER_SHOCKWAVE     3
+#define MAX_OBJECTIVES      MAX_OBJECTS + MAX_WALLS // The highest number of par time objectives a level can have.
 
 typedef struct
 {
@@ -40,35 +41,43 @@ typedef struct
 typedef struct parTime {
 	double movementTime;
 	double omittedMovementTime;
-	partime_objective toDoList[MAX_OBJECTS + MAX_WALLS];
+	partime_objective toDoList[MAX_OBJECTIVES]; // 10032 bytes
 	int toDoListSize;
-	partime_objective doneList[MAX_OBJECTS + MAX_WALLS];
+	partime_objective doneList[MAX_OBJECTIVES]; // 10032 bytes
 	int doneListSize;
 	vms_vector lastPosition; // Tracks the last place algo went to within the same segment.
-	int matcenLives[MAX_ROBOT_CENTERS]; // We need to track how many times we trip matcens, since each one can only be tripped three times.
-	double matcenTriggeredAt[MAX_ROBOT_CENTERS]; // So Algo respects the cooldown matcens have.
+	int matcenLives[MAX_ROBOT_CENTERS]; // We need to track how many times we trip matcens, since each one can only be tripped three times. 80 bytes
+	double matcenTriggeredAt[MAX_ROBOT_CENTERS]; // So Algo respects the cooldown matcens have. 160 bytes
 	// Time spent clearing matcens.
 	double matcenTime;
-	fix vulcanAmmo; // What it sounds like.
+	double energyTime;
+	double simulatedEnergy; // What it sounds like.
+	fix vulcanAmmo; // Also what it sounds like.
 	// How much robot HP we've had to destroy to this point.
 	double combatTime;
 	// Info about the weapon algo currently has equipped.
-	double ammo_usage; // For when using vulcan.
-	double heldWeapons[21]; // Which weapons algo has.
+	double energy_usage;
+	double ammo_usage;
+	double heldWeapons[21]; // Which weapons algo has. 168 bytes
 	int laser_level; // It's possible to make things work without this, but just tracking laser level directly makes things a lot easier.
 	int hasQuads;
 	int segnum; // What segment Algo is in.
-	ubyte isSegmentAccessible[MAX_SEGMENTS];
-	bool lockedWallsAt[MAX_OBJECTS + MAX_WALLS][MAX_WALLS];
-	short segmentVisitedFrom[MAX_SEGMENTS][MAX_SIDES_PER_SEGMENT];
+	bool isSegmentAccessible[MAX_SEGMENTS]; // 9000 bytes
+	bool lockedWallsAt[MAX_OBJECTIVES][MAX_WALLS]; // 318516 bytes
+	short segmentVisitedFrom[MAX_SEGMENTS][MAX_SIDES_PER_SEGMENT]; // 108000 bytes
 	int loops; // Which stage of the par time calculation process are we on?
-	int typeThreeWalls[MAX_WALLS];
+	int typeThreeWalls[MAX_WALLS]; // 1016 bytes
 	int numTypeThreeWalls;
-	int typeThreeUnlockIDs[MAX_WALLS];
-	int sideSizes[MAX_SEGMENTS][MAX_SIDES_PER_SEGMENT]; // So we can cache this and avoid having millions upon millions of vm_vec_dist calls in par time.
+	int typeThreeUnlockIDs[MAX_WALLS]; // 1016 bytes
+	bool shipFitsThroughSide[MAX_SEGMENTS][MAX_SIDES_PER_SEGMENT]; // So we can cache this and avoid having millions upon millions of vm_vec_dist calls in par time. 54000 bytes
 	int warpBackPoint;
 	int missingKeys; // Tells Also which keys are missing from a level, allowing it to go through cooresponding colored doors to prevent softlocks.
-	int objectives; // Keeps track of how many things we've gotten so far. Important for backtracking omission.
+	int objectives; // Keeps track of how many things we've gotten so far. Important for backtracking omission and energy stuff.
+	int energy_gained_per_pickup;
+	double objectiveEnergies[MAX_OBJECTIVES]; // For use in energy time calculation, which uses energy after each objective on a node graph. 10032 bytes
+ 	double objectiveFuelcenTripTimes[MAX_OBJECTIVES]; // Gathers distance to nearest accessible fuelcen (if any) throughout the run for use in energy time. 5016 bytes
+	double energyUsed;
+	// In total, arrays take 527068 bytes, or about 515 KB, which stays under the usual minimum stack limit of 1 MB on modern machines, while still leaving plenty of room for any temp arrays needed throughout the par time calculation and level loading processes.
 } __pack__ parTime;
 
 
