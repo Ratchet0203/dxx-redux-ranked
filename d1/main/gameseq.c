@@ -2040,7 +2040,7 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 		optimal_distance = (calculateMovementTime(player_dodge_distance * F1_0, 1) + 0.25) * enemy_weapon_speed;
 	}
 	if (enemy_runs && isObject)
-		optimal_distance = robotHasKey(obj) ? 0 : 0; // Ideally you want to be as close to these guys as you can, but give a bonus for key holders. Placeholder, might increase the 0.
+			optimal_distance = robotHasKey(obj) ? 0 : 0; // Ideally you want to be as close to these guys as you can, but give a bonus for key holders. Placeholder, might increase the 0.
 	optimal_distance = optimal_distance > Weapon_info[weapon_id].damage_radius ? optimal_distance : Weapon_info[weapon_id].damage_radius; // Don't stay close enough to get damaged by our own weapon!
 	if (optimal_distance > 200)
 		optimal_distance = 200; // Due to Descent being Descent, robots can't shoot at you from any further than 200 units.
@@ -2484,7 +2484,7 @@ void initLockedWalls(int removeUnlockableWalls)
 		}
 		// Now see if we have to add the other side of this wall as an unlock objective for this wall (for D1 S2 "shoot the unlocked side" type puzzles).
 		// We do need to specify doors for this upcoming section, because unlike the previous ones, things CAN break otherwise.
-		if (Walls[i].type == WALL_DOOR && (Walls[i].keys > 1 || Walls[i].flags & WALL_DOOR_LOCKED) && !foundUnlock) { // Only locked walls we didn't find anything for are eligible for having this put on their other side.
+		if (Walls[i].type == WALL_DOOR && (Walls[i].keys > 1 || Walls[i].flags & WALL_DOOR_LOCKED)) {
 			int foundConnectedUnlock = 0;
 			for (int t = 0; t < ControlCenterTriggers.num_links; t++)
 				if (ControlCenterTriggers.seg[t] == Walls[i].segnum && ControlCenterTriggers.side[t] == Walls[i].sidenum)

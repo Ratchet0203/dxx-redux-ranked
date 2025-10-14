@@ -1916,7 +1916,7 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 		optimal_distance += enemy_max_speed; // Thieves are the worst of both worlds.
 	else {
 		if (enemy_behavior == AIB_RUN_FROM && isObject) // We don't want snipe robots to use this, as they actually shoot things.
-			optimal_distance = robotHasKey(obj) ? 0 : 0; // Ideally you want to be as close to these guys as you can, but give a bonus for key holders. Placeholder, might increase the 0.
+				optimal_distance = robotHasKey(obj) ? 0 : 0; // Ideally you want to be as close to these guys as you can, but give a bonus for key holders. Placeholder, might increase the 0.
 		if (enemy_behavior == AIB_SNIPE)
 			optimal_distance += enemy_max_speed; // These enemies can back away from you as you shoot. Can't be exact on this or else enemies faster than your weapons will return infinite optimal distance.
 	}
@@ -2110,7 +2110,7 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 		lowestCombatTime = 0; // Prevent a softlock if no primaries work on a given boss.
 	lowestCombatTime -= energyUsed / 25;
 	if (isObject && obj->ctype.ai_info.behavior == AIB_RUN_FROM) // Give extra time to chase these guys down.
-			lowestCombatTime += calculateMovementTime(lowestCombatTime * robInfo->max_speed[Difficulty_level], 1) * 2;
+		lowestCombatTime += calculateMovementTime(lowestCombatTime * robInfo->max_speed[Difficulty_level], 1) * 2;
 	if (robInfo->thief)
 		lowestCombatTime += calculateMovementTime(lowestCombatTime * robInfo->max_speed[Difficulty_level], 1) * 2;
 	if (isObject) {
@@ -2469,7 +2469,7 @@ void initLockedWalls(int removeUnlockableWalls)
 		}
 		// Now see if we have to add the other side of this wall as an unlock objective for this wall (for D1 S2 "shoot the unlocked side" type puzzles).
 		// We do need to specify doors for this upcoming section, because unlike the previous ones, things CAN break otherwise.
-		if (Walls[i].type == WALL_DOOR && (Walls[i].keys > 1 || Walls[i].flags & WALL_DOOR_LOCKED) && !foundUnlock) { // Only locked walls we didn't find anything for are eligible for having this put on their other side.
+		if (Walls[i].type == WALL_DOOR && (Walls[i].keys > 1 || Walls[i].flags & WALL_DOOR_LOCKED)) {
 			int foundConnectedUnlock = 0;
 			for (int t = 0; t < ControlCenterTriggers.num_links; t++)
 				if (ControlCenterTriggers.seg[t] == Walls[i].segnum && ControlCenterTriggers.side[t] == Walls[i].sidenum)
@@ -3022,19 +3022,23 @@ void respond_to_objective_partime(partime_objective objective)
 				}
 				if (obj->contains_type == OBJ_ROBOT && obj->contains_count > 0) {
 					robInfo = &Robot_info[obj->contains_id];
-					fightTime = calculate_combat_time(obj, robInfo, 0) * obj->contains_count;
-					combatTime += fightTime;
-					if (Current_level_num > 0)
-						Ranking.maxScore += robInfo->score_value * obj->contains_count;
-					else
-						Ranking.secretMaxScore += robInfo->score_value * obj->contains_count;
-					printf("Took %.3fs to fight %i of robot type %i\n", fightTime, obj->contains_count, obj->contains_id);
+					if (!robInfo->thief) {
+						fightTime = calculate_combat_time(obj, robInfo, 0) * obj->contains_count;
+						combatTime += fightTime;
+						if (Current_level_num > 0)
+							Ranking.maxScore += robInfo->score_value * obj->contains_count;
+						else
+							Ranking.secretMaxScore += robInfo->score_value * obj->contains_count;
+						printf("Took %.3fs to fight %i of robot type %i\n", fightTime, obj->contains_count, obj->contains_id);
+					}
 				}
 				else if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
-					int assumedOffSpringCount = round(((double)robInfo->contains_count * ((double)robInfo->contains_prob / 16)));
-					fightTime = calculate_combat_time(obj, &Robot_info[robInfo->contains_id], 0) * assumedOffSpringCount;
-					combatTime += fightTime;
-					printf("Took %.3fs to fight %i of robot type %i\n", fightTime, assumedOffSpringCount, robInfo->contains_id);
+					if (!Robot_info[robInfo->contains_id].thief) {
+						int assumedOffSpringCount = round(((double)robInfo->contains_count * ((double)robInfo->contains_prob / 16)));
+						fightTime = calculate_combat_time(obj, &Robot_info[robInfo->contains_id], 0) * assumedOffSpringCount;
+						combatTime += fightTime;
+						printf("Took %.3fs to fight %i of robot type %i\n", fightTime, assumedOffSpringCount, robInfo->contains_id);
+					}
 				}
 			}
 			ParTime.combatTime += combatTime;
@@ -3077,6 +3081,8 @@ void respond_to_objective_partime(partime_objective objective)
 								else
 									ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * obj->contains_count;
 							if (obj->contains_id == POW_SUPER_LASER) {
+								if (ParTime.laser_level == LASER_ID_L6)
+									ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * obj->contains_count;
 								if (ParTime.laser_level < LASER_ID_L5)
 									ParTime.laser_level = LASER_ID_L5;
 								else
