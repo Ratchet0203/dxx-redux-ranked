@@ -2672,10 +2672,10 @@ partime_objective find_nearest_objective_partime(int start_seg, point_seg** path
 			continue;
 		if (!player_path_length) {
 			if (phasingAllowed(objective)) {
+				allowPhasing = 1;
 				player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, allowPhasing);
 				if (!player_path_length)
 					continue;
-				allowPhasing = 1;
 			}
 			else
 				continue;

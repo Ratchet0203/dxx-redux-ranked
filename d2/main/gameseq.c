@@ -2651,17 +2651,17 @@ partime_objective find_nearest_objective_partime(int start_seg, point_seg** path
 		// Draw a path as far as we can to the objective, avoiding currently locked doors. If we don't make it all the way, ignore any closed walls. Primarily for shooting through grates, but prevents a softlock on actual uncompletable levels.
 		// First make Algo try to get to the objective without phasing through walls, then if it can't, let it phase and try again.
 		allowPhasing = 0;
-		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, 0);
+		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, allowPhasing);
 		// If we're shooting the unlockable side of a one-sided locked wall, make sure we have the keys needed to unlock it first.
 		// Also CAN ignore this if it's a transparent door but I'm not too worried about this.
 		if (objective.type == OBJECTIVE_TYPE_WALL && !thisWallUnlocked(objective.ID, OBJECTIVE_TYPE_WALL, objective.ID, 1))
 			continue;
 		if (!player_path_length) {
 			if (phasingAllowed(objective)) {
-				player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, 1);
+				allowPhasing = 1;
+				player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, allowPhasing);
 				if (!player_path_length)
 					continue;
-				allowPhasing = 1;
 			}
 			else
 				continue;
