@@ -2638,6 +2638,8 @@ partime_objective find_nearest_objective_partime(int start_seg, point_seg** path
 	int shortestDistance;
 	int distance;
 	int objectiveSegnum;
+	int allowPhasing;
+	int didWePhase;
 	short player_path_length;
 
 	vms_vector start;
@@ -2647,17 +2649,28 @@ partime_objective find_nearest_objective_partime(int start_seg, point_seg** path
 		objective = ParTime.toDoList[i];
 		objectiveSegnum = getObjectiveSegnum(objective);
 		// Draw a path as far as we can to the objective, avoiding currently locked doors. If we don't make it all the way, ignore any closed walls. Primarily for shooting through grates, but prevents a softlock on actual uncompletable levels.
-		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, i);
+		// First make Algo try to get to the objective without phasing through walls, then if it can't, let it phase and try again.
+		allowPhasing = 0;
+		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, 0);
 		// If we're shooting the unlockable side of a one-sided locked wall, make sure we have the keys needed to unlock it first.
 		// Also CAN ignore this if it's a transparent door but I'm not too worried about this.
 		if (objective.type == OBJECTIVE_TYPE_WALL && !thisWallUnlocked(objective.ID, OBJECTIVE_TYPE_WALL, objective.ID, 1))
 			continue;
-		if (!player_path_length)
-			continue;
+		if (!player_path_length) {
+			if (phasingAllowed(objective)) {
+				player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, 1);
+				if (!player_path_length)
+					continue;
+				allowPhasing = 1;
+			}
+			else
+				continue;
+		}
 		pathLength = calculate_path_length_partime(*path_start, *path_count, objective);
 		if (pathLength < shortestPathLength || shortestPathLength < 0) {
 			shortestPathLength = pathLength;
 			nearestObjective = objective;
+			didWePhase = allowPhasing;
 		}
 	}
 
@@ -2666,10 +2679,7 @@ partime_objective find_nearest_objective_partime(int start_seg, point_seg** path
 		ParTime.warpBackPoint = -1;
 		objectiveSegnum = getObjectiveSegnum(nearestObjective);
 		// Regenerate the path since we may have checked something else in the meantime.
-		// First make Algo try to get to the objective without phasing through walls, then if it can't, let it phase and try again.
-		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, nearestObjective, 0);
-		if (!player_path_length && phasingAllowed(nearestObjective))
-			player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, nearestObjective, 1);
+		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, nearestObjective, didWePhase);
 		*path_length = calculate_path_length_partime(*path_start, *path_count, nearestObjective);
 		// Now we need to find out where to place Algo for accessible objectives.
 		// In the case of phasing through locked walls to get certain objectives, set it before the first transparent one. In the case of going into places that are too small, set it before that.
