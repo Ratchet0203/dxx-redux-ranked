@@ -1750,8 +1750,10 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 			wall_health = f2fl(Walls[wall_num].hps + 1) - WallAnims[Walls[wall_num].clip_num].num_frames; // For some reason the "real" health of a wall is its hps minus its frame count. Refer to the last line of dxx-redux-ranked commit cb1d724's description.
 			if (wall_health < f2fl(1)) // So wall health isn't considered negative after subtracting frames.
 				wall_health = f2fl(1);
-			if (!(n > LASER_ID_L4) || n == LASER_ID_L5 || n == LASER_ID_L6) // For some reason, the game always uses laser 1's weapon data, even though other levels have a different fire rates in theirs.
+			if (!(n > LASER_ID_L4) || n == LASER_ID_L5 || n == LASER_ID_L6) { // For some reason, the game always uses laser 1's weapon data, even though other levels have a different fire rate and energy usage in theirs.
 				fire_rate = (double)f1_0 / Weapon_info[0].fire_wait;
+				energy_usage = f2fl(Weapon_info[0].energy_usage);
+			}
 			// Assume accuracy is always 100% for walls. They're big and don't move lol.
 			int shots = ceil(wall_health / damage); // Split time into shots to reflect how players really fire. A 30 HP robot will take two laser 1 shots to kill, not one and a half.
 			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage) // Make sure we have enough ammo for this robot before using vulcan.
@@ -2048,8 +2050,10 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 			double splash_radius = f2fl(weapon_info->damage_radius);
 			double enemy_health = f2fl(robInfo->strength + 1); // We do +1 to account for robots still being alive at exactly 0 HP.
 			double enemy_size = f2fl(Polygon_models[robInfo->model_num].rad);
-			if (!(weapon_id > LASER_ID_L4) || weapon_id == LASER_ID_L5 || weapon_id == LASER_ID_L6) // For some reason, the game always uses laser 1's weapon data, even though other levels have a different fire rates in theirs.
+			if (!(weapon_id > LASER_ID_L4) || weapon_id == LASER_ID_L5 || weapon_id == LASER_ID_L6) { // For some reason, the game always uses laser 1's weapon data, even though other levels have a different fire rate and energy usage in theirs.
 				fire_rate = (double)f1_0 / Weapon_info[0].fire_wait;
+				energy_usage = f2fl(Weapon_info[0].energy_usage);
+			}
 			if (n == FUSION_ID)
 				energy_usage = 2; // Fusion always uses 2 energy, despite its energy_usage field being 0.
 			else if (Difficulty_level < 2)

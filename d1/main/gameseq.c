@@ -1903,6 +1903,8 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 			if (n == SPREADFIRE_ID)
 				gunpoints = 3;
 			damage = f2fl(Weapon_info[n].strength[Difficulty_level]) * gunpoints;
+			if (n == SPREADFIRE_ID) // Spread uses a different slot for energy and speed in D1 because Yes.
+				damage = f2fl(Weapon_info[XSPREADFIRE_ID].strength[Difficulty_level]) * gunpoints;
 			fire_rate = (double)f1_0 / Weapon_info[n].fire_wait;
 			energy_usage = f2fl(Weapon_info[n].energy_usage);
 			if (!(n > LASER_ID_L4)) { // For some reason, the game always uses laser 1's weapon data, even though other levels have a different fire rate and energy usage in theirs.
@@ -1981,6 +1983,8 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	// Everything will be doubles due to the variables' involvement in division equations.
 
 	double projectile_speed = f2fl(Weapon_info[weapon_id].speed[Difficulty_level]);
+	if (weapon_id == SPREADFIRE_ID)// Spread uses a different slot for energy and speed in D1 because Yes.
+		projectile_speed = f2fl(Weapon_info[XSPREADFIRE_ID].speed[Difficulty_level]);
 	double player_size = f2fl(ConsoleObject->size);
 	double projectile_size = 1;
 	if (weapon_info->render_type)
@@ -2140,6 +2144,8 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 			if (n == SPREADFIRE_ID)
 				gunpoints = 3;
 			double damage = f2fl(weapon_info->strength[Difficulty_level]) * gunpoints;
+			if (n == SPREADFIRE_ID) // Spread uses a different slot for energy and speed in D1 because Yes.
+				damage = f2fl(Weapon_info[XSPREADFIRE_ID].strength[Difficulty_level]) * gunpoints;
 			double fire_rate = (double)f1_0 / weapon_info->fire_wait;
 			double energy_usage = f2fl(weapon_info->energy_usage);
 			double ammo_usage = weapon_info->ammo_usage * 12.7554168701171875; // To scale with the ammo counter. SaladBadger found out this was the real multiplier after fixed point errors(?), not 13.
@@ -2915,7 +2921,7 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 			}
 		}
 		// If there's ammo in this segment, collect it.
-		for (int objNum = 0; objNum <= 0; objNum++) {
+		for (int objNum = 0; objNum <= Highest_object_index; objNum++) {
 			if (Objects[objNum].type == OBJ_POWERUP && (Objects[objNum].id == POW_VULCAN_AMMO || Objects[objNum].id == POW_ENERGY || (Objects[objNum].id == POW_VULCAN_WEAPON && !ParTime.heldWeapons[VULCAN_ID])) && Objects[objNum].segnum == path[i].segnum) {
 				// ...make sure we didn't already get this one
 				int thisSourceCollected = 0;
