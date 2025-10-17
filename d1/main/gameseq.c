@@ -725,6 +725,9 @@ int truncateRanks(int rank)
 	return newRank;
 }
 
+// The penalty for dying should scale with the level's par time, so longer levels are more forgiving and vice versa. This is roughly the average of all official level par times in seconds.
+#define DEATH_PENALTY_LENGTH_FACTOR 360
+
 int calculateRank(int level_num, int update_warm_start_status)
 {
 	int levelHostages = 0;
@@ -794,7 +797,7 @@ int calculateRank(int level_num, int update_warm_start_status)
 	if (deathCount == -1)
 		deathPoints = ceil(maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	else
-		deathPoints = -(maxScore * 0.4 - maxScore * (0.4 / pow(2, deathCount / (parTime / 360))));
+		deathPoints = -(maxScore * 0.4 - maxScore * (0.4 / pow(2, deathCount / (parTime / DEATH_PENALTY_LENGTH_FACTOR))));
 	deathPoints = (int)deathPoints;
 	score += deathPoints;
 	if (rankPoints2 > -5)
@@ -984,7 +987,7 @@ void DoEndLevelScoreGlitz(int network)
 		endgame_points = is_last_level = 0;
 	if (!cheats.enabled)
 		add_bonus_points_to_score(shield_points + energy_points + skill_points + hostage_points + all_hostage_points + endgame_points);
-	death_points = -(Ranking.maxScore * 0.4 - Ranking.maxScore * (0.4 / pow(2, Ranking.deathCount / (Ranking.parTime / 360))));
+	death_points = -(Ranking.maxScore * 0.4 - Ranking.maxScore * (0.4 / pow(2, Ranking.deathCount / (Ranking.parTime / DEATH_PENALTY_LENGTH_FACTOR))));
 	if (Ranking.noDamage)
 		death_points = ceil(Ranking.maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	missed_rng_drops = floor(Ranking.missedRngSpawn * ((Difficulty_level + 8) / 8.0)); // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
@@ -1250,7 +1253,7 @@ void DoBestRanksScoreGlitz(int level_num)
 	if (deathCount == -1)
 		deathPoints = ceil(maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	else
-		deathPoints = -(maxScore * 0.4 - maxScore * (0.4 / pow(2, deathCount / (parTime / 360))));
+		deathPoints = -(maxScore * 0.4 - maxScore * (0.4 / pow(2, deathCount / (parTime / DEATH_PENALTY_LENGTH_FACTOR))));
 	deathPoints = (int)deathPoints;
 	score += deathPoints;
 
@@ -2371,7 +2374,7 @@ void addObjectiveToList(partime_objective objective, int isDoneList)
 	}
 }
 
-int findKeyObjectID(int keyType, int dontCheckAccessibility, int unlockCheck)
+int findKeyObjectID(int keyType, int addingToDoneList, int unlockCheck)
 {
 	int powerupID;
 	int foundKey = 0;
@@ -2391,9 +2394,8 @@ int findKeyObjectID(int keyType, int dontCheckAccessibility, int unlockCheck)
 		Int3();
 		return 0;
 	}
-	int powerupID2 = pow(2, powerupID - 3); // Translate the POW_KEY macros to KEY flags for door walls.
-	if (ParTime.missingKeys & powerupID2 && unlockCheck)
-		return 1; // Allow Algo through colored doors whose keys are missing from the level. This prevents softlocks on certain edge case levels.
+	if (ParTime.missingKeys & keyType && unlockCheck)
+		return 1; // Allow Algo through colored doors whose keys are missing or inaccessible. This prevents softlocks on certain edge case levels.
 	for (int i = 0; i <= Highest_object_index; i++) {
 		if ((Objects[i].type == OBJ_POWERUP && Objects[i].id == powerupID) || robotHasKey(&Objects[i]) == powerupID) {
 			partime_objective objective = { OBJECTIVE_TYPE_OBJECT, i };
@@ -2403,11 +2405,11 @@ int findKeyObjectID(int keyType, int dontCheckAccessibility, int unlockCheck)
 						foundKey = 1;
 			}
 			else {
-				if (dontCheckAccessibility && ParTime.missingKeys & powerupID2)
-					ParTime.missingKeys -= powerupID2;
-				if (dontCheckAccessibility || ParTime.isSegmentAccessible[Objects[i].segnum]) { // Make sure the key or the robot that contains it can be physically flown to by the player.
+				if (!addingToDoneList && ParTime.missingKeys & keyType && ParTime.isSegmentAccessible[Objects[i].segnum])
+					ParTime.missingKeys -= keyType; // We just set this flag to missing in initLockedWalls. Undo that since we can reach this key.
+				if (addingToDoneList || ParTime.isSegmentAccessible[Objects[i].segnum]) { // Make sure the key or the robot that contains it can be physically flown to by the player.
 					foundKey = 1;
-					if (dontCheckAccessibility)
+					if (addingToDoneList)
 						addObjectiveToList(objective, 1);
 					else
 						addObjectiveToList(objective, 0);
@@ -2445,24 +2447,20 @@ void removeObjectiveFromList(partime_objective objective)
 
 void initLockedWalls(int removeUnlockableWalls)
 {
-	int i;
-	if (removeUnlockableWalls) // Only count keys as missing if there's even a door of that color to unlock. Without this, levels using less than three key colors could break.
-		for (i = 0; i < Num_walls; i++)
-			if (Walls[i].type == WALL_DOOR) {
-				if (Walls[i].keys & KEY_BLUE && !(ParTime.missingKeys & KEY_BLUE))
-					ParTime.missingKeys |= KEY_BLUE;
-				if (Walls[i].keys & KEY_GOLD && !(ParTime.missingKeys & KEY_GOLD))
-					ParTime.missingKeys |= KEY_GOLD;
-				if (Walls[i].keys & KEY_RED && !(ParTime.missingKeys & KEY_RED))
-					ParTime.missingKeys |= KEY_RED;
-			}
-	int foundUnlock;
 	ParTime.numTypeThreeWalls = 0;
-	for (i = 0; i < Num_walls; i++) {
-		foundUnlock = 0;
+	for (int i = 0; i < Num_walls; i++) {
+		// Only count keys as missing if there's even a door of that color to unlock. Without this, levels using less than three key colors could break.
+		if (Walls[i].type == WALL_DOOR) {
+			if (Walls[i].keys & KEY_BLUE && !(ParTime.missingKeys & KEY_BLUE))
+				ParTime.missingKeys |= KEY_BLUE;
+			if (Walls[i].keys & KEY_GOLD && !(ParTime.missingKeys & KEY_GOLD))
+				ParTime.missingKeys |= KEY_GOLD;
+			if (Walls[i].keys & KEY_RED && !(ParTime.missingKeys & KEY_RED))
+				ParTime.missingKeys |= KEY_RED;
+		}
 		// Is it opened by a key?
 		if (Walls[i].type == WALL_DOOR && Walls[i].keys > 1)
-			foundUnlock = findKeyObjectID(Walls[i].keys, removeUnlockableWalls, 0);
+			findKeyObjectID(Walls[i].keys, removeUnlockableWalls, 0);
 		if ((Walls[i].type == WALL_DOOR && Walls[i].flags & WALL_DOOR_LOCKED) || Walls[i].flags & WALL_DOOR_LOCKED || Walls[i].type == WALL_CLOSED) {
 			// ...or is it opened by a trigger?
 			for (int t = 0; t < Num_triggers; t++) {
@@ -2481,7 +2479,6 @@ void initLockedWalls(int removeUnlockableWalls)
 								addObjectiveToList(objective, 1);
 							else
 								addObjectiveToList(objective, 0);
-							foundUnlock = 1;
 							break;
 						}
 					}
@@ -2499,7 +2496,7 @@ void initLockedWalls(int removeUnlockableWalls)
 				continue; // Don't add these objectives on the back sides of reactor walls either.
 			int connectedWallNum = findConnectedWallNum(i);
 			if (Walls[connectedWallNum].keys > 1)
-				foundUnlock = findKeyObjectID(Walls[i].keys, removeUnlockableWalls, 0);
+				findKeyObjectID(Walls[i].keys, removeUnlockableWalls, 0);
 			if (Walls[connectedWallNum].flags & WALL_DOOR_LOCKED)
 				for (int t = 0; t < Num_triggers; t++)
 					if (Triggers[t].flags & TRIGGER_CONTROL_DOORS)
