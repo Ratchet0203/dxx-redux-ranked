@@ -236,7 +236,7 @@ void do_countdown_frame()
 					Ranking.secretNoDamage = 0;
 				}
 			}
-			Ranking.level_time = (Players[Player_num].hours_level * 3600) + ((double)Players[Player_num].time_level / 65536);
+			Ranking.level_time = f2fl(Players[Player_num].hours_level * 3600 + Players[Player_num].time_level);
 			DoPlayerDead();		//kill_player();
 		}																				
 	}

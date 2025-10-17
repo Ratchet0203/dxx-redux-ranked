@@ -290,7 +290,7 @@ int endlevel_movie_played = MOVIE_NOT_PLAYED;
 
 void start_endlevel_sequence()
 {
-	Ranking.level_time = (Players[Player_num].hours_level * 3600) + ((double)Players[Player_num].time_level / 65536);
+	Ranking.level_time = f2fl(Players[Player_num].hours_level * 3600 + Players[Player_num].time_level);
 	Ranking.freezeTimer = 1;
 	int	i;
 	

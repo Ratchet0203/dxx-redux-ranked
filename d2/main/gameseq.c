@@ -1059,7 +1059,7 @@ int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 void DoEndLevelScoreGlitz(int network)
 {
 	if (Ranking.level_time == 0)
-		Ranking.level_time = (Players[Player_num].hours_level * 3600) + ((double)Players[Player_num].time_level / 65536); // Failsafe for if this isn't updated.
+		Ranking.level_time = f2fl(Players[Player_num].hours_level * 3600 + Players[Player_num].time_level); // Failsafe for if this isn't updated.
 	RestartLevel.restartsCache = RestartLevel.restarts;
 	RestartLevel.restarts = 0;
 	RestartLevel.isResults = 1;
@@ -1292,7 +1292,7 @@ void DoEndSecretLevelScoreGlitz()
 	int				i, c;
 	char				title[128];
 	int				is_last_level = 0;
-	Ranking.secretlevel_time = Ranking.secretlevel_time / 65536;
+	Ranking.secretlevel_time = f2fl(Ranking.secretlevel_time);
 
 	//	Compute level player is on, deal with secret levels (negative numbers)
 
@@ -3764,9 +3764,8 @@ void EnterSecretLevel(void)
 	
 	Entered_from_level = Current_level_num;
 
-	Ranking.level_time = (Players[Player_num].hours_level * 3600) + Players[Player_num].time_level;
 	if (Control_center_destroyed) {
-		Ranking.level_time = (Players[Player_num].hours_level * 3600) + ((double)Players[Player_num].time_level / 65536);
+		Ranking.level_time = f2fl(Players[Player_num].hours_level * 3600 + Players[Player_num].time_level);
 		DoEndLevelScoreGlitz(0);
 	}
 

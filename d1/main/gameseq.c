@@ -930,7 +930,7 @@ int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 void DoEndLevelScoreGlitz(int network)
 {
 	if (Ranking.level_time == 0)
-		Ranking.level_time = Players[Player_num].hours_level * 3600 + (double)Players[Player_num].time_level / 65536; // Failsafe for if this isn't updated.
+		Ranking.level_time = f2fl(Players[Player_num].hours_level * 3600 + Players[Player_num].time_level); // Failsafe for if this isn't updated.
 	RestartLevel.restartsCache = RestartLevel.restarts;
 	RestartLevel.restarts = 0;
 	RestartLevel.isResults = 1;
