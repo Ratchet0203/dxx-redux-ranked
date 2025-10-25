@@ -1883,6 +1883,19 @@ int find_connecting_side(int from, int to) // Sirius' function, but I made it ta
 	return -1;
 }
 
+void changeAlgosEnergy(double amount) {
+	// This function and Algo's energy in general exist in case I ever wanna try to solve fuelcen time.
+	// I can't get it to be good no matter what I do, and maybe it wasn't meant to be.
+	// People aren't gonna grind levels with a ton of mandatory fuelcen backtracking anyway, and if they are, they're probably good enough to find a way to skip it... somehow.
+	// Not to mention the multiple advantages they have over Algo when it comes to doing so.
+	// Maybe this is just my stages of grief, but I gave it my best.
+	ParTime.simulatedEnergy += amount;
+	if (amount > 0)
+		ParTime.energyGained += amount;
+	else
+		ParTime.energyUsed -= amount;
+}
+
 double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to use the weapon that's fastest for the destructible wall in the way.
 { // I was originally gonna ignore this since hostage doors added negligible time, but then thanks to Devil's Heart, I learned that they can have absurd HP! :D
 	double thisWeaponCombatTime = -1; // How much time does this wall take to destroy with the current weapon?
@@ -1915,8 +1928,8 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 				energy_usage = f2fl(Weapon_info[0].energy_usage);
 			}
 			if (n == FUSION_ID)
-				energy_usage = 2; // Fusion always uses 2 energy, despite its energy_usage field being 0.
-			else if (Difficulty_level < 2)
+				energy_usage += 2; // Fusion always uses 2 energy, on top of whatever its energy usage field says.
+			if (Difficulty_level < 2)
 				energy_usage *= 0.5 + Difficulty_level * 0.25; // Other than that, energy usage is 50% on Trainee and 75% on Rookie.
 			ammo_usage = Weapon_info[n].ammo_usage * 12.7554168701171875; // To scale with the ammo counter. SaladBadger found out this was the real multiplier after fixed point errors(?), not 13.
 			splash_radius = f2fl(Weapon_info[n].damage_radius);
@@ -1927,6 +1940,7 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 			int shots = ceil(wall_health / damage); // Split time into shots to reflect how players really fire. A 30 HP robot will take two laser 1 shots to kill, not one and a half.
 			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage) // Make sure we have enough ammo for this wall before using vulcan.
 				// Factor energy and ammo usage in to which weapon Algo picks (won't contribute to final combat time of course). Based off of how much time it would take to refill that much energy in a fuelcen.
+				// This will be based off of how long it would take to regenerate the amount used in a fuelcen (25 energy/sec).
 				thisWeaponCombatTime = shots / fire_rate + (shots * energy_usage) / 25;
 			else
 				thisWeaponCombatTime = INFINITY; // Make vulcan's time infinite so algo won't use it without ammo.
@@ -1939,8 +1953,7 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 		}
 	lowestCombatTime -= energyUsed / 25;
 	if (pathFinal) { // Only announce we destroyed the wall (or drain energy/ammo) if we actually did, and aren't just simulating doing so when picking a path.
-		ParTime.simulatedEnergy -= energyUsed;
-		ParTime.energyUsed += energyUsed;
+		changeAlgosEnergy(-energyUsed);
 		ParTime.vulcanAmmo -= ammoUsed * f1_0;
 		if (!(topWeapon > LASER_ID_L4)) {
 			if (!ParTime.hasQuads)
@@ -2160,8 +2173,8 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 				energy_usage = f2fl(Weapon_info[0].energy_usage);
 			}
 			if (n == FUSION_ID)
-				energy_usage = 2; // Fusion always uses 2 energy, despite its energy_usage field being 0.
-			else if (Difficulty_level < 2)
+				energy_usage += 2; // Fusion always uses 2 energy, on top of whatever its energy usage field says.
+			if (Difficulty_level < 2)
 				energy_usage *= 0.5 + Difficulty_level * 0.25; // Other than that, energy usage is 50% on Trainee and 75% on Rookie.
 			if (isObject)
 				if (obj->type == OBJ_CNTRLCEN) {
@@ -2178,6 +2191,7 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 			int shots = round(ceil(adjustedRobotHealthNoAccuracy / damage) / accuracy); // Split time into shots to reflect how players really fire. A 30 HP robot will take two laser 1 shots to kill, not one and a half.
 			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage) // Make sure we have enough ammo for this robot before using vulcan.
 				// Factor energy and ammo usage in to which weapon Algo picks (won't contribute to final combat time of course). Based off of how much time it would take to refill that much energy in a fuelcen.
+				// This will be based off of how long it would take to regenerate the amount used in a fuelcen (25 energy/sec).
 				thisWeaponCombatTime = shots / fire_rate + (shots * energy_usage) / 25;
 			else
 				thisWeaponCombatTime = INFINITY; // Make vulcan's/gauss' time infinite so algo won't use it without ammo.
@@ -2196,8 +2210,7 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 	if (isObject && obj->ctype.ai_info.behavior == AIB_RUN_FROM) // Give extra time to chase these guys down and come back.
 		lowestCombatTime += calculateMovementTime(lowestCombatTime * robInfo->max_speed[Difficulty_level], 1) * 2;
 	if (isObject) {
-		ParTime.energyUsed += energyUsed;
-		ParTime.simulatedEnergy -= energyUsed;
+		changeAlgosEnergy(-energyUsed);
 		ParTime.vulcanAmmo -= ammoUsed * f1_0;
 		if (!(topWeapon > LASER_ID_L4)) {
 			if (!ParTime.hasQuads)
@@ -2275,7 +2288,7 @@ void robotHasPowerup(int robotID, double weight) {
 						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
 				}
 				if (ParTime.heldWeapons[weapon_id] && weapon_id != VULCAN_ID)
-					ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup;
+					changeAlgosEnergy(ParTime.energy_gained_per_pickup);
 				ParTime.heldWeapons[weapon_id] = 0;
 			}
 		}
@@ -2285,19 +2298,19 @@ void robotHasPowerup(int robotID, double weight) {
 					if (ParTime.laser_level < LASER_ID_L4)
 						ParTime.laser_level++;
 					else
-						ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
+						changeAlgosEnergy(ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight);
 					ParTime.heldWeapons[ParTime.laser_level] = 0;
 				}
 			}
 			if (robInfo->contains_id == POW_QUAD_FIRE) {
 				if (!ParTime.hasQuads)
-					ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
+					changeAlgosEnergy(ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight);
 				ParTime.hasQuads *= (1 - weight) + (pow(1 - ((double)robInfo->contains_prob / 16), robInfo->contains_count) * weight);
 				if (ParTime.hasQuads <= 0.0625)
 					ParTime.hasQuads = 0;
 			}
 			if (robInfo->contains_id == POW_ENERGY)
-				ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
+				changeAlgosEnergy(ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight);
 			if (robInfo->contains_id == POW_VULCAN_AMMO)
 				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
 		}
@@ -2323,7 +2336,7 @@ void robotHasPowerup(int robotID, double weight) {
 						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
 				}
 				if (ParTime.heldWeapons[weapon_id] && weapon_id != VULCAN_ID)
-					ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup;
+					changeAlgosEnergy(ParTime.energy_gained_per_pickup);
 				ParTime.heldWeapons[weapon_id] = 0;
 			}
 		}
@@ -2333,19 +2346,19 @@ void robotHasPowerup(int robotID, double weight) {
 					if (ParTime.laser_level < LASER_ID_L4)
 						ParTime.laser_level++;
 					else
-						ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
+						changeAlgosEnergy(ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight);
 					ParTime.heldWeapons[ParTime.laser_level] = 0;
 				}
 			}
 			if (robInfo->contains_id == POW_QUAD_FIRE) {
 				if (!ParTime.hasQuads)
-					ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
+					changeAlgosEnergy(ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight);
 				ParTime.hasQuads *= (1 - weight) + (pow(1 - ((double)robInfo->contains_prob / 16), robInfo->contains_count) * weight);
 				if (ParTime.hasQuads <= 0.0625)
 					ParTime.hasQuads = 0;
 			}
 			if (robInfo->contains_id == POW_ENERGY)
-				ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
+				changeAlgosEnergy(ParTime.energy_gained_per_pickup * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight);
 			if (robInfo->contains_id == POW_VULCAN_AMMO)
 				ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * (robInfo->contains_count * (robInfo->contains_prob / 16.0)) * weight;
 		}
@@ -2755,7 +2768,7 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 	for (int i = 0; i < path_count - 1; i++) {
 		segmentLength = vm_vec_dist(&path[i].point, &path[i + 1].point);
 		if (Segments[path[i].segnum].special == SEGMENT_IS_FUELCEN && ParTime.simulatedEnergy < 100)
-			ParTime.simulatedEnergy = 100;
+			changeAlgosEnergy(100 - ParTime.simulatedEnergy);
 		ParTime.movementTime += segmentLength / SHIP_MOVE_SPEED;
 		side_num = find_connecting_side(path[i].segnum, path[i + 1].segnum);
 		wall_num = Segments[path[i].segnum].sides[side_num].wall_num;
@@ -2836,7 +2849,7 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 				else {
 					if (lowestID != FUSION_ID) // Fusion doesn't get the difficulty-based energy use nerf.
 						lowestEnergy *= Difficulty_level < 2 ? 0.5 + Difficulty_level * 0.25 : 1;
-					ParTime.simulatedEnergy -= f2fl(lowestEnergy);
+					changeAlgosEnergy(-f2fl(lowestEnergy));
 				}
 			}
 			// How much time and ammo does it take to handle the matcens along the way? Let's find out!
@@ -2889,8 +2902,7 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 										averageRobotTime = totalRobotTime / num_types;
 										matcenTime += averageRobotTime * (Difficulty_level + 3);
 										ParTime.matcenLives[segp->matcen_num]--;
-										ParTime.simulatedEnergy -= (totalEnergyUsage / num_types) * (Difficulty_level + 3);
-										ParTime.energyUsed += (totalEnergyUsage / num_types) * (Difficulty_level + 3);
+										changeAlgosEnergy(-((totalEnergyUsage / num_types) * (Difficulty_level + 3)));
 									 	ParTime.vulcanAmmo -= (totalAmmoUsage / num_types) * (f1_0 * (Difficulty_level + 3));
 										if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 4) // Vulcan ammo can exceed 32768 and overflow if not capped properly. Prevent this from happening.
 											ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 4;
@@ -2929,7 +2941,7 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 					}
 				if (!thisSourceCollected) {
 					if (Objects[objNum].id == POW_ENERGY)
-						ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup;
+						changeAlgosEnergy(ParTime.energy_gained_per_pickup);
 					else
 						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
 					partime_objective ammoObjective = { OBJECTIVE_TYPE_OBJECT, objNum };
@@ -3043,7 +3055,7 @@ void respond_to_objective_partime(partime_objective objective)
 								ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
 						}
 						if (ParTime.heldWeapons[weapon_id] && weapon_id != VULCAN_ID)
-							ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup;
+							changeAlgosEnergy(ParTime.energy_gained_per_pickup);
 						ParTime.heldWeapons[weapon_id] = 0;
 					}
 					else {
@@ -3052,17 +3064,17 @@ void respond_to_objective_partime(partime_objective objective)
 								if (ParTime.laser_level < LASER_ID_L4)
 									ParTime.laser_level++;
 								else
-									ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * obj->contains_count;
+									changeAlgosEnergy(ParTime.energy_gained_per_pickup * obj->contains_count);
 								ParTime.heldWeapons[ParTime.laser_level] = 0;
 							}
 						}
 						if (obj->contains_id == POW_QUAD_FIRE) {
 							if (!ParTime.hasQuads)
-								ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * obj->contains_count;
+								changeAlgosEnergy(ParTime.energy_gained_per_pickup * obj->contains_count);
 							ParTime.hasQuads = 0;
 						}
 						if (obj->contains_id == POW_ENERGY)
-							ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup * obj->contains_count;
+							changeAlgosEnergy(ParTime.energy_gained_per_pickup * obj->contains_count);
 						if (obj->contains_id == POW_VULCAN_AMMO)
 							ParTime.vulcanAmmo += (STARTING_VULCAN_AMMO / 2) * obj->contains_count;
 						if (obj->contains_id == POW_EXTRA_LIFE)
@@ -3091,41 +3103,6 @@ int determineSegmentAccessibility(int segnum)
 	if (Point_segs[player_path_length - 1].segnum != segnum) // The segment is inaccessible if Algo doesn't end up at it when given the rules established by initLockedWalls.
 		return 0;
 	return 1;
-}
-
-double findEnergyTime()
-{
-	// To get estimated time travelling to and from fuelcens, we'll take the average distance from an accessible fuelcen at any time, then multiply that by an estimated number of fuelcen trips based on energy efficiency.
-	// Trust me, I tried getting actual minimum fuelcen time the proper way... so many times. It's not feasible within an acceptable timeframe.
-	double sum = 0;
-	int count = 0;
-	double energyDebt = 0;
-	for (int i = 1; i <= ParTime.objectives; i++) {
-		if (ParTime.objectiveEnergies[i] < 0) { // Any amount of energy spent below zero will be counted as energy debt. We can't just use the lowest energy value or this would overlook some usage (like in D1 level 26).
-			if (ParTime.objectiveEnergies[i - 1] >= 0)
-				energyDebt += -ParTime.objectiveEnergies[i];
-			else
-				energyDebt += ParTime.objectiveEnergies[i - 1] - ParTime.objectiveEnergies[i] < 0 ? 0 : ParTime.objectiveEnergies[i - 1] - ParTime.objectiveEnergies[i];
-		}
-		if (ParTime.objectiveFuelcenTripTimes[i] != -1) { // Don't count objectives where the fuelcen isn't accessible yet towards the average. We can't go there then.
-			count++;
-			sum += ParTime.objectiveFuelcenTripTimes[i];
-		}
-	}
-	if (!count)
-		return 0; // No accessible fuelcen found.
-	double avgDist = sum / count;
-	double estimatedRefills;
-	// It's time to estimate refill count. Use energy debt to determine how much used energy is being regained. Using this allows us to return 0 naturally for low difficulties or short levels.
-	// Using this gain/loss ratio allows us to determine how much energy gets used before a refill is needed, then just use how many times that occurs in the total usage amount.
-	// We'll use a decimal for smoother values. Treat the decimal as the chance of another one happening. (EG: 3.5 refills = 3 refills with a 50% chance of a fourth one)
-	// Subtract 100 from energy usage in calculations because the player is guaranteed not to have run out until 100 is used.
-	if (ParTime.energyUsed > 100)
-		estimatedRefills = (ParTime.energyUsed - 100) / (100 / (energyDebt / (ParTime.energyUsed - 100)));
-	else
-		return 0;
-	printf("Average time to fuelcen: %.3fs, Estimated refills: %.3f\n", avgDist, estimatedRefills);
-	return (avgDist / 2) * estimatedRefills; // We won't actually be refueling from anywhere. We're gonna try to spend as close to no time as possible detouring, so get the average of the average and 0.
 }
 
 void calculateParTime() // Here is where we have an algorithm run a simulated path through a level to determine how long the player should take, both flying around and fighting robots.
@@ -3169,6 +3146,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	ParTime.objectiveEnergies[0] = 100;
 	ParTime.objectiveFuelcenTripTimes[0] = -1; // We will never refill at the start because our energy is 100. Don't even bother doing the pathfinds here.
 	ParTime.energyUsed = 0;
+	ParTime.energyGained = 0;
 
 	// Calculate start time.
 	timer_update();
@@ -3373,7 +3351,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 					}
 				}
 			}
-			ParTime.objectiveFuelcenTripTimes[ParTime.objectives] = (shortestPathLength / SHIP_MOVE_SPEED);
+			ParTime.objectiveFuelcenTripTimes[ParTime.objectives] = (shortestPathLength / SHIP_MOVE_SPEED) * 2; // Do *2 because it's a round trip.
 		}
 		ParTime.loops++;
 	}
@@ -3381,18 +3359,15 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	// To account for time and skill bonuses being equal to this, as well as hostage bonus.
 	Ranking.maxScore *= 3;
 	Ranking.maxScore += Players[Player_num].hostages_level * 7500;
-	
-	ParTime.energyTime = findEnergyTime();
 
 	// Calculate end time.
 	timer_update();
 	end_timer_value = timer_query();
-	printf("Par time: %.3fs (%.3f movement, %.3f combat); Omitted time: %.3fs, Fuelcen time: %.3fs, Matcen time: %.3fs\nCalculation time: %.3fs\n",
-		ParTime.movementTime + ParTime.combatTime - ParTime.omittedMovementTime + ParTime.energyTime,
-		ParTime.movementTime - ParTime.omittedMovementTime + ParTime.energyTime,
+	printf("Par time: %.3fs (%.3f movement, %.3f combat); Omitted time: %.3fs, Matcen time: %.3fs\nCalculation time: %.3fs\n",
+		ParTime.movementTime + ParTime.combatTime - ParTime.omittedMovementTime,
+		ParTime.movementTime - ParTime.omittedMovementTime,
 		ParTime.combatTime,
 		ParTime.omittedMovementTime,
-		ParTime.energyTime,
 		ParTime.matcenTime,
 		f2fl(end_timer_value - start_timer_value));
 	

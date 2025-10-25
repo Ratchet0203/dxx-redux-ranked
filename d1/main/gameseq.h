@@ -77,6 +77,7 @@ typedef struct parTime {
 	double objectiveEnergies[MAX_OBJECTIVES]; // For use in energy time calculation, which uses energy after each objective on a node graph. 10032 bytes
  	double objectiveFuelcenTripTimes[MAX_OBJECTIVES]; // Gathers distance to nearest accessible fuelcen (if any) throughout the run for use in energy time. 5016 bytes
 	double energyUsed;
+	double energyGained;
 	// In total, arrays take 527068 bytes, or about 515 KB, which stays under the usual minimum stack limit of 1 MB on modern machines, while still leaving plenty of room for any temp arrays needed throughout the par time calculation and level loading processes.
 } __pack__ parTime;
 
