@@ -1600,15 +1600,15 @@ extern int Piggy_bitmap_cache_next;
 
 void show_time()
 {
-	int mins = f2fl(Players[Player_num].time_level + Players[Player_num].hours_level * 3600) / 60;
-	double secs = f2fl(Players[Player_num].time_level) - ((mins - Players[Player_num].hours_level * 60) * 60);
+	int mins = f2fl(Players[Player_num].time_level + Players[Player_num].hours_level * 3600 * F1_0) / 60;
+	double secs = f2fl(Players[Player_num].time_level + Players[Player_num].hours_level * 3600 * F1_0) - mins * 60;
 	if (Ranking.level_time > 0) {
-		mins = Ranking.level_time / 60;
-		secs = Ranking.level_time - mins * 60;
+		mins = (Ranking.level_time + Players[Player_num].hours_level * 3600) / 60;
+		secs = (Ranking.level_time + Players[Player_num].hours_level * 3600) - mins * 60;
 	}
 	if (Current_level_num < 0) {
-		mins = (int)(Ranking.secretlevel_time / 3932160);
-		secs = Ranking.secretlevel_time / 65536 - mins * 60;
+		mins = Ranking.secretlevel_time / (60 * F1_0);
+		secs = (Ranking.secretlevel_time / F1_0) - mins * 60;
 	}
 
 	gr_set_curfont(GAME_FONT);
@@ -1622,11 +1622,11 @@ void show_time()
 	else
 		gr_printf(SWIDTH - FSPACX(65), GHEIGHT - (LINE_SPACING * 11), "Time: %d:%.03f", mins, secs);
 	if ((Current_level_num > 0 && Ranking.alreadyBeaten) || (Current_level_num < 0 && Ranking.secretAlreadyBeaten)) { // Only show par time if the level's been beaten before, so we don't spoil a new level's length or produce unwanted pressure.
-		if ((!Ranking.freezeTimer && mins * 60 + secs > Ranking.parTime) || (Ranking.freezeTimer && Ranking.level_time > Ranking.parTime))
-			gr_set_fontcolor(BM_XRGB(255, 0, 0), -1);
 		if (Current_level_num > 0) {
 			mins = Ranking.parTime / 60;
 			secs = Ranking.parTime - mins * 60;
+			if ((!Ranking.freezeTimer && mins * 60 + secs > Ranking.parTime) || (Ranking.freezeTimer && Ranking.level_time > Ranking.parTime))
+				gr_set_fontcolor(BM_XRGB(255, 0, 0), -1);
 		}
 		else {
 			mins = Ranking.secretParTime / 60;

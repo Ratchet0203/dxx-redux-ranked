@@ -120,7 +120,7 @@ int	Ai_path_debug=0;
 //	like to say that it ensures that the object can move between the points, but that would require knowing what
 //	the object is (which isn't passed, right?) and making fvi calls (slow, right?).  So, consider it the more_or_less_safe_flag.
 //	If end_seg == -2, then end seg will never be found and this routine will drop out due to depth (probably called by create_n_segment_path).
-int create_path_points(object *objp, int start_seg, int end_seg, point_seg *psegs, short *num_points, int max_depth, int random_flag, int safety_flag, int avoid_seg, int currentObjectiveType, int currentObjectiveID, int objectiveInaccessible)
+int create_path_points(object *objp, int start_seg, int end_seg, point_seg *psegs, short *num_points, int max_depth, int random_flag, int safety_flag, int avoid_seg, int currentObjectiveType, int currentObjectiveID, int objectiveInaccessible, int index)
 {
 	int		cur_seg;
 	int		sidenum;
@@ -186,7 +186,7 @@ int create_path_points(object *objp, int start_seg, int end_seg, point_seg *pseg
 
 			if (check_gap_size(cur_seg, snum) || (currentObjectiveType == 3 ||
 			(currentObjectiveType == 1 && (Objects[currentObjectiveID].type == OBJ_CNTRLCEN || (Objects[currentObjectiveID].type == OBJ_ROBOT && Robot_info[Objects[currentObjectiveID].id].boss_flag)))))
-				if ((WALL_IS_DOORWAY(segp, snum) & WID_FLY_FLAG) || (ai_door_is_openable(objp, segp, snum, currentObjectiveType, currentObjectiveID, objectiveInaccessible, cur_seg))) {
+				if ((WALL_IS_DOORWAY(segp, snum) & WID_FLY_FLAG) || (ai_door_is_openable(objp, segp, snum, currentObjectiveType, currentObjectiveID, objectiveInaccessible, cur_seg, index))) {
 					int	this_seg = segp->children[snum];
 
 					if (!visited[this_seg]) {
@@ -394,7 +394,7 @@ void create_path(object *objp)
 	if (end_seg == -1) {
 		;
 	} else {
-		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, -1, 0, 0, -1, -1, -1, -1);
+		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, -1, 0, 0, -1, -1, -1, -1, 0);
 		aip->hide_index = Point_segs_free_ptr - Point_segs;
 		aip->cur_path_index = 0;
 #ifndef NDEBUG
@@ -441,7 +441,7 @@ void create_path_to_player(object *objp, int max_length, int safety_flag)
 #ifndef NDEBUG
 point_seg *pseg0 = Point_segs_free_ptr;
 #endif
-		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, safety_flag, -1, -1, -1, -1);
+		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, safety_flag, -1, -1, -1, -1, 0);
 		aip->hide_index = Point_segs_free_ptr - Point_segs;
 		aip->cur_path_index = 0;
 #ifndef NDEBUG
@@ -494,7 +494,7 @@ void create_path_to_station(object *objp, int max_length)
 	if (end_seg == -1) {
 		;
 	} else {
-		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, 1, -1, -1, -1, -1);
+		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, 1, -1, -1, -1, -1, 0);
 		aip->hide_index = Point_segs_free_ptr - Point_segs;
 		aip->cur_path_index = 0;
 #ifndef NDEBUG
@@ -527,11 +527,11 @@ void create_n_segment_path(object *objp, int path_length, int avoid_seg)
 	ai_static	*aip=&objp->ctype.ai_info;
 	ai_local		*ailp = &Ai_local_info[objp-Objects];
 
-	if (create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, path_length, 1, 0, avoid_seg, 0, -1, 0) == -1) {
+	if (create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, path_length, 1, 0, avoid_seg, 0, -1, 0, 0) == -1) {
 		//Int3();	//	Contact Mike:  Considering removing this code.  Can I?
 		//force_dump_ai_objects_all("Error in create_n_segment_path");
 		Point_segs_free_ptr += aip->path_length;
-		while ((create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, --path_length, 1, 0, -1, 0, -1, 0) == -1)) {
+		while ((create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, --path_length, 1, 0, -1, 0, -1, 0, 0) == -1)) {
 			Assert(path_length);
 		}
 	}

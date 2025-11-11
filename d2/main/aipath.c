@@ -274,7 +274,7 @@ if (vm_vec_mag_quick(&e) < F1_0/2)
 //	like to say that it ensures that the object can move between the points, but that would require knowing what
 //	the object is (which isn't passed, right?) and making fvi calls (slow, right?).  So, consider it the more_or_less_safe_flag.
 //	If end_seg == -2, then end seg will never be found and this routine will drop out due to depth (probably called by create_n_segment_path).
-int create_path_points(object *objp, int start_seg, int end_seg, point_seg *psegs, short *num_points, int max_depth, int random_flag, int safety_flag, int avoid_seg, int currentObjectiveType, int currentObjectiveID, int objectiveInaccessible)
+int create_path_points(object* objp, int start_seg, int end_seg, point_seg* psegs, short* num_points, int max_depth, int random_flag, int safety_flag, int avoid_seg, int currentObjectiveType, int currentObjectiveID, int objectiveInaccessible, int index)
 {
 	int		cur_seg;
 	int		sidenum;
@@ -345,7 +345,7 @@ if ((objp->type == OBJ_ROBOT) && (objp->ctype.ai_info.behavior == AIB_RUN_FROM))
 			if (check_gap_size(cur_seg, snum) || ((currentObjectiveType == 2 && !(Walls[currentObjectiveID].type == WALL_OPEN || Walls[currentObjectiveID].type == WALL_ILLUSION)) ||
 			currentObjectiveType == 3 ||
 			(currentObjectiveType == 1 && (Objects[currentObjectiveID].type == OBJ_CNTRLCEN || (Objects[currentObjectiveID].type == OBJ_ROBOT && Robot_info[Objects[currentObjectiveID].id].boss_flag)))))
-				if (IS_CHILD(segp->children[snum]) && ((WALL_IS_DOORWAY(segp, snum) & WID_FLY_FLAG) || (ai_door_is_openable(objp, segp, snum, currentObjectiveType, currentObjectiveID, objectiveInaccessible, cur_seg)))) {
+				if (IS_CHILD(segp->children[snum]) && ((WALL_IS_DOORWAY(segp, snum) & WID_FLY_FLAG) || (ai_door_is_openable(objp, segp, snum, currentObjectiveType, currentObjectiveID, objectiveInaccessible, cur_seg, index)))) {
 					int			this_seg = segp->children[snum];
 					Assert(this_seg != -1);
 					if (((cur_seg == avoid_seg) || (this_seg == avoid_seg)) && (ConsoleObject->segnum == avoid_seg)) {
@@ -438,7 +438,7 @@ cpp_done1: ;
 			Assert(qtail >= 0);
 	}
 
-	Assert((start_seg >= 0) && (start_seg <= Highest_segment_index));
+	//Assert((start_seg >= 0) && (start_seg <= Highest_segment_index));
 	psegs->segnum = start_seg;
 	compute_segment_center(&psegs->point,&Segments[start_seg]);
 	psegs++;
@@ -653,7 +653,7 @@ void create_path_to_player(object *objp, int max_length, int safety_flag)
 	if (end_seg == -1) {
 		;
 	} else {
-		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, safety_flag, -1, 0, 0, 0);
+		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, safety_flag, -1, 0, 0, 0, 0);
 		aip->path_length = polish_path(objp, Point_segs_free_ptr, aip->path_length);
 		aip->hide_index = Point_segs_free_ptr - Point_segs;
 		aip->cur_path_index = 0;
@@ -695,7 +695,7 @@ void create_path_to_segment(object *objp, int goalseg, int max_length, int safet
 	if (end_seg == -1) {
 		;
 	} else {
-		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, safety_flag, -1, 0, 0, 0);
+		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, safety_flag, -1, 0, 0, 0, 0);
 		aip->hide_index = Point_segs_free_ptr - Point_segs;
 		aip->cur_path_index = 0;
 		Point_segs_free_ptr += aip->path_length;
@@ -736,7 +736,7 @@ void create_path_to_station(object *objp, int max_length)
 	if (end_seg == -1) {
 		;
 	} else {
-		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, 1, -1, 0, 0, 0);
+		create_path_points(objp, start_seg, end_seg, Point_segs_free_ptr, &aip->path_length, max_length, 1, 1, -1, 0, 0, 0, 0);
 		aip->path_length = polish_path(objp, Point_segs_free_ptr, aip->path_length);
 		aip->hide_index = Point_segs_free_ptr - Point_segs;
 		aip->cur_path_index = 0;
@@ -768,9 +768,9 @@ void create_n_segment_path(object *objp, int path_length, int avoid_seg)
 	ai_static	*aip=&objp->ctype.ai_info;
 	ai_local		*ailp = &Ai_local_info[objp-Objects];
 
-	if (create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, path_length, 1, 0, avoid_seg, 0, 0, 0) == -1) {
+	if (create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, path_length, 1, 0, avoid_seg, 0, 0, 0, 0) == -1) {
 		Point_segs_free_ptr += aip->path_length;
-		while ((create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, --path_length, 1, 0, -1, 0, 0, 0) == -1)) {
+		while ((create_path_points(objp, objp->segnum, -2, Point_segs_free_ptr, &aip->path_length, --path_length, 1, 0, -1, 0, 0, 0, 0) == -1)) {
 			Assert(path_length);
 		}
 	}

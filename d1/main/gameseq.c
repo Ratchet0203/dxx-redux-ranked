@@ -930,7 +930,7 @@ int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 void DoEndLevelScoreGlitz(int network)
 {
 	if (Ranking.level_time == 0)
-		Ranking.level_time = f2fl(Players[Player_num].hours_level * 3600 + Players[Player_num].time_level); // Failsafe for if this isn't updated.
+		Ranking.level_time = Players[Player_num].hours_level * 3600 + f2fl(Players[Player_num].time_level); // Failsafe for if this isn't updated.
 	RestartLevel.restartsCache = RestartLevel.restarts;
 	RestartLevel.restarts = 0;
 	RestartLevel.isResults = 1;
@@ -1883,12 +1883,10 @@ int find_connecting_side(int from, int to) // Sirius' function, but I made it ta
 	return -1;
 }
 
-void changeAlgosEnergy(double amount) {
-	// This function and Algo's energy in general exist in case I ever wanna try to solve fuelcen time.
-	// I can't get it to be good no matter what I do, and maybe it wasn't meant to be.
-	// People aren't gonna grind levels with a ton of mandatory fuelcen backtracking anyway, and if they are, they're probably good enough to find a way to skip it... somehow.
-	// Not to mention the multiple advantages they have over Algo when it comes to doing so.
-	// Maybe this is just my stages of grief, but I gave it my best.
+void changeAlgosEnergy(double amount)
+{ // To prevent having 500 lines changing simulatedEnergy.
+	if (ParTime.simulatedEnergy + amount > 200) // Make sure this can't push energy past 200.
+		amount = 200 - ParTime.simulatedEnergy;
 	ParTime.simulatedEnergy += amount;
 	if (amount > 0)
 		ParTime.energyGained += amount;
@@ -2365,29 +2363,70 @@ void robotHasPowerup(int robotID, double weight) {
 	}
 }
 
-void addObjectiveToList(partime_objective objective, int isDoneList)
+// Find a path from a start segment to an objective.
+// A lot of this is copied from the mark_player_path_to_segment function in game.c.
+short create_path_partime(int start_seg, int target_seg, partime_objective objective, int allowPhasing, int index)
+{
+	object* objp = ConsoleObject;
+	short player_path_length = 0;
+
+	if (allowPhasing) {
+		if (ParTime.isSegmentAccessible[target_seg])
+			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, objective.type, objective.ID, 0, index);
+		else
+			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, objective.type, objective.ID, 1, index);
+	}
+	else {
+		if (ParTime.isSegmentAccessible[target_seg])
+			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, -1, 0, index);
+		else
+			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, objective.type, objective.ID, 1, index);
+	};
+
+	if (Point_segs[player_path_length - 1].segnum != target_seg)
+		return 0;
+
+	return player_path_length;
+}
+
+void addObjectiveToList(partime_objective objective, int isDoneList, int index)
 {
 	int i;
 	if (isDoneList) {
-		// First make sure it's not already in there
+		// Don't add it if it's already in there.
 		for (i = 0; i < ParTime.doneListSize; i++)
 			if (ParTime.doneList[i].type == objective.type && ParTime.doneList[i].ID == objective.ID)
 				return;
-		ParTime.doneList[ParTime.doneListSize].type = objective.type;
-		ParTime.doneList[ParTime.doneListSize].ID = objective.ID;
+		// Now move everything at or later than the reserved spot down one.
+		for (i = ParTime.doneListSize; i >= index; i--) {
+			ParTime.doneList[i + 1].type = ParTime.doneList[i].type;
+			ParTime.doneList[i + 1].ID = ParTime.doneList[i].ID;
+			for (int n = 0; n < ParTime.doneList[i].num_prerequisites; n++)
+				ParTime.doneList[i + 1].prerequisites[n] = ParTime.doneList[i].prerequisites[n];
+			ParTime.doneList[i + 1].num_prerequisites = ParTime.doneList[i].num_prerequisites;
+		}
+		// Add the thing in at the reserved spot.
+		ParTime.doneList[index].type = objective.type;
+		ParTime.doneList[index].ID = objective.ID;
+		for (int n = 0; n < objective.num_prerequisites; n++)
+			ParTime.doneList[index].prerequisites[n] = objective.prerequisites[n];
+		ParTime.doneList[index].num_prerequisites = objective.num_prerequisites;
 		ParTime.doneListSize++;
 	}
 	else {
+		// Don't add it if it's already in there.
 		for (i = 0; i < ParTime.toDoListSize; i++)
 			if (ParTime.toDoList[i].type == objective.type && ParTime.toDoList[i].ID == objective.ID)
 				return;
+		// We don't need the index function for the to do list. That's sorted in a different place and way.
 		ParTime.toDoList[ParTime.toDoListSize].type = objective.type;
 		ParTime.toDoList[ParTime.toDoListSize].ID = objective.ID;
+		ParTime.toDoList[ParTime.toDoListSize].num_prerequisites = -1; // -1 indicates an undetermined prereq count, and will be used by the 2-opt swap function later.
 		ParTime.toDoListSize++;
 	}
 }
 
-int findKeyObjectID(int keyType, int addingToDoneList, int unlockCheck)
+int findKeyObjectID(int keyType, int addingToDoneList, int unlockCheck, int index)
 {
 	int powerupID;
 	int foundKey = 0;
@@ -2413,7 +2452,7 @@ int findKeyObjectID(int keyType, int addingToDoneList, int unlockCheck)
 		if ((Objects[i].type == OBJ_POWERUP && Objects[i].id == powerupID) || robotHasKey(&Objects[i]) == powerupID) {
 			partime_objective objective = { OBJECTIVE_TYPE_OBJECT, i };
 			if (unlockCheck) {
-				for (int n = 0; n < ParTime.doneListSize; n++)
+				for (int n = 0; n < index; n++)
 					if (ParTime.doneList[n].type == OBJECTIVE_TYPE_OBJECT && ParTime.doneList[n].ID == i)
 						foundKey = 1;
 			}
@@ -2423,9 +2462,9 @@ int findKeyObjectID(int keyType, int addingToDoneList, int unlockCheck)
 				if (addingToDoneList || ParTime.isSegmentAccessible[Objects[i].segnum]) { // Make sure the key or the robot that contains it can be physically flown to by the player.
 					foundKey = 1;
 					if (addingToDoneList)
-						addObjectiveToList(objective, 1);
+						addObjectiveToList(objective, 1, ParTime.doneListSize);
 					else
-						addObjectiveToList(objective, 0);
+						addObjectiveToList(objective, 0, 0);
 				}
 			}
 		}
@@ -2460,21 +2499,23 @@ void removeObjectiveFromList(partime_objective objective)
 
 void initLockedWalls(int removeUnlockableWalls)
 {
+	int i;
+	if (removeUnlockableWalls) // Only count keys as missing if there's even a door of that color to unlock. Without this, levels using less than three key colors could break.
+		for (i = 0; i < Num_walls; i++)
+			if (Walls[i].type == WALL_DOOR) {
+				if (Walls[i].keys & KEY_BLUE && !(ParTime.missingKeys & KEY_BLUE))
+					ParTime.missingKeys |= KEY_BLUE;
+				if (Walls[i].keys & KEY_GOLD && !(ParTime.missingKeys & KEY_GOLD))
+					ParTime.missingKeys |= KEY_GOLD;
+				if (Walls[i].keys & KEY_RED && !(ParTime.missingKeys & KEY_RED))
+					ParTime.missingKeys |= KEY_RED;
+			}
 	ParTime.numTypeThreeWalls = 0;
-	for (int i = 0; i < Num_walls; i++) {
-		// Only count keys as missing if there's even a door of that color to unlock. Without this, levels using less than three key colors could break.
-		if (Walls[i].type == WALL_DOOR) {
-			if (Walls[i].keys & KEY_BLUE && !(ParTime.missingKeys & KEY_BLUE))
-				ParTime.missingKeys |= KEY_BLUE;
-			if (Walls[i].keys & KEY_GOLD && !(ParTime.missingKeys & KEY_GOLD))
-				ParTime.missingKeys |= KEY_GOLD;
-			if (Walls[i].keys & KEY_RED && !(ParTime.missingKeys & KEY_RED))
-				ParTime.missingKeys |= KEY_RED;
-		}
+	for (i = 0; i < Num_walls; i++) {
 		// Is it opened by a key?
 		if (Walls[i].type == WALL_DOOR && Walls[i].keys > 1)
-			findKeyObjectID(Walls[i].keys, removeUnlockableWalls, 0);
-		if ((Walls[i].type == WALL_DOOR && Walls[i].flags & WALL_DOOR_LOCKED) || Walls[i].flags & WALL_DOOR_LOCKED || Walls[i].type == WALL_CLOSED) {
+			findKeyObjectID(Walls[i].keys, removeUnlockableWalls, 0, ParTime.doneListSize);
+		if ((Walls[i].type == WALL_DOOR && Walls[i].flags & WALL_DOOR_LOCKED) || Walls[i].type == WALL_CLOSED) {
 			// ...or is it opened by a trigger?
 			for (int t = 0; t < Num_triggers; t++) {
 				if (Triggers[t].flags & TRIGGER_CONTROL_DOORS) {
@@ -2489,9 +2530,9 @@ void initLockedWalls(int removeUnlockableWalls)
 									break;
 								}
 							if (removeUnlockableWalls)
-								addObjectiveToList(objective, 1);
+								addObjectiveToList(objective, 1, ParTime.doneListSize);
 							else
-								addObjectiveToList(objective, 0);
+								addObjectiveToList(objective, 0, 0);
 							break;
 						}
 					}
@@ -2509,7 +2550,7 @@ void initLockedWalls(int removeUnlockableWalls)
 				continue; // Don't add these objectives on the back sides of reactor walls either.
 			int connectedWallNum = findConnectedWallNum(i);
 			if (Walls[connectedWallNum].keys > 1)
-				findKeyObjectID(Walls[i].keys, removeUnlockableWalls, 0);
+				findKeyObjectID(Walls[i].keys, removeUnlockableWalls, 0, ParTime.doneListSize);
 			if (Walls[connectedWallNum].flags & WALL_DOOR_LOCKED)
 				for (int t = 0; t < Num_triggers; t++)
 					if (Triggers[t].flags & TRIGGER_CONTROL_DOORS)
@@ -2522,44 +2563,15 @@ void initLockedWalls(int removeUnlockableWalls)
 				ParTime.typeThreeUnlockIDs[ParTime.numTypeThreeWalls] = connectedWallNum;
 				ParTime.numTypeThreeWalls++;
 				if (removeUnlockableWalls)
-					addObjectiveToList(objective, 1);
+					addObjectiveToList(objective, 1, ParTime.doneListSize);
 				else
-					addObjectiveToList(objective, 0);
+					addObjectiveToList(objective, 0, 0);
 			}
 		}
 	}
 }
 
-// Find a path from a start segment to an objective.
-// A lot of this is copied from the mark_player_path_to_segment function in game.c.
-short create_path_partime(int start_seg, int target_seg, point_seg** path_start, int* path_count, partime_objective objective, int allowPhasing)
-{
-	object* objp = ConsoleObject;
-	short player_path_length = 0;
-
-	if (allowPhasing) {
-		if (ParTime.isSegmentAccessible[target_seg])
-			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, objective.type, objective.ID, 0);
-		else
-			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, objective.type, objective.ID, 1);
-	}
-	else {
-		if (ParTime.isSegmentAccessible[target_seg])
-			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, -1, 0);
-		else
-			create_path_points(objp, start_seg, target_seg, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, objective.type, objective.ID, 1);
-	}
-
-	*path_start = Point_segs_free_ptr;
-	*path_count = player_path_length;
-
-	if (Point_segs[player_path_length - 1].segnum != target_seg)
-		return 0;
-
-	return player_path_length;
-}
-
-double calculate_path_length_partime(point_seg* path, int path_count, partime_objective objective)
+double calculate_path_length_partime(short path_count, partime_objective objective)
 {
 	// Find length of path in units and return it.
 	// Note: technically we should be using f2fl on the result of vm_vec_dist, but since the
@@ -2568,9 +2580,11 @@ double calculate_path_length_partime(point_seg* path, int path_count, partime_ob
 	double pathLength = 0;
 	if (path_count > 1) {
 		for (int i = 0; i < path_count - 1; i++)
-			pathLength += vm_vec_dist(&path[i].point, &path[i + 1].point);
+			pathLength += vm_vec_dist(&Point_segs[i].point, &Point_segs[i + 1].point);
+		// For objects, once we reach the target segment we move to the object to "pick it up".
+		// Note: For now, this applies to robots, too
 		if (objective.type == OBJECTIVE_TYPE_OBJECT)
-			pathLength += vm_vec_dist(&path[path_count - 1].point, &Objects[objective.ID].pos);
+			pathLength += vm_vec_dist(&Point_segs[path_count - 1].point, &Objects[objective.ID].pos);
 	}
 	else if (objective.type == OBJECTIVE_TYPE_OBJECT) // Objective is in the same segment as the player. If it's an object, we still move to it.
 		pathLength = vm_vec_dist(&ParTime.lastPosition, &Objects[objective.ID].pos);
@@ -2585,11 +2599,11 @@ int phasingAllowed(partime_objective objective) { // Because constantly having t
 	return 0;
 }
 
-int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck) // Does what the name says.
+int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck, int index) // Does what the name says.
 {
 	int unlocked = 1;
 	if (Walls[wall_num].type == WALL_DOOR && Walls[wall_num].keys > 1) {
-		unlocked = findKeyObjectID(Walls[wall_num].keys, 0, 1);
+		unlocked = findKeyObjectID(Walls[wall_num].keys, 0, 1, index);
 		if (unlocked)
 			return 1;
 	}
@@ -2610,7 +2624,7 @@ int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiv
 							}
 						if (!objective.type)
 							break; // No wall was found. We have an orphaned trigger, skip it. (Obsidian 4 fix)
-						for (int n = 0; n < ParTime.doneListSize; n++)
+						for (int n = 0; n < index; n++)
 							if (ParTime.doneList[n].type == objective.type && ParTime.doneList[n].ID == objective.ID)
 								return 1;
 					}
@@ -2621,7 +2635,7 @@ int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiv
 	for (int i = 0; i < ParTime.numTypeThreeWalls; i++) {
 		if (ParTime.typeThreeWalls[i] == wall_num) {
 			unlocked = 0;
-			for (int n = 0; n < ParTime.doneListSize; n++)
+			for (int n = 0; n < index; n++)
 				if (ParTime.doneList[n].type == OBJECTIVE_TYPE_WALL && ParTime.doneList[n].ID == ParTime.typeThreeUnlockIDs[i])
 					return 1;
 		}
@@ -2657,96 +2671,6 @@ int check_gap_size(int seg, int side) // Returns 1 if the gap can be fit through
 	return (num_closed < 4);
 }
 
-partime_objective find_nearest_objective_partime(int start_seg, point_seg** path_start, int* path_count, double* path_length)
-{
-	double pathLength;
-	double shortestPathLength = -1;
-	partime_objective nearestObjective;
-	partime_objective objective;
-	int i;
-	int nearestSegnum = ParTime.segnum;
-	int shortestDistance;
-	int distance;
-	int objectiveSegnum;
-	int allowPhasing;
-	int didWePhase;
-	short player_path_length;
-
-	vms_vector start;
-	compute_segment_center(&start, &Segments[start_seg]);
-
-	for (i = 0; i < ParTime.toDoListSize; i++) {
-		objective = ParTime.toDoList[i];
-		objectiveSegnum = getObjectiveSegnum(objective);
-		// Draw a path as far as we can to the objective, avoiding currently locked doors. If we don't make it all the way, ignore any closed walls. Primarily for shooting through grates, but prevents a softlock on actual uncompletable levels.
-		// First make Algo try to get to the objective without phasing through walls, then if it can't, let it phase and try again.
-		allowPhasing = 0;
-		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, allowPhasing);
-		// If we're shooting the unlockable side of a one-sided locked wall, make sure we have the keys needed to unlock it first.
-		// Also CAN ignore this if it's a transparent door but I'm not too worried about this.
-		if (objective.type == OBJECTIVE_TYPE_WALL && !thisWallUnlocked(objective.ID, OBJECTIVE_TYPE_WALL, objective.ID, 1))
-			continue;
-		if (!player_path_length) {
-			if (phasingAllowed(objective)) {
-				allowPhasing = 1;
-				player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, objective, allowPhasing);
-				if (!player_path_length)
-					continue;
-			}
-			else
-				continue;
-		}
-		pathLength = calculate_path_length_partime(*path_start, *path_count, objective);
-		if (pathLength < shortestPathLength || shortestPathLength < 0) {
-			shortestPathLength = pathLength;
-			nearestObjective = objective;
-			didWePhase = allowPhasing;
-		}
-	}
-
-	// Did we find a legal objective? Return that.
-	if (shortestPathLength >= 0) {
-		ParTime.warpBackPoint = -1;
-		objectiveSegnum = getObjectiveSegnum(nearestObjective);
-		// Regenerate the path since we may have checked something else in the meantime.
-		player_path_length = create_path_partime(start_seg, objectiveSegnum, path_start, path_count, nearestObjective, didWePhase);
-		*path_length = calculate_path_length_partime(*path_start, *path_count, nearestObjective);
-		// Now we need to find out where to place Algo for accessible objectives.
-		// In the case of phasing through locked walls to get certain objectives, set it before the first transparent one. In the case of going into places that are too small, set it before that.
-		int wall_num;
-		int side_num;
-		for (i = 0; i < player_path_length - 1; i++) {
-			side_num = find_connecting_side(Point_segs[i].segnum, Point_segs[i + 1].segnum);
-			wall_num = Segments[Point_segs[i].segnum].sides[side_num].wall_num;
-			if (!ParTime.isSegmentAccessible[Point_segs[i + 1].segnum] && ParTime.warpBackPoint == -1)
-				ParTime.warpBackPoint = Point_segs[i].segnum;
-			if (!thisWallUnlocked(wall_num, nearestObjective.type, nearestObjective.ID, 1) && phasingAllowed(nearestObjective) && check_transparency_partime(&Segments[Walls[wall_num].segnum], Walls[wall_num].sidenum) && ParTime.warpBackPoint == -1)
-				ParTime.warpBackPoint = Walls[wall_num].segnum;
-			side_num = find_connecting_side(Point_segs[i + 1].segnum, Point_segs[i].segnum);
-			if (!check_gap_size(Point_segs[i + 1].segnum, side_num) && (phasingAllowed(nearestObjective) || !ParTime.isSegmentAccessible[objectiveSegnum]) && ParTime.warpBackPoint == -1)
-				ParTime.warpBackPoint = Point_segs[i].segnum;
-			if (ParTime.warpBackPoint > -1)
-				break; // We found where to put Algo. No need to go further.
-		}
-		if (ParTime.warpBackPoint == -1) {
-			ParTime.segnum = objectiveSegnum;
-			ParTime.lastPosition = getObjectivePosition(nearestObjective);
-		}
-		else {
-			ParTime.segnum = ParTime.warpBackPoint;
-			vms_vector segmentCenter;
-			compute_segment_center(&segmentCenter, &Segments[ParTime.segnum]);
-			ParTime.lastPosition = segmentCenter;
-		}
-		return nearestObjective;
-	}
-	else {
-		// No reachable objectives in list.
-		partime_objective emptyResult = { OBJECTIVE_TYPE_INVALID, 0 };
-		return emptyResult;
-	}
-}
-
 int getMatcenSegnum(int matcen_num)
 {
 	for (int i = 0; i < Highest_segment_index; i++)
@@ -2754,29 +2678,23 @@ int getMatcenSegnum(int matcen_num)
 			return i;
 }
 
-void examine_path_partime(partime_objective currentObjective, point_seg* path, int path_count)
+void examine_path_partime(int path_count)
 {
 	int wall_num;
 	int side_num;
 	int adjacent_wall_num;
-	double segmentLength;
-	// The next two variables keep track of all the walls on the path as of the current segment, for backtracking omission.
-	ubyte currPathWalls[MAX_WALLS * 2];
-	int numCurrPathWalls = 0;
 	// Find out if we have to fight a blastable wall on the way.
 	int thisWallDestroyed = 0;
 	for (int i = 0; i < path_count - 1; i++) {
-		segmentLength = vm_vec_dist(&path[i].point, &path[i + 1].point);
-		if (Segments[path[i].segnum].special == SEGMENT_IS_FUELCEN && ParTime.simulatedEnergy < 100)
+		if (Segments[Point_segs[i].segnum].special == SEGMENT_IS_FUELCEN && ParTime.simulatedEnergy < 100)
 			changeAlgosEnergy(100 - ParTime.simulatedEnergy);
-		ParTime.movementTime += segmentLength / SHIP_MOVE_SPEED;
-		side_num = find_connecting_side(path[i].segnum, path[i + 1].segnum);
-		wall_num = Segments[path[i].segnum].sides[side_num].wall_num;
-		adjacent_wall_num = Segments[path[i + 1].segnum].sides[find_connecting_side(path[i + 1].segnum, path[i].segnum)].wall_num;
+		side_num = find_connecting_side(Point_segs[i].segnum, Point_segs[i + 1].segnum); // Find the side both segments share.
+		wall_num = Segments[Point_segs[i].segnum].sides[side_num].wall_num;
+		adjacent_wall_num = Segments[Point_segs[i + 1].segnum].sides[find_connecting_side(Point_segs[i + 1].segnum, Point_segs[i].segnum)].wall_num;
 		if (wall_num > -1) {
 			if (Walls[wall_num].type == WALL_BLASTABLE) {
-				for (int n = 0; n < ParTime.doneListSize; n++) {
-					if (ParTime.doneList[n].type == OBJECTIVE_TYPE_WALL && ParTime.doneList[n].ID == wall_num) {
+				for (int n = 0; n < ParTime.secondaryDoneListSize; n++) {
+					if (ParTime.secondaryDoneList[n].type == OBJECTIVE_TYPE_WALL && ParTime.secondaryDoneList[n].ID == wall_num) {
 						thisWallDestroyed = 1;
 						break; // If algo's already destroyed this wall, don't destroy it again.
 					}
@@ -2785,174 +2703,142 @@ void examine_path_partime(partime_objective currentObjective, point_seg* path, i
 					ParTime.combatTime += calculate_combat_time_wall(wall_num, 1);
 					partime_objective objective = { OBJECTIVE_TYPE_WALL, wall_num };
 					partime_objective adjacentObjective = { OBJECTIVE_TYPE_WALL, adjacent_wall_num };
-					addObjectiveToList(objective, 1);
-					addObjectiveToList(adjacentObjective, 1); // Mark the other side of the wall as done too, before algo gets to it. Only the hps of the side we're coming from applies, and it destroys both sides.
-				}
-			}
-			currPathWalls[numCurrPathWalls] = wall_num;
-			numCurrPathWalls++;
-			// Also add adjacent wall so both sides are considered in backtracking necessity. Remember, backtracking is a two-way endeavor!
-			currPathWalls[numCurrPathWalls] = adjacent_wall_num;
-			numCurrPathWalls++;
-		}
-		int backtrackingNecessary = 1;
-		if (i) {
-			side_num = find_connecting_side(path[i].segnum, path[i - 1].segnum);
-			if (ParTime.segmentVisitedFrom[path[i].segnum][side_num] > -1) { // If ParTime.segmentVisitedFrom[path[i].segnum][side_num] is -1, that means we aren't even backtracking yet.
-				backtrackingNecessary = 0;
-				printf("Segment %i has already been visited from segment %i...", path[i].segnum, path[i - 1].segnum);
-				// Now we determine whether Algo is backtracking for a good reason, and don't count the time if not.
-				for (int w = 0; w < numCurrPathWalls; w++) {
-					// Count current locked wall status differently based on whether we can phase through certain ones. This could change necessity.
-					if (ParTime.lockedWallsAt[ParTime.segmentVisitedFrom[path[i].segnum][side_num]][currPathWalls[w]] != thisWallUnlocked(currPathWalls[w], currentObjective.type, currentObjective.ID, 0))
-						backtrackingNecessary = 1;
-				}
-				if (!backtrackingNecessary) {
-					// Multiply by 2, since both the trip there and back are unnecessary, but the backtracking detection only sees the way back.
-					printf(" unnecessarily. Omitting %.3fs from movement time.", (segmentLength / SHIP_MOVE_SPEED) * 2);
-					ParTime.omittedMovementTime += (segmentLength / SHIP_MOVE_SPEED) * 2;
-				}
-				printf("\n");
-			}
-			// Now let's record that we travelled to this segment from this direction and when.
-			// Algo will only count each segment-direction combination once to avoid inflating par times when it does huge unoptimal backtracking, due to the nature of the nearest neighbor objective order.
-			// This is to make sure we don't falsely omit time. The other part of this process is directly above.
-			for (int c = 0; c < MAX_SIDES_PER_SEGMENT; c++) {
-				if (Segments[Point_segs[i].segnum].children[c] == Point_segs[i - 1].segnum) {
-					ParTime.segmentVisitedFrom[Point_segs[i].segnum][c] = ParTime.objectives;
-					break;
+					ParTime.secondaryDoneList[ParTime.secondaryDoneListSize] = objective;
+					ParTime.secondaryDoneListSize++;
+					// Mark the other side of the wall as done too, before algo gets to it. Only the hps of the side we're coming from applies, and it destroys both sides.
+					ParTime.secondaryDoneList[ParTime.secondaryDoneListSize] = adjacentObjective;
+					ParTime.secondaryDoneListSize++;
 				}
 			}
 		}
-		if (backtrackingNecessary) { // If we don't actually have go somewhere, we don't actually have to fight matcens on the way to that somewhere.
-			if (Walls[wall_num].type == WALL_DOOR) { // Gotta shoot doors to open them without slowing down. That takes resources. Doesn't sound like much but it adds up over a level.
-				double lowestEnergy = -1;
-				double lowestAmmo = -1;
-				int lowestID;
-				int weapon_id;
-				for (int n = 0; n < 21; n++) {
-					if (!ParTime.heldWeapons[n])
-						weapon_id = ParTime.heldWeapons[n];
-					else
-						continue;
-					if (Weapon_info[weapon_id].energy_usage < lowestEnergy || lowestEnergy == -1) {
-						lowestEnergy = Weapon_info[weapon_id].energy_usage;
-						lowestID = weapon_id;
-					}
-					if (Weapon_info[weapon_id].ammo_usage < lowestAmmo || lowestAmmo == -1 && ParTime.vulcanAmmo) {
-						lowestAmmo = Weapon_info[weapon_id].ammo_usage;
-						lowestID = weapon_id;
-					}
+		if (Walls[wall_num].type == WALL_DOOR) { // Gotta shoot doors to open them without slowing down. That takes resources. Doesn't sound like much but it adds up over a level.
+			double lowestEnergy = -1;
+			double lowestAmmo = -1;
+			int lowestID;
+			int weapon_id;
+			for (int n = 0; n < 21; n++) {
+				if (!ParTime.heldWeapons[n])
+					weapon_id = ParTime.heldWeapons[n];
+				else
+					continue;
+				if (Weapon_info[weapon_id].energy_usage < lowestEnergy || lowestEnergy == -1) {
+					lowestEnergy = Weapon_info[weapon_id].energy_usage;
+					lowestID = weapon_id;
 				}
-				if (lowestAmmo != -1)
-					ParTime.vulcanAmmo -= 835939 * lowestAmmo; // Silly fixed point error compensation constant.
-				else {
-					if (lowestID != FUSION_ID) // Fusion doesn't get the difficulty-based energy use nerf.
-						lowestEnergy *= Difficulty_level < 2 ? 0.5 + Difficulty_level * 0.25 : 1;
-					changeAlgosEnergy(-f2fl(lowestEnergy));
+				if (Weapon_info[weapon_id].ammo_usage < lowestAmmo || lowestAmmo == -1 && ParTime.vulcanAmmo) {
+					lowestAmmo = Weapon_info[weapon_id].ammo_usage;
+					lowestID = weapon_id;
 				}
 			}
-			// How much time and ammo does it take to handle the matcens along the way? Let's find out!
-			if (Num_robot_centers > 0) { // Don't bother constantly scanning the path for matcens on levels with no matcens.
-				side_num = find_connecting_side(path[i].segnum, path[i + 1].segnum); // Find the side both segments share.
-				wall_num = Segments[path[i].segnum].sides[side_num].wall_num; // Get its wall number.
-				if (wall_num > -1) { // If that wall number is valid...
-					if (Walls[wall_num].trigger > -1) { // If this wall has a trigger...
-						if (Triggers[Walls[wall_num].trigger].flags & TRIGGER_MATCEN) { // If this trigger is a matcen type...
-							double matcenTime = 0;
-							double totalMatcenTime = 0;
-							for (int c = 0; c < Triggers[Walls[wall_num].trigger].num_links; c++) { // Repeat this loop for every segment linked to this trigger.
-								if (Segments[Triggers[Walls[wall_num].trigger].seg[c]].special == SEGMENT_IS_ROBOTMAKER) { // Check them to see if they're matcens. 
-									segment* segp = &Segments[Triggers[Walls[wall_num].trigger].seg[c]]; // Whenever one is, set this variable as a shortcut so we don't have to put that long string of text every time.
-									// If the matcen has robots in it, and isn't drained or on cooldown, consider it triggered... and DON'T subtract omitted movement time. Algo might skip a matcen it shouldn't.
-									if (RobotCenters[segp->matcen_num].robot_flags[0] > 0 && ParTime.matcenLives[segp->matcen_num] > 0 && ParTime.movementTime + ParTime.combatTime >= ParTime.matcenTriggeredAt[segp->matcen_num] + (30 - 2 * Difficulty_level)) {
-										uint	flags;
-										sbyte	legal_types[32];		//	32 bits in a word, the width of robot_flags.
-										int	num_types, robot_index;
-										robot_index = 0;
-										num_types = 0;
-										flags = RobotCenters[segp->matcen_num].robot_flags[0];
-										while (flags) {
-											if (flags & 1)
-												legal_types[num_types++] = robot_index;
-											flags >>= 1;
-											robot_index++;
-										}
-										ParTime.matcenTriggeredAt[segp->matcen_num] = ParTime.movementTime + ParTime.combatTime; // Do this before matcen time calculation, so the time fighting it is considered after it's triggered.
-										// Find the average fight time for the robots in this matcen and multiply that by the spawn count on this difficulty.
-										int n;
-										double totalRobotTime = 0;
-										double totalEnergyUsage = 0;
-										double totalAmmoUsage = 0;
-										double averageRobotTime = 0;
-										for (n = 0; n < num_types; n++) {
-											robot_info* robInfo = &Robot_info[legal_types[n]];
-											if (legal_types[n] != 10) { // Don't consider matcen gophers. They run.
-												totalRobotTime += calculate_combat_time(NULL, robInfo, 0);
-												if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
-													totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0) * round((robInfo->contains_count * (robInfo->contains_prob / 16.0)));
-													robotHasPowerup(robInfo->contains_id, 1.0 / num_types);
-												}
-												else
-													robotHasPowerup(legal_types[n], 1.0 / num_types);
-											}
-											totalEnergyUsage += ParTime.energy_usage;
-											totalAmmoUsage += ParTime.ammo_usage;
-										}
-										averageRobotTime = totalRobotTime / num_types;
-										matcenTime += averageRobotTime * (Difficulty_level + 3);
-										ParTime.matcenLives[segp->matcen_num]--;
-										changeAlgosEnergy(-((totalEnergyUsage / num_types) * (Difficulty_level + 3)));
-									 	ParTime.vulcanAmmo -= (totalAmmoUsage / num_types) * (f1_0 * (Difficulty_level + 3));
-										if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 4) // Vulcan ammo can exceed 32768 and overflow if not capped properly. Prevent this from happening.
-											ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 4;
-										if (ParTime.vulcanAmmo < 0) // Just cap vulcan ammo at 0 if it goes negative here. This isn't the right way to handle things, but doing it right would get very complex.
-											ParTime.vulcanAmmo = 0;
-										if (ParTime.simulatedEnergy > 200)
-											ParTime.simulatedEnergy = 200;
-										if (matcenTime > 0)
-											printf("Fought matcen %i at segment %i; lives left: %i\n", segp->matcen_num, getMatcenSegnum(segp->matcen_num), ParTime.matcenLives[segp->matcen_num]);
-										totalMatcenTime += averageRobotTime; // Add up the average fight times of each link so we can add them to the minimum time later.
+			if (lowestAmmo != -1)
+				ParTime.vulcanAmmo -= 835939 * lowestAmmo; // Silly fixed point error compensation constant.
+			else {
+				if (lowestID != FUSION_ID) // Fusion doesn't get the difficulty-based energy use nerf.
+					lowestEnergy *= Difficulty_level < 2 ? 0.5 + Difficulty_level * 0.25 : 1;
+				changeAlgosEnergy(-f2fl(lowestEnergy));
+			}
+		}
+		// How much time and ammo does it take to handle the matcens along the way? Let's find out!
+		if (Num_robot_centers > 0) { // Don't bother constantly scanning the path for matcens on levels with no matcens.
+			side_num = find_connecting_side(Point_segs[i].segnum, Point_segs[i + 1].segnum); // Find the side both segments share.
+			wall_num = Segments[Point_segs[i].segnum].sides[side_num].wall_num; // Get its wall number.
+			if (wall_num > -1) { // If that wall number is valid...
+				if (Walls[wall_num].trigger > -1) { // If this wall has a trigger...
+					if (Triggers[Walls[wall_num].trigger].flags & TRIGGER_MATCEN) { // If this trigger is a matcen type...
+						double matcenTime = 0;
+						double totalMatcenTime = 0;
+						for (int c = 0; c < Triggers[Walls[wall_num].trigger].num_links; c++) { // Repeat this loop for every segment linked to this trigger.
+							if (Segments[Triggers[Walls[wall_num].trigger].seg[c]].special == SEGMENT_IS_ROBOTMAKER) { // Check them to see if they're matcens. 
+								segment* segp = &Segments[Triggers[Walls[wall_num].trigger].seg[c]]; // Whenever one is, set this variable as a shortcut so we don't have to put that long string of text every time.
+								// If the matcen has robots in it, and isn't drained or on cooldown, consider it triggered... and DON'T subtract omitted movement time. Algo might skip a matcen it shouldn't.
+								if (RobotCenters[segp->matcen_num].robot_flags[0] > 0 && ParTime.matcenLives[segp->matcen_num] > 0 && ParTime.movementTime + ParTime.combatTime >= ParTime.matcenTriggeredAt[segp->matcen_num] + (30 - 2 * Difficulty_level)) {
+									uint	flags;
+									sbyte	legal_types[32];		//	32 bits in a word, the width of robot_flags.
+									int	num_types, robot_index;
+									robot_index = 0;
+									num_types = 0;
+									flags = RobotCenters[segp->matcen_num].robot_flags[0];
+									while (flags) {
+										if (flags & 1)
+											legal_types[num_types++] = robot_index;
+										flags >>= 1;
+										robot_index++;
 									}
+									ParTime.matcenTriggeredAt[segp->matcen_num] = ParTime.movementTime + ParTime.combatTime; // Do this before matcen time calculation, so the time fighting it is considered after it's triggered.
+									// Find the average fight time for the robots in this matcen and multiply that by the spawn count on this difficulty.
+									int n;
+									double totalRobotTime = 0;
+									double totalEnergyUsage = 0;
+									double totalAmmoUsage = 0;
+									double averageRobotTime = 0;
+									for (n = 0; n < num_types; n++) {
+										robot_info* robInfo = &Robot_info[legal_types[n]];
+										if (legal_types[n] != 10) { // Don't consider matcen gophers. They run.
+											totalRobotTime += calculate_combat_time(NULL, robInfo, 0);
+											if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
+												totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0) * round((robInfo->contains_count * (robInfo->contains_prob / 16.0)));
+												robotHasPowerup(robInfo->contains_id, 1.0 / num_types);
+											}
+											else
+												robotHasPowerup(legal_types[n], 1.0 / num_types);
+										}
+										totalEnergyUsage += ParTime.energy_usage;
+										totalAmmoUsage += ParTime.ammo_usage;
+									}
+									averageRobotTime = totalRobotTime / num_types;
+									matcenTime += averageRobotTime * (Difficulty_level + 3);
+									ParTime.matcenLives[segp->matcen_num]--;
+									changeAlgosEnergy(-((totalEnergyUsage / num_types) * (Difficulty_level + 3)));
+								 	ParTime.vulcanAmmo -= (totalAmmoUsage / num_types) * (f1_0 * (Difficulty_level + 3));
+									if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 4) // Vulcan ammo can exceed 32768 and overflow if not capped properly. Prevent this from happening.
+										ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 4;
+									if (ParTime.vulcanAmmo < 0) // Just cap vulcan ammo at 0 if it goes negative here. This isn't the right way to handle things, but doing it right would get very complex.
+										ParTime.vulcanAmmo = 0;
+									if (matcenTime > 0)
+										printf("Fought matcen %i at segment %i; lives left: %i\n", segp->matcen_num, getMatcenSegnum(segp->matcen_num), ParTime.matcenLives[segp->matcen_num]);
+									totalMatcenTime += averageRobotTime; // Add up the average fight times of each link so we can add them to the minimum time later.
 								}
 							}
-							// There's a minimum time for all matcen robots spawned on this path to be killed.
-							if (matcenTime > 0) {
-								if (matcenTime < 3.5 * (Difficulty_level + 2) + totalMatcenTime)
-									matcenTime = 3.5 * (Difficulty_level + 2) + totalMatcenTime;
-								printf("Total fight time: %.3fs\n", matcenTime);
-							}
-							ParTime.combatTime += matcenTime;
-							ParTime.matcenTime += matcenTime;
 						}
+						// There's a minimum time for all matcen robots spawned on this path to be killed.
+						if (matcenTime > 0) {
+							if (matcenTime < 3.5 * (Difficulty_level + 2) + totalMatcenTime)
+								matcenTime = 3.5 * (Difficulty_level + 2) + totalMatcenTime;
+							printf("Total fight time: %.3fs\n", matcenTime);
+						}
+						ParTime.combatTime += matcenTime;
+						ParTime.matcenTime += matcenTime;
 					}
 				}
 			}
 		}
 		// If there's ammo in this segment, collect it.
+		// Technically this will be a little inaccurate when Algo hits the ammo cap, because ammo powerups in D2 have a "capicity" that gets used partially until it's gone, to prevent being wasted.
+		// I don't mind this though, as Algo hitting the ammo cap typically means the level has far more than plenty to last it the entire time.
 		for (int objNum = 0; objNum <= Highest_object_index; objNum++) {
-			if (Objects[objNum].type == OBJ_POWERUP && (Objects[objNum].id == POW_VULCAN_AMMO || Objects[objNum].id == POW_ENERGY || (Objects[objNum].id == POW_VULCAN_WEAPON && !ParTime.heldWeapons[VULCAN_ID])) && Objects[objNum].segnum == path[i].segnum) {
+			if (Objects[objNum].type == OBJ_POWERUP && (Objects[objNum].id == POW_VULCAN_AMMO || Objects[objNum].id == POW_ENERGY || (Objects[objNum].id == POW_VULCAN_WEAPON && !ParTime.heldWeapons[VULCAN_ID])) && Objects[objNum].segnum == Point_segs[i].segnum) {
 				// ...make sure we didn't already get this one
 				int thisSourceCollected = 0;
-				for (int j = 0; j < ParTime.doneListSize; j++)
-					if (ParTime.doneList[j].type == OBJECTIVE_TYPE_OBJECT && ParTime.doneList[j].ID == objNum) {
+				for (int j = 0; j < ParTime.secondaryDoneListSize; j++)
+					if (ParTime.secondaryDoneList[j].type == OBJECTIVE_TYPE_OBJECT && ParTime.secondaryDoneList[j].ID == objNum) {
 						thisSourceCollected = 1;
 						break;
 					}
 				if (!thisSourceCollected) {
 					if (Objects[objNum].id == POW_ENERGY)
-						changeAlgosEnergy(ParTime.energy_gained_per_pickup);
+						ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup;
 					else
 						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
 					partime_objective ammoObjective = { OBJECTIVE_TYPE_OBJECT, objNum };
-					addObjectiveToList(ammoObjective, 1);
+					ParTime.secondaryDoneList[ParTime.secondaryDoneListSize] = ammoObjective;
+					ParTime.secondaryDoneListSize++;
 				}
 			}
 		}
 	}
 }
 
-void respond_to_objective_partime(partime_objective objective)
+void respond_to_objective_partime(partime_objective objective, int index)
 {
 	int weapon_id;
 	int i;
@@ -3010,7 +2896,7 @@ void respond_to_objective_partime(partime_objective objective)
 					for (i = 0; i < Num_boss_teleport_segs; i++) { // Now we measure the distance between every possible pair of points the boss can teleport between.
 						for (int n = 0; n < Num_boss_teleport_segs; n++) {
 							teleportDistance = 0;
-							create_path_points(obj, Boss_teleport_segs[i], Boss_teleport_segs[n], Point_segs_free_ptr, &Boss_path_length, MAX_POINT_SEGS, 0, 0, -1, 0, obj->id, 1); // Assume inaccesibility here so invalid paths don't get super long and drive up teleport time.
+							create_path_points(obj, Boss_teleport_segs[i], Boss_teleport_segs[n], Point_segs_free_ptr, &Boss_path_length, MAX_POINT_SEGS, 0, 0, -1, 0, obj->id, 1, index); // Assume inaccesibility here so invalid paths don't get super long and drive up teleport time.
 							for (int c = 0; c < Boss_path_length - 1; c++)
 								teleportDistance += vm_vec_dist(&Point_segs[c].point, &Point_segs[c + 1].point);
 							teleportTime += calculateMovementTime(teleportDistance, 0);
@@ -3099,22 +2985,161 @@ int determineSegmentAccessibility(int segnum)
 {
 	object* objp = ConsoleObject;
 	short player_path_length = 0;
-	create_path_points(objp, objp->segnum, segnum, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, 0, 0);
+	create_path_points(objp, objp->segnum, segnum, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, 0, 0, ParTime.doneListSize);
 	if (Point_segs[player_path_length - 1].segnum != segnum) // The segment is inaccessible if Algo doesn't end up at it when given the rules established by initLockedWalls.
 		return 0;
 	return 1;
+}
+
+void updateAlgosPosition(partime_objective objective, short player_path_length, int objectiveSegnum, int index)
+{
+	// This function determines the warp back point, and moves Algo to it if applicable.
+	int wall_num;
+	int side_num;
+	for (int i = 0; i < player_path_length - 1; i++) {
+		side_num = find_connecting_side(Point_segs[i].segnum, Point_segs[i + 1].segnum);
+		wall_num = Segments[Point_segs[i].segnum].sides[side_num].wall_num;
+		if (!ParTime.isSegmentAccessible[Point_segs[i + 1].segnum])
+			ParTime.warpBackPoint = Point_segs[i].segnum;
+		if (!thisWallUnlocked(wall_num, objective.type, objective.ID, 1, index) && phasingAllowed(objective) && check_transparency_partime(&Segments[Walls[wall_num].segnum], Walls[wall_num].sidenum) && ParTime.warpBackPoint == -1)
+			ParTime.warpBackPoint = Walls[wall_num].segnum;
+		side_num = find_connecting_side(Point_segs[i + 1].segnum, Point_segs[i].segnum);
+		if (!check_gap_size(Point_segs[i + 1].segnum, side_num) && (phasingAllowed(objective) || !ParTime.isSegmentAccessible[objectiveSegnum]) && ParTime.warpBackPoint == -1)
+			ParTime.warpBackPoint = Point_segs[i].segnum;
+		if (ParTime.warpBackPoint > -1)
+			break; // We found where to put Algo. No need to go further.
+	}
+	if (ParTime.warpBackPoint == -1) {
+		ParTime.segnum = objectiveSegnum;
+		ParTime.lastPosition = getObjectivePosition(objective);
+	}
+	else {
+		ParTime.segnum = ParTime.warpBackPoint;
+		vms_vector segmentCenter;
+		compute_segment_center(&segmentCenter, &Segments[ParTime.segnum]);
+		ParTime.lastPosition = segmentCenter;
+	}
+}
+
+void swap_objectives(int i, int j)
+{
+	int n;
+	i++;
+	while (i < j) {
+		// Before we do this, let's make sure it's a legal swap.
+		// To do this, make sure all the locked walls between spawn and the objective we're making earlier are satisfied by what comes before its new position.
+		int isLegal = 1;
+		partime_objective objectiveJ = ParTime.doneList[j];
+		// Populate the list of wall unlocks needed to reach this objective.
+		// This is so we don't move anything to before something that unlocks it, potentially making a path impossible for a player to replicate.
+		if (objectiveJ.num_prerequisites == -1) { // Don't populate if we already have.
+			short player_path_length = create_path_partime(ConsoleObject->segnum, getObjectiveSegnum(objectiveJ), objectiveJ, 1, ParTime.doneListSize);
+			int prereqs = 0; // So we don't have to make a spaghetti line.
+			for (n = 0; n < player_path_length - 1; n++) {
+				int wall_num = Segments[Point_segs[n].segnum].sides[find_connecting_side(Point_segs[n].segnum, Point_segs[n + 1].segnum)].wall_num;
+				// We WOULD do a thisWallUnlocked call here to filter the prereqs to only be locked walls and save on future calls, but we don't have a done list yet.
+				if (wall_num != -1 && (Walls[wall_num].type == WALL_DOOR || Walls[wall_num].type == WALL_CLOSED)) {
+					ParTime.doneList[j].prerequisites[prereqs] = wall_num;
+					prereqs++;
+				}
+			}
+			ParTime.doneList[j].num_prerequisites = prereqs;
+		}
+		for (n = 0; n < objectiveJ.num_prerequisites; n++) {
+			if (!thisWallUnlocked(objectiveJ.prerequisites[n], objectiveJ.type, objectiveJ.ID, 0, i)) {
+				isLegal = 0;
+				break;
+			}
+		}
+		if (isLegal) {
+			partime_objective temp = ParTime.doneList[i];
+			ParTime.doneList[i] = ParTime.doneList[j];
+			ParTime.doneList[j] = temp;
+		}
+		i++;
+		j--;
+	}
+}
+
+double findEnergyTime()
+{
+	// To get estimated time travelling to and from fuelcens, we'll take a weighted average of distance from the nearest accessible fuelcen at any time, then multiply that by an estimated number of fuelcen trips based on energy efficiency.
+	// Trust me, I tried getting actual minimum fuelcen time the proper way... so many times. It's not feasible within an acceptable timeframe.
+	double sum = 0;
+	double realSum = 0;
+	int count = 0;
+	double div = 0;
+	double energyDebt = 0;
+	int i;
+	for (i = 1; i <= ParTime.objectives; i++) {
+		if (ParTime.objectiveEnergies[i] < 0) { // Any amount of energy spent below zero will be counted as energy debt. We can't just use the lowest energy value or this would overlook some usage (like in D1 level 26).
+			if (ParTime.objectiveEnergies[i - 1] >= 0)
+				energyDebt += -ParTime.objectiveEnergies[i];
+			else
+				energyDebt += ParTime.objectiveEnergies[i - 1] - ParTime.objectiveEnergies[i] < 0 ? 0 : ParTime.objectiveEnergies[i - 1] - ParTime.objectiveEnergies[i];
+		}
+	}
+
+	// Sort trip times least to greatest. Bubble sort is fine since the list will never be greater than 604 objectives.
+	for (i = 0; i < ParTime.objectives - 1; i++) {
+		for (int n = 0; n < ParTime.objectives - i - 1; n++) {
+			if (ParTime.objectiveFuelcenTripTimes[n] > ParTime.objectiveFuelcenTripTimes[n + 1]) {
+				double temp = ParTime.objectiveFuelcenTripTimes[n];
+				ParTime.objectiveFuelcenTripTimes[n] = ParTime.objectiveFuelcenTripTimes[n + 1];
+				ParTime.objectiveFuelcenTripTimes[n + 1] = temp;
+			}
+		}
+	}
+
+	for (i = 0; i <= ParTime.objectives; i++) {
+		if (ParTime.objectiveFuelcenTripTimes[i] >= 0) { // Don't count objectives where the fuelcen isn't accessible yet towards the average. We can't go there then.
+			count++;
+			realSum += ParTime.objectiveFuelcenTripTimes[i];
+			// The 2s will likely be changed.
+			sum += ParTime.objectiveFuelcenTripTimes[i] / pow(count, 2);
+			div += 1.0 / pow(count, 2);
+		}
+	}
+	if (!count) {
+		printf("No accessible fuelcens found.\n");
+		return 0; // No accessible fuelcen found.
+	}
+
+	// Each objective is sorted from closest to furthest from its nearest fuelcen, then they're weighted in a way that creates a significant bias towards the closest ones.
+	double realAvg = realSum / count; // This and realSum are for debug purposes.
+	double avgDist = sum / div; // We won't actually be refueling from anywhere. We're gonna try to spend as close to no time as possible detouring, so which is why the average is weighted.
+	printf("Avg time to fuelcen: %.3fs. ", realAvg);
+
+	// It's time to estimate refill count. Use energy debt to determine how much used energy is being regained. Using this allows us to return 0 naturally for low difficulties or short levels.
+	// Using this gain/loss ratio allows us to determine how much energy gets used before a refill is needed (every net 100 usage), then just use how many times that occurs in the total usage amount.
+	// We'll use a decimal for smoother values. Treat the decimal as the chance of another one happening. (EG: 3.5 refills = 3 refills with a 50% chance of a fourth one)
+	// Subtract 100 from energy usage in calculations because the player is guaranteed not to have run out until 100 is used.
+	double estimatedRefills;
+	if (ParTime.energyUsed > 100)
+		estimatedRefills = (ParTime.energyUsed - 100) / (100 / (energyDebt / (ParTime.energyUsed - 100)));
+	else {
+		printf("Player est: %.3fs, Estimated refills: 0, Refill time: %.3fs\n", avgDist, energyDebt / 25);
+		return 0;
+	}
+	
+	printf("Player est: %.3fs, Estimated refills: %.3f, Refill time: %.3fs\n", avgDist, estimatedRefills, energyDebt / 25);
+	// Add time spent recharging energy debt in fuelcens, which if you recall from the combat time functions, is 25 energy per second. Source: Fuelcen_give_amount in fuelcen.c.
+	return ((avgDist * estimatedRefills) + energyDebt / 25);
 }
 
 void calculateParTime() // Here is where we have an algorithm run a simulated path through a level to determine how long the player should take, both flying around and fighting robots.
 { // January 2024 me would crap himself if he saw this actually working lol.
 	// We'll call the par time algorithm Algo for short.
 	fix64 start_timer_value, end_timer_value; // For tracking how long this algorithm takes to run.
+	partime_objective lastObjective; // This is declared here so its value is maintained between loops.
 	ParTime.movementTime = 0; // Variable to track how much distance it's travelled.
 	ParTime.combatTime = 0; // Variable to track how much fighting it's done.
 	ParTime.omittedMovementTime = 0; // Variable to track how much distance it didn't actually need to travel.
 	// Now clear its checklists.
 	ParTime.toDoListSize = 0;
 	ParTime.doneListSize = 0;
+	ParTime.doneListIndex = 0;
+	ParTime.secondaryDoneListSize = 0;
 	ParTime.segnum = ConsoleObject->segnum; // Start Algo off where the player spawns.
 	ParTime.lastPosition = ConsoleObject->pos; // Both in segnum and in coordinates. (Shoutout to Maximum level 17's quads being at spawn for letting me catch this.)
 	int lastSegnum = ConsoleObject->segnum; // So the printf showing paths to and from segments works.
@@ -3138,8 +3163,6 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	ParTime.matcenTime = 0;
 	ParTime.missingKeys = 0;
 	ParTime.objectives = 0;
-	for (i = 0; i < Num_walls; i++) // Initialize locked walls snapshots.
-		ParTime.lockedWallsAt[0][i] = thisWallUnlocked(i, -1, -1, 0);
 	Ranking.maxScore = 0;
 	Ranking.isRankable = 0;
 	ParTime.energy_gained_per_pickup = 18 - Difficulty_level * 3;
@@ -3147,6 +3170,10 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	ParTime.objectiveFuelcenTripTimes[0] = -1; // We will never refill at the start because our energy is 100. Don't even bother doing the pathfinds here.
 	ParTime.energyUsed = 0;
 	ParTime.energyGained = 0;
+	for (i = 0; i < MAX_OBJECTIVES; i++) {
+		for (j = 0; j < MAX_OBJECTIVES; j++)
+			ParTime.objectiveDistances[i][j] = 65535;
+	}
 
 	// Calculate start time.
 	timer_update();
@@ -3172,7 +3199,6 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 			}
 			else
 				ParTime.shipFitsThroughSide[i][s] = 1; // If a side is closed, mark it down as big enough.
-			ParTime.segmentVisitedFrom[i][s] = -1;
 		}
 	}
 	for (i = 0; i <= Highest_segment_index; i++) // Lay out the map for where the "inaccessible" territory is so we can mark objectives within it as such.
@@ -3194,7 +3220,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 			for (i = 0; i <= Highest_object_index; i++) { // Populate the to-do list with all robots, hostages, weapons, and laser powerups. Ignore robots not worth over zero, as the player isn't gonna go for those. This should never happen, but it's just a failsafe.
 				if ((Objects[i].type == OBJ_ROBOT && !Robot_info[Objects[i].id].boss_flag) || Objects[i].type == OBJ_HOSTAGE || (Objects[i].type == OBJ_POWERUP && (Objects[i].id == POW_EXTRA_LIFE || Objects[i].id == POW_LASER || Objects[i].id == POW_QUAD_FIRE || Objects[i].id == POW_VULCAN_WEAPON || Objects[i].id == POW_SPREADFIRE_WEAPON || Objects[i].id == POW_PLASMA_WEAPON || Objects[i].id == POW_FUSION_WEAPON))) {
 					partime_objective objective = { OBJECTIVE_TYPE_OBJECT, i };
-					addObjectiveToList(objective, 0);
+					addObjectiveToList(objective, 0, 0);
 				}
 			}
 		}
@@ -3203,7 +3229,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 			for (i = 0; i <= Highest_object_index; i++) { // Populate the to-do list with all reactors and bosses.
 				if (Objects[i].type == OBJ_CNTRLCEN) {
 					partime_objective objective = { OBJECTIVE_TYPE_OBJECT, i };
-					addObjectiveToList(objective, 0);
+					addObjectiveToList(objective, 0, 0);
 					levelHasReactor = 1;
 				}
 			}
@@ -3241,7 +3267,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 						targetedBossID = -1;
 				if (targetedBossID > -1) { // If a level doesn't have a reactor OR boss, don't add the non-existent boss to the to-do list.
 					partime_objective objective = { OBJECTIVE_TYPE_OBJECT, targetedBossID };
-					addObjectiveToList(objective, 0);
+					addObjectiveToList(objective, 0, 0);
 					// Let's hope no one makes a boss be worth negative points.
 				}
 			}
@@ -3260,99 +3286,196 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 								objective.type = OBJECTIVE_TYPE_TRIGGER;
 								objective.ID = j;
 							}
-							addObjectiveToList(objective, 0);
+							addObjectiveToList(objective, 0, 0);
 						}
 			
-		while (ParTime.toDoListSize > 0) {
-			// Find which object on the to-do list is the closest, ignoring the reactor/boss if it's not the only thing left.
-			partime_objective nearestObjective =
-				find_nearest_objective_partime(ParTime.segnum, &path_start, &path_count, &pathLength);
-			
-			if (nearestObjective.type == OBJECTIVE_TYPE_INVALID) {
-				// This should only happen if there are no reachable objectives left in the list.
-				// If that happens, we're done with this phase.
-				break;
-			}
-			
-			// Mark this objective as done.
-			removeObjectiveFromList(nearestObjective);
-			addObjectiveToList(nearestObjective, 1);
-			
-			// Track path encounters and robot combat.
-			// If there's no path and we're doing straight line distance, we have no idea what we'd
-			// be crossing through, so tracking resources for the path would be meaningless. We can still check the objective itself, though.
-			int nearestObjectiveSegnum = getObjectiveSegnum(nearestObjective);
-			printf("Path from segment %i to %i: %.3fs\n", lastSegnum, nearestObjectiveSegnum, pathLength / SHIP_MOVE_SPEED);
-			respond_to_objective_partime(nearestObjective);
-			if (path_start != NULL)
-				examine_path_partime(nearestObjective, path_start, path_count);
-			// Cap algo's energy and ammo like the player's.
-			if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 4)
-				ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 4;
-			if (ParTime.simulatedEnergy > 200)
-				ParTime.simulatedEnergy = 200;
-			partime_objective objective;
-			int remove;
-			for (int i = 0; i < ParTime.toDoListSize; i++) { // Remove all now irrelevant objectives from to do list so Algo doesn't try to get them later (EG weapons we already have).
+		int foundValidObjective;
+		short player_path_length;
+		int objectiveSegnum;
+		partime_objective objective;
+		double pathLength;
+		double totalDummyPathLength = 0;
+
+		// Time to create an initial path.
+		// We don't have to worry about length for this one. 2-opt will take care of that.
+		// Just go to the next valid thing on the to do list until the list is done.
+		// We'll also cache whatever objective pairs that ends up creating, so we can save n pathfinds later.
+		// We're already using n(n + 1)/2 + n + segments as it is, which will take a few seconds on the largest levels.
+		if (!ParTime.loops) {
+			ParTime.doneListSize = 0; // Reset done list since we're done using the pre-added unlock objectives, and because we need to start from the beginning for find_next_objective_partime.
+			// First, add the player to the list. The player object is always ID 0. We add this to the list so the future loops have something to start from.
+			objective.type = OBJECTIVE_TYPE_OBJECT;
+			objective.ID = 0;
+			objective.num_prerequisites = 0;
+			addObjectiveToList(objective, 1, 0);
+			lastObjective = objective;
+		}
+		while (ParTime.toDoListSize) {
+			// Start at the point we left off at the end of the previous par time loop, so illegal orders aren't established (EG exit not being placed last).
+			for (i = 0; i < ParTime.toDoListSize; i++) {
+				foundValidObjective = 0;
 				objective = ParTime.toDoList[i];
-				if (objective.type == OBJECTIVE_TYPE_OBJECT) {
-					remove = 0;
-					if (Objects[objective.ID].type == OBJ_POWERUP) {
-						if (!ParTime.isSegmentAccessible[Objects[objective.ID].segnum]) // Don't go to a powerup that's inaccessible. We have to touch powerups directly to collect them.
-							removeObjectiveFromList(objective);
-						int weaponIDs[5] = { 0, VULCAN_ID, SPREADFIRE_ID, PLASMA_ID, FUSION_ID };
-						for (int n = 1; n < 5; n++)
-							if (Objects[objective.ID].id == n + 12 && !ParTime.heldWeapons[weaponIDs[n]])
-								remove = 1;
-						if (Objects[objective.ID].id == POW_LASER && !ParTime.heldWeapons[LASER_ID_L4])
-							remove = 1;
-						if (Objects[objective.ID].id == POW_QUAD_FIRE && !ParTime.hasQuads)
-							remove = 1;
-						if (Objects[objective.ID].id == POW_VULCAN_WEAPON && !ParTime.heldWeapons[VULCAN_ID])
-							remove = 1;
-					}
-					if (remove) {
-						removeObjectiveFromList(objective);
-						i--;
+				objectiveSegnum = getObjectiveSegnum(objective);
+				// Draw a path as far as we can to the objective, avoiding areas the ship can't currently get to.
+				// For certain objective types, ignore any closed walls or small gaps. This is primarily for shooting through them, as some objectives can be gotten remotely.
+				player_path_length = create_path_partime(ParTime.segnum, objectiveSegnum, objective, 1, ParTime.doneListSize);
+				// If we're shooting the unlockable side of a one-sided locked wall, make sure we have the keys needed to unlock it first.
+				// Measure length of the finished path. Cache it in the list of objective pairs.
+				// Also ignore if the destination can't be reached. This is probably due to Algo not yet having the required key or trigger for a door along the way.
+				if (!(objective.type == OBJECTIVE_TYPE_WALL && !thisWallUnlocked(objective.ID, OBJECTIVE_TYPE_WALL, objective.ID, 1, ParTime.doneListSize)) && player_path_length) {
+					foundValidObjective = 1;
+					addObjectiveToList(objective, 1, ParTime.doneListSize);
+					removeObjectiveFromList(objective);
+					updateAlgosPosition(objective, player_path_length, objectiveSegnum, ParTime.doneListSize);
+					pathLength = min((int)((calculate_path_length_partime(player_path_length, objective) / SHIP_MOVE_SPEED) * 256), 65534);
+					ParTime.objectiveDistances[lastObjective.ID + (lastObjective.type > 1) * 350][objective.ID + (objective.type > 1) * 350] = pathLength;
+					lastObjective = objective;
+					totalDummyPathLength += pathLength;
+					i--;
+					printf("Inserted objective at segment %i.\n", objectiveSegnum);
+				}
+			}
+			if (!foundValidObjective) // If all objectives were skipped earlier, stop instead of going through the list again. No objectives are reachable, so we must follow the path and go to the next loop.
+				break;
+		}
+		
+		// Cache the rest of the objective pair distances here.
+		partime_objective fromObjective;
+		partime_objective toObjective;
+		int startingSegnum;
+		for (i = ParTime.doneListIndex; i < ParTime.doneListSize; i++) {
+			fromObjective.type = ParTime.doneList[i].type;
+			fromObjective.ID = ParTime.doneList[i].ID;
+			startingSegnum = getObjectiveSegnum(fromObjective);
+			for (j = ParTime.doneListIndex; j < ParTime.doneListSize; j++) {
+				toObjective.type = ParTime.doneList[j].type;
+				toObjective.ID = ParTime.doneList[j].ID;
+				if (i == j) { // Equal indicies (given objective to itself) will always have 0 path length, so skip the work in this case.
+					ParTime.objectiveDistances[fromObjective.ID + (fromObjective.type > 1) * 350][toObjective.ID + (toObjective.type > 1) * 350] = 0;
+				}
+				else if (ParTime.objectiveDistances[fromObjective.ID + (fromObjective.type > 1) * 350][toObjective.ID + (toObjective.type > 1) * 350] == 65535) { // Don't repeat indices.
+					objectiveSegnum = getObjectiveSegnum(toObjective);
+					player_path_length = create_path_partime(startingSegnum, objectiveSegnum, toObjective, 1, ParTime.doneListSize);
+					pathLength = min((int)((calculate_path_length_partime(player_path_length, toObjective) / SHIP_MOVE_SPEED) * 256), 65534);
+					ParTime.objectiveDistances[fromObjective.ID + (fromObjective.type > 1) * 350][toObjective.ID + (toObjective.type > 1) * 350] = pathLength;
+					// Put the same value in the swapped indices.
+					ParTime.objectiveDistances[toObjective.ID + (toObjective.type > 1) * 350][fromObjective.ID + (fromObjective.type > 1) * 350] = pathLength;
+				}
+			}
+		}
+		
+		// Do the required valid 2-opt swaps here.
+		int pathImproved = 1;
+		int swaps = 0;
+		int a, b, c, d;
+		double lengthChange;
+		while (pathImproved && swaps < 1000) {
+			pathImproved = 0;
+			// We SHOULD start at i = 1 because we always want to start at spawn, but consequences for not doing so are negligible, and consequences for doing so can be severe.
+			// We are at least certain that the starting point used won't be inacessible with starting locked walls.
+			for (i = 0; i < ParTime.doneListSize - 1; i++) { 
+				for (j = i + 2; j < ParTime.doneListSize - 1; j++) {
+					a = ParTime.doneList[i].ID + (ParTime.doneList[i].type > 1) * 350;
+					b = ParTime.doneList[i + 1].ID + (ParTime.doneList[i + 1].type > 1) * 350;
+					c = ParTime.doneList[j].ID + (ParTime.doneList[j].type > 1) * 350;
+					d = ParTime.doneList[j + 1].ID + (ParTime.doneList[j + 1].type > 1) * 350;
+					lengthChange = -ParTime.objectiveDistances[a][b] - ParTime.objectiveDistances[c][d] + ParTime.objectiveDistances[a][c] + ParTime.objectiveDistances[b][d];
+					if (lengthChange < 0) {
+						swap_objectives(i, j);
+						pathImproved = 1;
+						swaps++;
+						printf("Improved movement time by %.3fs!\n", -lengthChange / 256);
+						totalDummyPathLength += lengthChange;
 					}
 				}
 			}
-			// Now move ourselves to the objective for the next pathfinding iteration, unless the objective wasn't reachable with just flight, in which case move ourselves as far as we COULD fly.
-			lastSegnum = ParTime.segnum;
+		}
+		if (swaps >= 1000)
+			printf("SWAP LIMIT REACHED! ");
+		printf("This phase takes %.3fs \n", totalDummyPathLength / 256);
+		
+		// Lastly, we travel through the objective list we just made, having Algo respond accordingly to them (collecting weapons, fighting robots, etc.).
+		// First, update Algo's position.
+		ParTime.segnum = lastSegnum;
+		vms_vector segmentCenter;
+		compute_segment_center(&segmentCenter, &Segments[lastSegnum]);
+		ParTime.lastPosition = segmentCenter;
+
+		for (int index = ParTime.doneListIndex; index < ParTime.doneListSize; index++) {
+			objective.type = ParTime.doneList[index].type;
+			objective.ID = ParTime.doneList[index].ID;
+			ParTime.warpBackPoint = -1;
+			objectiveSegnum = getObjectiveSegnum(objective);
+			player_path_length = create_path_partime(ParTime.segnum, objectiveSegnum, objective, 1, index);
+			pathLength = calculate_path_length_partime(player_path_length, objective);
+			// Now we need to find out where to place Algo for accessible objectives.
+			// In the case of phasing through locked walls to get certain objectives, set it before the first transparent one. In the case of going into places that are too small, set it before that.
+			updateAlgosPosition(objective, player_path_length, objectiveSegnum, index);
+
+			// Track resource consumption and robot combat.
+			// If there's no path and we're doing straight line distance, we have no idea what we'd be crossing through, so tracking resources for the path would be meaningless.
+			// We can still check the objective itself, though.
+			int hasThisObjective = 0; // If the next object is a weapon/laser level/quads, and algo already has it/is maxed out, skip it. We don't wanna waste time getting redundant powerups.
+			int key; // For thief key stuff.
+			if (objective.type == OBJECTIVE_TYPE_OBJECT && Objects[objective.ID].type == OBJ_POWERUP) { // I'm splitting up the if conditions this time.
+				if (!ParTime.isSegmentAccessible[Objects[objective.ID].segnum]) // Don't go to a powerup that's inaccessible. We have to touch powerups directly to collect them.
+					hasThisObjective = 1;
+				int weaponIDs[5] = { 0, VULCAN_ID, SPREADFIRE_ID, PLASMA_ID, FUSION_ID };
+				int objectIDs[5] = { 0, POW_VULCAN_WEAPON, POW_SPREADFIRE_WEAPON, POW_PLASMA_WEAPON, POW_FUSION_WEAPON };
+				for (int n = 1; n < 5; n++)
+					if (Objects[objective.ID].id == objectIDs[n] && !ParTime.heldWeapons[weaponIDs[n]])
+						hasThisObjective = 1;
+				if (Objects[objective.ID].id == POW_LASER && !ParTime.heldWeapons[LASER_ID_L4])
+					hasThisObjective = 1;
+				if (Objects[objective.ID].id == POW_QUAD_FIRE && !ParTime.hasQuads)
+					hasThisObjective = 1;
+				if (((Objects[objective.ID].id == POW_VULCAN_WEAPON && !ParTime.heldWeapons[VULCAN_ID])) && ParTime.vulcanAmmo == STARTING_VULCAN_AMMO * 4)
+					hasThisObjective = 1;
+			}
+			if (!hasThisObjective) {
+				double movementTimeIncrease = (pathLength / SHIP_MOVE_SPEED);
+				int nearestObjectiveSegnum = getObjectiveSegnum(objective);
+				printf("Path from segment %i to %i: %.3fs\n", lastSegnum, nearestObjectiveSegnum, pathLength / SHIP_MOVE_SPEED);
+				respond_to_objective_partime(objective, index);
+				examine_path_partime(player_path_length);
+				// Cap algo's energy and ammo like the player's.
+				if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 8)
+					ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 8;
+				// Now move ourselves to the objective for the next pathfinding iteration, unless the objective wasn't reachable with just flight, in which case move ourselves as far as we COULD fly.	
+				ParTime.movementTime += calculateMovementTime(pathLength, 0);
+				lastSegnum = ParTime.segnum;
+			}
+			else {
+				ParTime.segnum = lastSegnum; // find_next_objective_partime just tried to set Algo's segnum to something, but it shouldn't be in this case, so force it back.
+				compute_segment_center(&segmentCenter, &Segments[ParTime.segnum]);
+				ParTime.lastPosition = segmentCenter;
+			}
 			if (ParTime.loops == 1) // An accessible reactor or boss gives us a result screen.
 				Ranking.isRankable = 1;
 			if (ParTime.loops == 3) {
-				int wall_num = findConnectedWallNum(nearestObjective.ID);
+				int wall_num = findConnectedWallNum(objective.ID);
 				if (wall_num == -1)
-					wall_num = nearestObjective.ID;
-				if (Triggers[Walls[wall_num].trigger].flags & TRIGGER_EXIT && Walls[wall_num].type != WALL_CLOSED) // Ignore exit triggers attached to walls we can't pass through.
-					Ranking.isRankable = 1; // An accessible exit trigger gives us a result screen.
+					wall_num = objective.ID;
+				if ((Triggers[Walls[wall_num].trigger].flags & TRIGGER_EXIT || Triggers[Walls[wall_num].trigger].flags & TRIGGER_SECRET_EXIT) && !(Walls[wall_num].type == WALL_CLOSED)) // Ignore exit triggers attached to walls we can't pass through.
+					Ranking.isRankable = 1; // An accessible exit trigger gives us a result screen. NOT a secret exit, as those only give us results when a reactor or boss is killed, which already sets isRankable to 1.
 				break; // Automatically break after one objective during the exits loop. We only wanna get the nearest accessible exit.
 			}
-			
-			// Now i's time to update certain info arrays.
-			ParTime.objectives++;
-			ParTime.objectiveEnergies[ParTime.objectives] = ParTime.simulatedEnergy;
-			for (i = 0; i < Num_walls; i++) // Update snapshot of locked walls list so backtracking omission stays up to date.
-				ParTime.lockedWallsAt[ParTime.objectives][i] = thisWallUnlocked(i, -1, -1, 0);
-			// Fuelcen time. Find the current distance to the nearest one.
-			objective.type = 0;
-			objective.ID = 0;
 			double shortestPathLength = -1;
-			double pathLength;
-			short player_path_length;
 			for (i = 0; i < Num_fuelcenters; i++) {
-				if (Station[i].Type == 1) { // Station type 1 indicates energy.
-					create_path_points(ConsoleObject, ParTime.segnum, Station[i].segnum, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, 0, 0);
+				if (Station[i].Type == SEGMENT_IS_FUELCEN) {
+					create_path_points(ConsoleObject, ParTime.segnum, Station[i].segnum, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, 0, 0, index);
 					if (player_path_length) {
-						pathLength = calculate_path_length_partime(&Point_segs, player_path_length, objective);
+						pathLength = calculate_path_length_partime(player_path_length, objective);
 						if (pathLength < shortestPathLength || shortestPathLength == -1)
 							shortestPathLength = pathLength;
 					}
 				}
 			}
+			ParTime.objectives++;
+			ParTime.objectiveEnergies[ParTime.objectives] = ParTime.simulatedEnergy;
 			ParTime.objectiveFuelcenTripTimes[ParTime.objectives] = (shortestPathLength / SHIP_MOVE_SPEED) * 2; // Do *2 because it's a round trip.
 		}
+		ParTime.doneListIndex = ParTime.doneListSize;
 		ParTime.loops++;
 	}
 	
@@ -3360,14 +3483,16 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	Ranking.maxScore *= 3;
 	Ranking.maxScore += Players[Player_num].hostages_level * 7500;
 
+	ParTime.energyTime = findEnergyTime();
+	
 	// Calculate end time.
 	timer_update();
 	end_timer_value = timer_query();
-	printf("Par time: %.3fs (%.3f movement, %.3f combat); Omitted time: %.3fs, Matcen time: %.3fs\nCalculation time: %.3fs\n",
+	printf("Par time: %.3fs (%.3f movement, %.3f combat); Energy time: %.3fs, Matcen time: %.3fs\nCalculation time: %.3fs\n",
 		ParTime.movementTime + ParTime.combatTime - ParTime.omittedMovementTime,
 		ParTime.movementTime - ParTime.omittedMovementTime,
 		ParTime.combatTime,
-		ParTime.omittedMovementTime,
+		ParTime.energyTime,
 		ParTime.matcenTime,
 		f2fl(end_timer_value - start_timer_value));
 	

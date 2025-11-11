@@ -141,13 +141,13 @@ int check_trigger_sub(int trigger_num, int pnum, int shot)
 
 		if (Triggers[trigger_num].flags & TRIGGER_EXIT) {
 			start_endlevel_sequence();
-			Ranking.level_time = f2fl(Players[Player_num].hours_level * 3600 + Players[Player_num].time_level);
+			Ranking.level_time = Players[Player_num].hours_level * 3600 + f2fl(Players[Player_num].time_level);
 			if (Players[Player_num].flags & PLAYER_FLAGS_INVULNERABLE) {
 			}
 		}
 
 		if (Triggers[trigger_num].flags & TRIGGER_SECRET_EXIT) {
-			Ranking.level_time = f2fl(Players[Player_num].hours_level * 3600 + Players[Player_num].time_level);
+			Ranking.level_time = Players[Player_num].hours_level * 3600 + f2fl(Players[Player_num].time_level);
 			if (Newdemo_state == ND_STATE_RECORDING)		// stop demo recording
 				Newdemo_state = ND_STATE_PAUSED;
 

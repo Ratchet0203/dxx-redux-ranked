@@ -1415,7 +1415,7 @@ void move_towards_segment_center(object *objp)
 //	-----------------------------------------------------------------------------------------------------------
 //	Return true if door can be flown through by a suitable type robot.
 //	Only brains and avoid robots can open doors.
-int ai_door_is_openable(object* objp, segment* segp, int sidenum, int currentObjectiveType, int currentObjectiveID, int objectiveInaccessible, int segnum)
+int ai_door_is_openable(object* objp, segment* segp, int sidenum, int currentObjectiveType, int currentObjectiveID, int objectiveInaccessible, int segnum, int index)
 {
 	int	wall_num;
 
@@ -1432,7 +1432,7 @@ int ai_door_is_openable(object* objp, segment* segp, int sidenum, int currentObj
 		if (objectiveInaccessible && currentObjectiveType > -1 && check_transparency_partime(&Segments[Walls[wall_num].segnum], Walls[wall_num].sidenum))
 			return 1;
 		else
-			return thisWallUnlocked(wall_num, currentObjectiveType, currentObjectiveID, 0);
+			return thisWallUnlocked(wall_num, currentObjectiveType, currentObjectiveID, 0, index);
 	}
 
 	if ((objp->id == ROBOT_BRAIN) || (objp->ctype.ai_info.behavior == AIB_RUN_FROM)) {
