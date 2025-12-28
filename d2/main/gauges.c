@@ -1623,10 +1623,10 @@ void show_time()
 		gr_printf(SWIDTH - FSPACX(65), GHEIGHT - (LINE_SPACING * 11), "Time: %d:%.03f", mins, secs);
 	if ((Current_level_num > 0 && Ranking.alreadyBeaten) || (Current_level_num < 0 && Ranking.secretAlreadyBeaten)) { // Only show par time if the level's been beaten before, so we don't spoil a new level's length or produce unwanted pressure.
 		if (Current_level_num > 0) {
-			mins = Ranking.parTime / 60;
-			secs = Ranking.parTime - mins * 60;
 			if ((!Ranking.freezeTimer && mins * 60 + secs > Ranking.parTime) || (Ranking.freezeTimer && Ranking.level_time > Ranking.parTime))
 				gr_set_fontcolor(BM_XRGB(255, 0, 0), -1);
+			mins = Ranking.parTime / 60;
+			secs = Ranking.parTime - mins * 60;
 		}
 		else {
 			mins = Ranking.secretParTime / 60;

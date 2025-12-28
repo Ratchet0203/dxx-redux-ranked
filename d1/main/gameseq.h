@@ -65,11 +65,11 @@ typedef struct parTime {
 	double ammo_usage;
 	double heldWeapons[21]; // Which weapons algo has.
 	int laser_level; // It's possible to make things work without this, but just tracking laser level directly makes things a lot easier.
-	int hasQuads;
+	double hasQuads;
 	int segnum; // What segment Algo is in.
 	bool isSegmentAccessible[MAX_SEGMENTS];
 	// To make the following array fit within the stack limit, we need to squeeze values into ushorts, limiting their precision to 1/256 of a second and capping their length below 4:16, which should be plenty of both.
-	ushort objectiveDistances[MAX_OBJECTIVES][MAX_OBJECTIVES]; // [from][to] - For caching distances between every pair of objectives in a level, so 2-opt can work.
+	float objectiveDistances[MAX_OBJECTIVES][MAX_OBJECTIVES]; // [from][to] - For caching distances between every pair of objectives in a level, so 2-opt can work.
 	int loops; // Which stage of the par time calculation process are we on?
 	int typeThreeWalls[MAX_WALLS];
 	int numTypeThreeWalls;
@@ -83,6 +83,9 @@ typedef struct parTime {
  	double objectiveFuelcenTripTimes[MAX_OBJECTIVES]; // Gathers distance to nearest accessible fuelcen (if any) throughout the run for use in energy time.
 	double energyUsed;
 	double energyGained;
+	int thisWallUnlockedCalls;
+	double speed; // For movement time calculation.
+	double lastCombatTime; // Also for movement time calculation.
 } __pack__ parTime;
 
 
