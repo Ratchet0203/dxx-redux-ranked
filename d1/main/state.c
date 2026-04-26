@@ -1111,41 +1111,41 @@ int state_restore_all(int in_game)
 	return state_restore_all_sub(filename);
 }
 
-int state_restore_all_sub(char *filename)
+int state_restore_all_sub(char* filename)
 {
 	int ObjectStartLocation;
 	int BogusSaturnShit = 0;
-	int version,i, j, segnum, coop_player_got[MAX_PLAYERS], coop_org_objnum = Players[Player_num].objnum;
-	object * obj;
-	PHYSFS_file *fp;
+	int version, i, j, segnum, coop_player_got[MAX_PLAYERS], coop_org_objnum = Players[Player_num].objnum;
+	object* obj;
+	PHYSFS_file* fp;
 	int swap = 0;	// if file is not endian native, have to swap all shorts and ints
 	int current_level;
 	char mission[128];
-	char desc[DESC_LENGTH+1];
+	char desc[DESC_LENGTH + 1];
 	char id[5];
-	char org_callsign[CALLSIGN_LEN+16];
+	char org_callsign[CALLSIGN_LEN + 16];
 	fix tmptime32 = 0;
 	player_rw* pl_rw;
 	int rebirth = 0;
-	Ranking.quickload = 1;
+	//Ranking.quickload = 1;
 
-	#ifndef NDEBUG
+#ifndef NDEBUG
 	if (GameArg.SysUsePlayersDir && strncmp(filename, "Players/", 8))
 		Int3();
-	#endif
+#endif
 
 	fp = PHYSFSX_openReadBuffered(filename);
-	if ( !fp ) return 0;
+	if (!fp) return 0;
 
-//Read id
+	//Read id
 	PHYSFS_read(fp, id, sizeof(char) * 4, 1);
-	if ( memcmp( id, dgss_id, 4 )) {
+	if (memcmp(id, dgss_id, 4)) {
 		PHYSFS_close(fp);
 		return 0;
 	}
 
-//Read version
-	//Check for swapped file here, as dgss_id is written as a string (i.e. endian independent)
+	//Read version
+		//Check for swapped file here, as dgss_id is written as a string (i.e. endian independent)
 	PHYSFS_read(fp, &version, sizeof(int), 1);
 	if (version & 0xffff0000)
 	{
@@ -1153,17 +1153,17 @@ int state_restore_all_sub(char *filename)
 		version = SWAPINT(version);
 	}
 
-	if (version < STATE_COMPATIBLE_VERSION)	{
+	if (version < STATE_COMPATIBLE_VERSION) {
 		PHYSFS_close(fp);
 		return 0;
 	}
 
-// Read Coop state_game_id. Oh the redundancy... we have this one later on but Coop games want to read this before loading a state so for easy access we have this here
+	// Read Coop state_game_id. Oh the redundancy... we have this one later on but Coop games want to read this before loading a state so for easy access we have this here
 	if (Game_mode & GM_MULTI_COOP)
 	{
-		char saved_callsign[CALLSIGN_LEN+1];
+		char saved_callsign[CALLSIGN_LEN + 1];
 		state_game_id = PHYSFSX_readSXE32(fp, swap);
-		PHYSFS_read(fp, &saved_callsign, sizeof(char)*CALLSIGN_LEN+1, 1);
+		PHYSFS_read(fp, &saved_callsign, sizeof(char) * CALLSIGN_LEN + 1, 1);
 		if (strcmp(saved_callsign, Players[Player_num].callsign)) // check the callsign of the player who saved this state. It MUST match. If we transferred this savegame from pilot A to pilot B, others won't be able to restore us. So bail out here if this is the case.
 		{
 			PHYSFS_close(fp);
@@ -1171,21 +1171,21 @@ int state_restore_all_sub(char *filename)
 		}
 	}
 
-// Read description
+	// Read description
 	PHYSFS_read(fp, desc, sizeof(char) * DESC_LENGTH, 1);
 
-// Skip the current screen shot...
+	// Skip the current screen shot...
 	PHYSFS_seek(fp, PHYSFS_tell(fp) + THUMBNAIL_W * THUMBNAIL_H);
 
-// Read the Between levels flag...
+	// Read the Between levels flag...
 	i = PHYSFSX_readSXE32(fp, swap);
 	i = 0;
 
-// Read the mission info...
+	// Read the mission info...
 	PHYSFS_read(fp, mission, sizeof(char) * 9, 1);
 
 	if (mission[8] == 1) { // rebirth savegame_mission_name_abi::pathname
-		char *p;
+		char* p;
 		PHYSFS_read(fp, mission, 128, 1);
 		if (mission[127]) {
 			PHYSFS_close(fp);
@@ -1195,21 +1195,21 @@ int state_restore_all_sub(char *filename)
 			memmove(mission, p + 1, strlen(p + 1) + 1);
 	}
 
-	if (!load_mission_by_name( mission ))	{
-		nm_messagebox( NULL, 1, "Ok", "Error!\nUnable to load mission\n'%s'\n", mission );
+	if (!load_mission_by_name(mission)) {
+		nm_messagebox(NULL, 1, "Ok", "Error!\nUnable to load mission\n'%s'\n", mission);
 		PHYSFS_close(fp);
 		return 0;
 	}
 
-//Read level info
+	//Read level info
 	current_level = PHYSFSX_readSXE32(fp, swap);
 	PHYSFS_seek(fp, PHYSFS_tell(fp) + sizeof(PHYSFS_sint32)); // skip Next_level_num
 
-//Restore GameTime
+	//Restore GameTime
 	tmptime32 = PHYSFSX_readSXE32(fp, swap);
 	GameTime64 = (fix64)tmptime32;
 
-// Start new game....
+	// Start new game....
 	if (!(Game_mode & GM_MULTI_COOP))
 	{
 		Game_mode = GM_NORMAL;
@@ -1217,42 +1217,42 @@ int state_restore_all_sub(char *filename)
 		change_playernum_to(0);
 #endif
 		N_players = 1;
-		strcpy( org_callsign, Players[0].callsign );
+		strcpy(org_callsign, Players[0].callsign);
 		InitPlayerObject();				//make sure player's object set up
 		init_player_stats_game(0);		//clear all stats
 	}
 	else // in coop we want to stay the player we are already.
 	{
-		strcpy( org_callsign, Players[Player_num].callsign );
+		strcpy(org_callsign, Players[Player_num].callsign);
 		init_player_stats_game(Player_num);
 	}
 
 	if (Game_wind)
 		window_set_visible(Game_wind, 0);
 
-//Read player info
+	//Read player info
 
 	StartNewLevelSub(current_level, 1, 0);//use page_in_textures here to fix OGL texture precashing crash -MPM
-		MALLOC(pl_rw, player_rw, 1);
-		PHYSFS_read(fp, pl_rw, sizeof(player_rw), 1);
-		player_rw_swap(pl_rw, swap);
-		state_player_rw_to_player(pl_rw, &Players[Player_num]);
-		d_free(pl_rw);
-	strcpy( Players[Player_num].callsign, org_callsign );
+	MALLOC(pl_rw, player_rw, 1);
+	PHYSFS_read(fp, pl_rw, sizeof(player_rw), 1);
+	player_rw_swap(pl_rw, swap);
+	state_player_rw_to_player(pl_rw, &Players[Player_num]);
+	d_free(pl_rw);
+	strcpy(Players[Player_num].callsign, org_callsign);
 	if (Game_mode & GM_MULTI_COOP)
 		Players[Player_num].objnum = coop_org_objnum;
 
-// Restore the weapon states
+	// Restore the weapon states
 	PHYSFS_read(fp, &Players[Player_num].primary_weapon, sizeof(sbyte), 1);
 	PHYSFS_read(fp, &Players[Player_num].secondary_weapon, sizeof(sbyte), 1);
 
 	select_weapon(Players[Player_num].primary_weapon, 0, 0, 0);
 	select_weapon(Players[Player_num].secondary_weapon, 1, 0, 0);
 
-// Restore the difficulty level
+	// Restore the difficulty level
 	Difficulty_level = PHYSFSX_readSXE32(fp, swap);
 
-// Restore the cheats enabled flag
+	// Restore the cheats enabled flag
 	game_disable_cheats(); // disable cheats first
 	cheats.enabled = PHYSFSX_readSXE32(fp, swap);
 	cheats.turbo = PHYSFSX_readSXE32(fp, swap);
@@ -1262,18 +1262,18 @@ int state_restore_all_sub(char *filename)
 	ObjectStartLocation = PHYSFS_tell(fp);
 RetryObjectLoading:
 	//Clear out all the objects from the lvl file
-	for (segnum=0; segnum <= Highest_segment_index; segnum++)
+	for (segnum = 0; segnum <= Highest_segment_index; segnum++)
 		Segments[segnum].objects = -1;
 	reset_objects(1);
 
 	//Read objects, and pop 'em into their respective segments.
 	i = PHYSFSX_readSXE32(fp, swap);
-	Highest_object_index = i-1;
-	if ( !BogusSaturnShit )
+	Highest_object_index = i - 1;
+	if (!BogusSaturnShit)
 		//object_read_n_swap(Objects, i, swap, fp);
-		for (i=0; i<=Highest_object_index; i++ )
+		for (i = 0; i <= Highest_object_index; i++)
 		{
-			object_rw *obj_rw;
+			object_rw* obj_rw;
 			MALLOC(obj_rw, object_rw, 1);
 			PHYSFS_read(fp, obj_rw, sizeof(object_rw), 1);
 			object_rw_swap(obj_rw, swap);
@@ -1281,12 +1281,12 @@ RetryObjectLoading:
 			d_free(obj_rw);
 		}
 	else {
-		for (i=0; i<=Highest_object_index; i++ )
+		for (i = 0; i <= Highest_object_index; i++)
 		{
-			object_rw *obj_rw;
+			object_rw* obj_rw;
 			MALLOC(obj_rw, object_rw, 1);
 			// Insert 3 bytes after the read in obj->rtype.pobj_info.alt_textures field.
-			PHYSFS_read(fp, obj_rw, sizeof(object_rw)-3, 1);
+			PHYSFS_read(fp, obj_rw, sizeof(object_rw) - 3, 1);
 			object_rw_swap(obj_rw, swap);
 			state_object_rw_to_object(obj_rw, &Objects[i]);
 			d_free(obj_rw);
@@ -1296,26 +1296,26 @@ RetryObjectLoading:
 
 	//Check for rebirth missing signatures
 	if (!Objects[0].signature && !Objects[1].signature) {
-		for (i=0; i<=Highest_object_index; i++)
+		for (i = 0; i <= Highest_object_index; i++)
 			Objects[i].signature = i + 1;
 		rebirth = 1;
 	}
 
-	for (i=0; i<=Highest_object_index; i++ )	{
+	for (i = 0; i <= Highest_object_index; i++) {
 		obj = &Objects[i];
 		obj->rtype.pobj_info.alt_textures = -1;
 		segnum = obj->segnum;
 		obj->next = obj->prev = obj->segnum = -1;
-		if ( obj->type != OBJ_NONE )	{
+		if (obj->type != OBJ_NONE) {
 			// Check for a bogus Saturn version!!!!
-			if (!BogusSaturnShit )	{
-				if ( (segnum<0) || (segnum>Highest_segment_index) ) {
+			if (!BogusSaturnShit) {
+				if ((segnum < 0) || (segnum > Highest_segment_index)) {
 					BogusSaturnShit = 1;
-					PHYSFS_seek( fp, ObjectStartLocation );
+					PHYSFS_seek(fp, ObjectStartLocation);
 					goto RetryObjectLoading;
 				}
 			}
-			obj_link(i,segnum);
+			obj_link(i, segnum);
 		}
 	}
 	special_reset_objects();
@@ -1323,28 +1323,28 @@ RetryObjectLoading:
 	//Restore wall info
 	Num_walls = PHYSFSX_readSXE32(fp, swap);
 	// Check for a bogus Saturn version!!!!
-	if (!BogusSaturnShit )	{
-		if ( (Num_walls<0) || (Num_walls>MAX_WALLS) ) {
+	if (!BogusSaturnShit) {
+		if ((Num_walls < 0) || (Num_walls > MAX_WALLS)) {
 			BogusSaturnShit = 1;
-			PHYSFS_seek( fp, ObjectStartLocation );
+			PHYSFS_seek(fp, ObjectStartLocation);
 			goto RetryObjectLoading;
 		}
 	}
 
 	wall_read_n_swap(Walls, Num_walls, swap, fp);
 	// Check for a bogus Saturn version!!!!
-	if (!BogusSaturnShit )	{
-		for (i=0; i<Num_walls; i++ )	{
-			if ( (Walls[i].segnum<0) || (Walls[i].segnum>Highest_segment_index) || (Walls[i].sidenum<-1) || (Walls[i].sidenum>5) ) {
+	if (!BogusSaturnShit) {
+		for (i = 0; i < Num_walls; i++) {
+			if ((Walls[i].segnum < 0) || (Walls[i].segnum > Highest_segment_index) || (Walls[i].sidenum < -1) || (Walls[i].sidenum > 5)) {
 				BogusSaturnShit = 1;
-				PHYSFS_seek( fp, ObjectStartLocation );
+				PHYSFS_seek(fp, ObjectStartLocation);
 				goto RetryObjectLoading;
 			}
 		}
 	}
 
 	//Check for rebirth linked_wall value
-	for (i=0;i<Num_walls;i++)
+	for (i = 0; i < Num_walls; i++)
 		if (Walls[i].linked_wall == 65535) // rebirth dcx::wallnum_t::None
 			Walls[i].linked_wall = -1;
 
@@ -1357,8 +1357,8 @@ RetryObjectLoading:
 	trigger_read_n_swap(Triggers, Num_triggers, swap, fp);
 
 	//Restore tmap info
-	for (i=0; i<=Highest_segment_index; i++ )	{
-		for (j=0; j<6; j++ )	{
+	for (i = 0; i <= Highest_segment_index; i++) {
+		for (j = 0; j < 6; j++) {
 			Segments[i].sides[j].wall_num = PHYSFSX_readSXE16(fp, swap);
 			Segments[i].sides[j].tmap_num = PHYSFSX_readSXE16(fp, swap);
 			Segments[i].sides[j].tmap_num2 = PHYSFSX_readSXE16(fp, swap);
@@ -1388,13 +1388,13 @@ RetryObjectLoading:
 	Control_center_present = PHYSFSX_readSXE32(fp, swap);
 	Dead_controlcen_object_num = PHYSFSX_readSXE32(fp, swap);
 	if (Control_center_destroyed)
-		Total_countdown_time = Countdown_timer/F0_5; // we do not need to know this, but it should not be 0 either...
+		Total_countdown_time = Countdown_timer / F0_5; // we do not need to know this, but it should not be 0 either...
 
 	// Restore the AI state
-	ai_restore_state( fp, version, swap, rebirth );
+	ai_restore_state(fp, version, swap, rebirth);
 
 	// Restore the automap visited info
-	if ( Highest_segment_index+1 > MAX_SEGMENTS_ORIGINAL )
+	if (Highest_segment_index + 1 > MAX_SEGMENTS_ORIGINAL)
 	{
 		memset(&Automap_visited, 0, MAX_SEGMENTS);
 		PHYSFS_read(fp, Automap_visited, sizeof(ubyte), Highest_segment_index + 1);
@@ -1410,7 +1410,7 @@ RetryObjectLoading:
 
 	state_game_id = 0;
 
-	if ( version >= 7 )	{
+	if (version >= 7) {
 		state_game_id = PHYSFSX_readSXE32(fp, swap);
 		cheats.rapidfire = PHYSFSX_readSXE32(fp, swap);
 		PHYSFS_seek(fp, PHYSFS_tell(fp) + sizeof(PHYSFS_sint32)); // PHYSFSX_readSXE32(fp, swap); // was Ugly_robot_cheat
@@ -1419,17 +1419,17 @@ RetryObjectLoading:
 		PHYSFS_seek(fp, PHYSFS_tell(fp) + sizeof(PHYSFS_sint32)); // PHYSFSX_readSXE32(fp, swap); // was Lunacy
 	}
 
-// Read Coop Info
+	// Read Coop Info
 	if (Game_mode & GM_MULTI_COOP)
 	{
 		player restore_players[MAX_PLAYERS];
 		object restore_objects[MAX_PLAYERS];
 		int coop_got_nplayers = 0;
 
-		for (i = 0; i < MAX_PLAYERS; i++) 
+		for (i = 0; i < MAX_PLAYERS; i++)
 		{
-			player_rw *pl_rw;
-			object *obj;
+			player_rw* pl_rw;
+			object* obj;
 
 			// prepare arrays for mapping our players below
 			coop_player_got[i] = 0;
@@ -1457,12 +1457,12 @@ RetryObjectLoading:
 				// map stored players to current players depending on their unique (which we made sure) callsign
 				if (Players[i].connected == CONNECT_PLAYING && restore_players[j].connected == CONNECT_PLAYING && !strcmp(Players[i].callsign, restore_players[j].callsign))
 				{
-					object *obj;
+					object* obj;
 					int sav_objnum = Players[i].objnum;
-					
+
 					memcpy(&Players[i], &restore_players[j], sizeof(player));
 					Players[i].objnum = sav_objnum;
-					
+
 					coop_player_got[i] = 1;
 					coop_got_nplayers++;
 
@@ -1487,7 +1487,7 @@ RetryObjectLoading:
 				}
 			}
 		}
-		PHYSFS_read(fp, &Netgame.mission_title, sizeof(char), MISSION_NAME_LEN+1);
+		PHYSFS_read(fp, &Netgame.mission_title, sizeof(char), MISSION_NAME_LEN + 1);
 		PHYSFS_read(fp, &Netgame.mission_name, sizeof(char), 9);
 		Netgame.levelnum = PHYSFSX_readSXE32(fp, swap);
 		PHYSFS_read(fp, &Netgame.difficulty, sizeof(ubyte), 1);
@@ -1513,6 +1513,13 @@ RetryObjectLoading:
 		con_printf(CON_URGENT, "savegame not completely read, might be corrupt! (cur %d, size %d)",
 			(int)PHYSFS_tell(fp), (int)PHYSFS_fileLength(fp));
 
+	//if (!eof(fp)) {
+		PHYSFS_read(fp, &Ranking.parTime, sizeof(ubyte), 1);
+	//}
+	//else {
+		//HUD_init_message_literal(HM_DEFAULT, "Save file has no ranking system data! Mod disabled for this level.");
+		Ranking.quickload = 1;
+	//}
 	PHYSFS_close(fp);
 
 	if (Game_wind)
@@ -1520,7 +1527,6 @@ RetryObjectLoading:
 			window_set_visible(Game_wind, 1);
 	reset_time();
 	Ranking.fromBestRanksButton = 0; // So loading a save doesn't cause the next result screen to let you select difficulty.
-	HUD_init_message_literal(HM_DEFAULT, "You quickloaded! Ranking system mod disabled for this level.");
 	digi_play_sample(SOUND_BAD_SELECTION, F1_0);
 	return 1;
 }

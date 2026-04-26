@@ -131,7 +131,7 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	double     excludePoints;              // Number of points gotten from sources we still want to contribute to vanilla score, but not count toward rank calculation.
 	double     maxScore;                   // The current level's S-rank score. Won't include hostage points until the result screen, to make calculation of other bonuses easier.
 	double     level_time;                 // Time variable used in rank calculation. Updates to match Players[Player_num].time_level at specific points to protect players from being penalized for not skipping things.
-	int        quickload;                  // Whether the player has quickloaded into the current level.
+	int        quickload;                  // Whether the player has quickloaded into the current level without any mod data in their save file.
 	double     parTime;                    // The algorithmically-generated required time for the current level.
 	double     calculatedScore;            // Stores the score determined in calculateRank.
 	int        rank;                       // Stores the rank determined in calculateRank.
@@ -141,7 +141,7 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	int        startingLevel;              // I hate making a ranking variable for this, but endlevel_handler doesn't support a level_num parameter due to the way it's called, so I have to use this for when levels are started from the record details screen.
 	int        lastSelectedItem;           // So the best ranks listbox doesn't keep putting you back at level 1 when you're retrying stuff. (Edit: This was back when the restart level button didn't exist, so it's a lot less important now but still a bit useful.)
 	int        missionRanks[MAX_MISSIONS]; // A struct for the aggregate ranks on the missions list because the userdata field for the list is already used by something.
-	int        warmStart;                  // If the player enters a level with anything non-default, this becomes 1. If this is 1 when a new record is set, the score will be marked as warm started, and won't be visible if their display is disabled.
+	int        warmStart;                  // If the player enters a level with anything non-default, this becomes 1. If this is 1 when a new record is set, the score will be marked as warm started, and display an asterisk when viewed.
 	double     freezeTimer;                // Tells levels' in-game timer whether it should be frozen or not (this is in D1 to keep par time text from turning red during the exit cutscene).
 	int        noDamage;                   // A new bonus I had to add. Thanks Marvin... 4/22/2025
 	int        isRankable;                 // Tells the mod whether to give an automatic X-rank on levels where a result screen can't be reached.

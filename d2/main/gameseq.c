@@ -1757,10 +1757,10 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 			damage = f2fl(Weapon_info[n].strength[Difficulty_level]) * gunpoints;
 			fire_rate = (double)f1_0 / Weapon_info[n].fire_wait;
 			energy_usage = f2fl(Weapon_info[n].energy_usage);
+			if (Difficulty_level < 2)
+				energy_usage *= 0.5 + Difficulty_level * 0.25; // Energy usage is 50% on Trainee and 75% on Rookie.
 			if (n == FUSION_ID)
 				energy_usage += 2; // Fusion always uses 2 energy, on top of whatever its energy usage field says.
-			if (Difficulty_level < 2)
-				energy_usage *= 0.5 + Difficulty_level * 0.25; // Other than that, energy usage is 50% on Trainee and 75% on Rookie.
 			ammo_usage = Weapon_info[n].ammo_usage * 12.7554168701171875; // To scale with the ammo counter. SaladBadger found out this was the real multiplier after fixed point errors(?), not 13.
 			splash_radius = f2fl(Weapon_info[n].damage_radius);
 			wall_health = f2fl(Walls[wall_num].hps + 1) - WallAnims[Walls[wall_num].clip_num].num_frames; // For some reason the "real" health of a wall is its hps minus its frame count. Refer to the last line of dxx-redux-ranked commit cb1d724's description.
@@ -1773,7 +1773,7 @@ double calculate_combat_time_wall(int wall_num, int pathFinal) // Tell algo to u
 			// Assume accuracy is always 100% for walls. They're big and don't move lol.
 			int shots = ceil(wall_health / damage); // Split time into shots to reflect how players really fire. A 30 HP robot will take two laser 1 shots to kill, not one and a half.
 			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage) // Make sure we have enough ammo for this robot before using vulcan.
-				// Factor energy and ammo usage in to which weapon Algo picks (won't contribute to final combat time of course). Based off of how much time it would take to refill that much energy in a fuelcen.
+				// Factor energy and ammo usage in to which weapon Algo picks (won't contribute to final combat time of course).W
 				// This will be based off of how long it would take to regenerate the amount used in a fuelcen (25 energy/sec).
 				thisWeaponCombatTime = shots / fire_rate + (shots * energy_usage) / 25;
 			else
@@ -2054,13 +2054,10 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 	double accuracy; // Players are NOT perfect, and it's usually not their fault. We need to account for this if we want all par times to be reachable.
 	double topAccuracy; // The percentage shown on the debug console.
 	double adjustedRobotHealthNoAccuracy;
-	int failsafe = 0; // For Maximum 16 type cases where we don't actually have a vulcan or gauss cannon to kill an energy-immune boss. Since Algo can't use missiles, we'll give it vulcan for the boss only to dodge a softlock.
 	// Weapon values converted to a format human beings in 2024 can understand.
 	for (int n = 0; n < 35; n++)
 		if (!ParTime.heldWeapons[n]) {
 			weapon_id = n;
-			if (failsafe)
-				weapon_id = VULCAN_ID; // Give Algo Vulcan in the event of a failsafe. This is because Vulcan is the weaker weapon by default, but someone could edit gauss to be weaker. idrc tbh.
 			weapon_info* weapon_info = &Weapon_info[weapon_id];
 			double gunpoints = 2;
 			if ((!(weapon_id > LASER_ID_L4) || weapon_id == LASER_ID_L5 || weapon_id == LASER_ID_L6) && !ParTime.hasQuads) { // Account for increased damage of quads.
@@ -2086,10 +2083,10 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 				fire_rate = (double)f1_0 / Weapon_info[0].fire_wait;
 				energy_usage = f2fl(Weapon_info[0].energy_usage);
 			}
+			if (Difficulty_level < 2)
+				energy_usage *= 0.5 + Difficulty_level * 0.25; // Energy usage is 50% on Trainee and 75% on Rookie.
 			if (n == FUSION_ID)
 				energy_usage += 2; // Fusion always uses 2 energy, on top of whatever its energy usage field says.
-			if (Difficulty_level < 2)
-				energy_usage *= 0.5 + Difficulty_level * 0.25; // Other than that, energy usage is 50% on Trainee and 75% on Rookie.
 			if (isObject) {
 				if (obj->type == OBJ_CNTRLCEN) {
 					if (weapon_id == FUSION_ID)
@@ -2104,17 +2101,6 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 			if (robInfo->boss_flag) {
 				if (weapon_id == GAUSS_ID)
 					damage *= 1 - ((double)Difficulty_level * 0.1); // Damage of gauss on bosses goes down as difficulty goes up.
-				if (Boss_invulnerable_energy[robInfo->boss_flag - BOSS_D2]) {
-					if (!(weapon_id == VULCAN_ID || weapon_id == GAUSS_ID)) {
-						if (n == 34 && topWeapon == -1) { // We just finished the last weapon and haven't gotten a time, so Algo only has energy weapons against an energy-immune boss.
-							failsafe = 1;
-							n--; // Decrement so the loop works one more time.
-						}
-						continue;
-					}
-					else
-						ammo_usage = 0; // Give Algo infinite vulcan ammo so it doesn't softlock fighting a boss that's immune to energy weapons. Do remember that Algo doesn't have access to missiles!
-				}
 				if (Boss_invulnerable_matter[robInfo->boss_flag - BOSS_D2])
 					if (weapon_id == VULCAN_ID || weapon_id == GAUSS_ID)
 						continue;
@@ -2127,8 +2113,8 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 				ParTime.combatTime += 2.5; // To account for the death tantrum they throw when they get their comeuppance for stealing your stuff.
 			accuracy = adjustedRobotHealthNoAccuracy / adjustedRobotHealth;
 			int shots = round(ceil(adjustedRobotHealthNoAccuracy / damage) / accuracy); // Split time into shots to reflect how players really fire. A 30 HP robot will take two laser 1 shots to kill, not one and a half.
-			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage) // Make sure we have enough ammo for this robot before using vulcan.
-				// Factor energy and ammo usage in to which weapon Algo picks (won't contribute to final combat time of course). Based off of how much time it would take to refill that much energy in a fuelcen.
+			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage || Boss_invulnerable_energy[robInfo->boss_flag - BOSS_D2]) // Make sure we have enough ammo for this robot before using vulcan, unless the boss is immune to energy.
+				// Factor energy and ammo usage in to which weapon Algo picks (won't contribute to final combat time of course).
 				// This will be based off of how long it would take to regenerate the amount used in a fuelcen (25 energy/sec).
 				thisWeaponCombatTime = shots / fire_rate + (shots * energy_usage) / 25;
 			else
@@ -2152,8 +2138,7 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 		lowestCombatTime += calculateMovementTime(lowestCombatTime * robInfo->max_speed[Difficulty_level], 1) * 2;
 	if (isObject) {
 		changeAlgosEnergy(-energyUsed);
-		if (!failsafe)
-			ParTime.vulcanAmmo -= ammoUsed * f1_0;
+		ParTime.vulcanAmmo -= ammoUsed * f1_0;
 		if (!(topWeapon > LASER_ID_L4) || topWeapon == LASER_ID_L5 || topWeapon == LASER_ID_L6) {
 			if (!ParTime.hasQuads) {
 				if (!(topWeapon > LASER_ID_L4))
@@ -2170,12 +2155,8 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 		}
 		if (topWeapon == FLARE_ID)
 			printf("Took %.3fs to fight robot type %i with flares, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
-		if (topWeapon == VULCAN_ID) {
-			if (failsafe)
-				printf("Took %.3fs to fight robot type %i with vulcan (FAILSAFE), %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
-			else
-				printf("Took %.3fs to fight robot type %i with vulcan, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
-		}
+		if (topWeapon == VULCAN_ID)
+			printf("Took %.3fs to fight robot type %i with vulcan, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 		if (topWeapon == SPREADFIRE_ID)
 			printf("Took %.3fs to fight robot type %i with spreadfire, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 		if (topWeapon == PLASMA_ID)
@@ -2984,7 +2965,7 @@ void respond_to_objective_partime(partime_objective objective, int index)
 				short Boss_path_length = 0;
 				if (robInfo->boss_flag > 0) { // Bosses have special abilities that take additional time to counteract. Boss levels are unfair without this.
 					if (Boss_teleports[robInfo->boss_flag - BOSS_D2]) {
-						int num_teleports = combatTime / 8; // Bosses teleport on an eight second timer, meaning you can only get two seconds of damage in at a time before they move away.
+						int num_teleports = combatTime / 8; // Bosses teleport on an eight second timer, meaning you can only get eight seconds of damage in at a time before they move away.
 						for (i = 0; i < Num_boss_teleport_segs; i++) { // Now we measure the distance between every possible pair of points the boss can teleport between.
 							for (int n = 0; n < Num_boss_teleport_segs; n++) {
 								teleportDistance = 0;
@@ -3194,30 +3175,45 @@ double findEnergyTime()
 	// As cool as this is, I can't bring myself to put it in the final product. Algo's accuracy with assessing energy use is too poor for it to work.
 	// There is a multitude of things working for the player that makes it too uncertain whether they will actually need a fuelcen.
 	// Players have missiles, energy and ammo picked up off-path, good RNG from enemy drops, and potentially better weapon accuracy than Algo estimates.
-	// Most importantly of all, they have perfect routing. Skilled ones can also chord/AB in the event they have to make up time spent refilling.
+	// Most importantly of all, they have perfect routing. Skilled ones can also chord in the event they have to make up time spent refilling.
 	// At the end of the day, as much as I want Algo to reliably give time for necessary pit stops, that is simply impossible without overnerfing many levels.
 	// I have no choice but to make par time possibility depend on level authors giving enough energy for high difficulty completion without stopping.
-	return 0; // For if I ever want to disable this.
+	// What I can do is give the refilling portion of the time, as without the unreliable travelling portion, it doesn't actually get too badly inflated.
+	// That is the part left uncommented and actually used in the final calculations.
+	
+	//return 0; // For if I ever want to disable this.
 	
 	// To get estimated time travelling to and from fuelcens, we'll take a weighted average of distance from the nearest accessible fuelcen at any time, then multiply that by an estimated number of fuelcen trips based on energy efficiency.
 	// Trust me, I tried getting actual minimum fuelcen time the proper way... so many times. It's not feasible within an acceptable timeframe.
-	double sum = 0;
-	double realSum = 0;
-	int count = 0;
-	double div = 0;
+	//double sum = 0;
+	//double realSum = 0;
+	//int count = 0;
+	//double div = 0;
 	double energyDebt = 0;
-	double confidence;
+	//double confidence;
 	int i;
-	for (i = 1; i <= ParTime.objectives; i++) {
-		if (ParTime.objectiveEnergies[i] < 0) { // Any amount of energy spent below zero will be counted as energy debt. We can't just use the lowest energy value or this would overlook some usage (like in D1 level 26).
-			if (ParTime.objectiveEnergies[i - 1] >= 0)
-				energyDebt += -ParTime.objectiveEnergies[i];
-			else
-				energyDebt += ParTime.objectiveEnergies[i - 1] - ParTime.objectiveEnergies[i] < 0 ? 0 : ParTime.objectiveEnergies[i - 1] - ParTime.objectiveEnergies[i];
-		}
+	
+	for (i = 0; i < Num_triggers; i++) {
+		if (Triggers[i].flags == TRIGGER_ENERGY_DRAIN)
+			return 0; // Energy drain triggers can give energy too, with no limit, so just don't give energy time for levels that have them.
 	}
 
-	// Sort trip times least to greatest, bringing their attached energies with them. Bubble sort is fine since the list will never be greater than 604 objectives.
+	for (i = 0; i < Num_fuelcenters; i++) {
+		if (Station[i].Type == SEGMENT_IS_FUELCEN) { // Only give energy time if a fuelcen actually exists.
+			for (i = 1; i <= ParTime.objectives; i++) {
+				if (ParTime.objectiveEnergies[i] < 0) { // Any amount of energy spent below zero will be counted as energy debt. We can't just use the lowest energy value or this would overlook some usage (like in D1 level 26).
+					if (ParTime.objectiveEnergies[i - 1] >= 0)
+						energyDebt += -ParTime.objectiveEnergies[i];
+					else
+						energyDebt += ParTime.objectiveEnergies[i - 1] - ParTime.objectiveEnergies[i] < 0 ? 0 : ParTime.objectiveEnergies[i - 1] - ParTime.objectiveEnergies[i];
+				}
+			}
+			break;
+		}
+	}
+	return energyDebt / 25; // 25/s energy recharge rate in fuelcens.
+	
+	/* Sort trip times least to greatest, bringing their attached energies with them. Bubble sort is fine since the list will never be greater than 604 objectives.
 	for (i = 0; i < ParTime.objectives - 1; i++) {
 		for (int n = 0; n < ParTime.objectives - i - 1; n++) {
 			if (ParTime.objectiveFuelcenTripTimes[n] > ParTime.objectiveFuelcenTripTimes[n + 1]) {
@@ -3269,7 +3265,7 @@ double findEnergyTime()
 	}
 	printf("Player est: %.3fs (%.2f%%), Estimated refills: %.3f, Refill time: %.3fs\n", avgDist, (avgDist / realAvg) * 100, estimatedRefills, refillTime);
 	// Add time spent recharging energy debt in fuelcens, which if you recall from the combat time functions, is 25 energy per second. Source: Fuelcen_give_amount in fuelcen.c.
-	return ((avgDist * estimatedRefills) + refillTime);
+	return ((avgDist * estimatedRefills) + refillTime); */
 }
 
 void calculateParTime() // Here is where we have an algorithm run a simulated path through a level to determine how long the player should take, both flying around and fighting robots.
@@ -3706,7 +3702,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 					Ranking.isRankable = 1; // An accessible exit trigger gives us a result screen. NOT a secret exit, as those only give us results when a reactor or boss is killed, which already sets isRankable to 1.
 				break; // Automatically break after one objective during the exits loop. We only wanna get the nearest accessible exit.
 			}
-			double shortestPathLength = -1;
+			/*double shortestPathLength = -1;
 			for (i = 0; i < Num_fuelcenters; i++) {
 				if (Station[i].Type == SEGMENT_IS_FUELCEN) {
 					create_path_points(ConsoleObject, ParTime.segnum, Station[i].segnum, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, 0, 0, index);
@@ -3716,10 +3712,10 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 							shortestPathLength = pathLength;
 					}
 				}
-			}
+			}*/
 			ParTime.objectives++;
 			ParTime.objectiveEnergies[ParTime.objectives] = ParTime.simulatedEnergy;
-			ParTime.objectiveFuelcenTripTimes[ParTime.objectives] = (shortestPathLength / SHIP_MOVE_SPEED) * 2; // Do *2 because it's a round trip.
+			//ParTime.objectiveFuelcenTripTimes[ParTime.objectives] = (shortestPathLength / SHIP_MOVE_SPEED) * 2; // Do *2 because it's a round trip.
 		}
 		ParTime.doneListIndex = ParTime.doneListSize;
 		ParTime.loops++;
