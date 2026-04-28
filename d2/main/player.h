@@ -157,6 +157,7 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	double  freezeTimer;                // Tells normal levels' in-game timer whether it should be frozen or not.
 	int     noDamage;                   // A new bonus I had to add. Thanks Marvin... 4/22/2025
 	double  isRankable;                 // Tells the mod whether to give an automatic X-rank on levels where a result screen can't be reached.
+	int     num_hostages;               // The number of hostages that are actually reachable in the level.
 
 	// Below are the ranking mod variables used for secret levels. Since we can play them in the middle of a normal one, we have to distinguish between them so results don't overlap.
 	
@@ -169,10 +170,10 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	double  secretDeathCount;           // We don't want starting a new base level to remove the secret level's death penalty, or vise versa, so increment this alongside deathCount, but only reset it upon starting a new secret level.
 	int     secretQuickload;		    // Same thing as secretDeathCount, but with quickloading.
 	double  secretParTime;
-	double  hostages_secret_level;      // Secret equivalent of Players[Player_num].hostages_level.
 	double  secretMissedRngSpawn;
 	int     secretAlreadyBeaten;
 	int     secretNoDamage;
+	int     secret_num_hostages;
 } __pack__ ranking;
 
 typedef struct restartLevel { // Recreate and store certain info from player to be restored when the restart button is hit, so the player is properly reset.

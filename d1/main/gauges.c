@@ -924,6 +924,9 @@ void sb_show_score_added()
 	if ( (Game_mode & GM_MULTI) && !((Game_mode & GM_MULTI_COOP) || (Game_mode & GM_MULTI_ROBOTS)) )
 		return;
 
+	if (score_display == 0)
+		return;
+	
 	gr_set_curfont( GAME_FONT );
 
 	score_time -= FrameTime;

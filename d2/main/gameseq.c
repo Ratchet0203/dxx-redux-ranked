@@ -1093,7 +1093,7 @@ void DoEndLevelScoreGlitz(int network)
 	shield_points -= shield_points % 50;
 	energy_points = f2i(Players[Player_num].energy) * 2 * mine_level;
 	energy_points -= energy_points % 50;
-	time_points = ((Ranking.maxScore - Players[Player_num].hostages_level * 7500) / 1.5) / pow(2, Ranking.level_time / Ranking.parTime);
+	time_points = ((Ranking.maxScore - Ranking.num_hostages * 7500) / 1.5) / pow(2, Ranking.level_time / Ranking.parTime);
 	hostage_points = Players[Player_num].hostages_on_board * 500 * (Difficulty_level + 1);
 	hostage_points2 = Players[Player_num].hostages_on_board * 2500 * (2.0 / 3);
 
@@ -1112,7 +1112,7 @@ void DoEndLevelScoreGlitz(int network)
 		endgame_points = is_last_level = 0;
 	if (!cheats.enabled)
 		add_bonus_points_to_score(shield_points + energy_points + skill_points + hostage_points + all_hostage_points + endgame_points);
-	if (Players[Player_num].hostages_on_board == Players[Player_num].hostages_level)
+	if (Players[Player_num].hostages_on_board >= Ranking.num_hostages) // Give bonus for greater too, just in case the algorithm misses a hostage that should've been counted.
 		hostage_points2 *= 3;
 	hostage_points2 = round(hostage_points2); // Round this because I got 24999 hostage bonus once.
 	skill_points2 = ceil((Ranking.rankScore + time_points + hostage_points2) * ((double)Difficulty_level / 8)); // Round this up so you can't theoretically miss a rank by a point on levels or difficulties with weird scoring.
@@ -1151,7 +1151,7 @@ void DoEndLevelScoreGlitz(int network)
 			sprintf(parTimeString, "%i:%.0f", parMinutes, parSeconds);
 		sprintf(m_str[c++], "Level score\t%.0f", level_points - Ranking.excludePoints);
 		sprintf(m_str[c++], "Time: %s/%s\t%i", timeText, parTimeString, time_points);
-		sprintf(m_str[c++], "Hostages: %i/%i\t%.0f", Players[Player_num].hostages_on_board, Players[Player_num].hostages_level, hostage_points2);
+		sprintf(m_str[c++], "Hostages: %i/%i\t%.0f", Players[Player_num].hostages_on_board, Ranking.num_hostages, hostage_points2);
 		sprintf(m_str[c++], "Skill: %s\t%.0f", diffname, skill_points2);
 		if (Ranking.noDamage)
 			sprintf(m_str[c++], "No damage\t%i", death_points);
@@ -1196,8 +1196,8 @@ void DoEndLevelScoreGlitz(int network)
 				if (Ranking.rankScore > Ranking.calculatedScore || Ranking.rank == 0) {
 					time_t timeOfScore = time(NULL);
 					temp = PHYSFS_openWrite(temp_filename);
-					PHYSFSX_printf(temp, "%i\n", Players[Player_num].hostages_level);
-					PHYSFSX_printf(temp, "%.0f\n", (Ranking.maxScore - Players[Player_num].hostages_level * 7500) / 3);
+					PHYSFSX_printf(temp, "%i\n", Ranking.num_hostages);
+					PHYSFSX_printf(temp, "%.0f\n", (Ranking.maxScore - Ranking.num_hostages * 7500) / 3);
 					PHYSFSX_printf(temp, "%.0f\n", Ranking.parTime);
 					PHYSFSX_printf(temp, "%.0f\n", level_points - Ranking.excludePoints);
 					PHYSFSX_printf(temp, "%.3f\n", Ranking.level_time);
@@ -1299,9 +1299,9 @@ void DoEndSecretLevelScoreGlitz()
 	level_points = Players[Player_num].score - Ranking.secretlast_score;
 	Ranking.secretRankScore = level_points - Ranking.secretExcludePoints;
 
-	time_points = ((Ranking.secretMaxScore - Ranking.hostages_secret_level * 7500) / 1.5) / pow(2, Ranking.secretlevel_time / Ranking.secretParTime);
+	time_points = ((Ranking.secretMaxScore - Ranking.secret_num_hostages * 7500) / 1.5) / pow(2, Ranking.secretlevel_time / Ranking.secretParTime);
 	hostage_points = Ranking.secret_hostages_on_board * 2500 * (2.0 / 3);
-	if (Ranking.secret_hostages_on_board == Ranking.hostages_secret_level)
+	if (Ranking.secret_hostages_on_board == Ranking.secret_num_hostages)
 		hostage_points *= 3;
 	hostage_points = round(hostage_points); // Round this because I got 24999 hostage bonus once.
 	skill_points = ceil(((Ranking.secretRankScore + time_points + hostage_points) * ((double)Difficulty_level / 8))); // Round this up so you can't theoretically miss a rank by a point on levels or difficulties with weird scoring.
@@ -1340,7 +1340,7 @@ void DoEndSecretLevelScoreGlitz()
 			sprintf(parTimeString, "%i:%.0f", parMinutes, parSeconds);
 		sprintf(m_str[c++], "Level score\t%.0f", level_points - Ranking.secretExcludePoints);
 		sprintf(m_str[c++], "Time: %s/%s\t%i", timeText, parTimeString, time_points);
-		sprintf(m_str[c++], "Hostages: %i/%.0f\t%.0f", Ranking.secret_hostages_on_board, Ranking.hostages_secret_level, hostage_points);
+		sprintf(m_str[c++], "Hostages: %i/%.0f\t%.0f", Ranking.secret_hostages_on_board, Ranking.secret_num_hostages, hostage_points);
 		sprintf(m_str[c++], "Skill: %s\t%i", diffname, skill_points);
 		if (Ranking.secretNoDamage)
 			sprintf(m_str[c++], "No damage\t%i", death_points);
@@ -1382,8 +1382,8 @@ void DoEndSecretLevelScoreGlitz()
 				if (Ranking.secretRankScore > Ranking.calculatedScore || Ranking.rank == 0) {
 					time_t timeOfScore = time(NULL);
 					temp = PHYSFS_openWrite(temp_filename);
-					PHYSFSX_printf(temp, "%.0f\n", Ranking.hostages_secret_level);
-					PHYSFSX_printf(temp, "%.0f\n", (Ranking.secretMaxScore - Ranking.hostages_secret_level * 7500) / 3);
+					PHYSFSX_printf(temp, "%.0f\n", Ranking.secret_num_hostages);
+					PHYSFSX_printf(temp, "%.0f\n", (Ranking.secretMaxScore - Ranking.secret_num_hostages * 7500) / 3);
 					PHYSFSX_printf(temp, "%.0f\n", Ranking.secretParTime);
 					PHYSFSX_printf(temp, "%.0f\n", level_points - Ranking.secretExcludePoints);
 					PHYSFSX_printf(temp, "%.3f\n", Ranking.secretlevel_time);
@@ -2886,11 +2886,16 @@ void respond_to_objective_partime(partime_objective objective, int index)
 	int i;
 	if (objective.type == OBJECTIVE_TYPE_OBJECT) { // We don't fight triggers.
 		object* obj = &Objects[objective.ID];
-		if (obj->type == OBJ_HOSTAGE)
-			if (Current_level_num > 0)
+		if (obj->type == OBJ_HOSTAGE) {
+			if (Current_level_num > 0) {
 				Ranking.maxScore += HOSTAGE_SCORE;
-			else
+				Ranking.num_hostages++;
+			}
+			else {
 				Ranking.secretMaxScore += HOSTAGE_SCORE;
+				Ranking.secret_num_hostages++;
+			}
+		}
 		if (obj->type == OBJ_POWERUP) {
 			weapon_id = 0;
 			if (obj->id == POW_VULCAN_WEAPON)
@@ -3097,7 +3102,7 @@ int determineSegmentAccessibility(int segnum)
 	short player_path_length = 0;
 	create_path_points(ConsoleObject, ConsoleObject->segnum, segnum, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, -1, 0, ParTime.doneListSize);
 	if (Point_segs[player_path_length - 1].segnum != segnum) { // The segment is inaccessible if Algo doesn't end up at it when given the rules established by initLockedWalls.
-		if (Current_level_num > 0) // Secret levels don't have secret return segments.
+		if (Current_level_num > 0) // Secret levels don't have secret return segments. Maximum S4 crashes without this condition.
 			create_path_points(ConsoleObject, Secret_return_segment, segnum, Point_segs_free_ptr, &player_path_length, MAX_POINT_SEGS, 0, 0, -1, -1, -1, 0, ParTime.doneListSize); // Try again from secret return seg.
 		if (Point_segs[player_path_length - 1].segnum != segnum)
 			return 0;
@@ -3308,6 +3313,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	ParTime.objectives = 0;
 	ParTime.energy_gained_per_pickup = 18 - Difficulty_level * 3;
 	Ranking.isRankable = 0;
+	Ranking.num_hostages = 0;
 	ParTime.objectiveEnergies[0] = 100;
 	ParTime.objectiveFuelcenTripTimes[0] = -1; // We will never refill at the start because our energy is 100. Don't even bother doing the pathfinds here.
 	ParTime.energyUsed = 0;
@@ -3555,21 +3561,35 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 			if (!foundValidObjective) { // If all objectives were skipped earlier, stop instead of going through the list again. No objectives are reachable, so we must follow the path and go to the next loop.
 				// Just to be sure though, make one last ditch effort to find objectives if we haven't destroyed the reactor/boss yet. It might save Algo from impending doom.
 				// Teleport it to the secret level return segment if one exists, and try to find the nearest objective again. This should take care of Obsidian level 1 and levels like it.
+				// In the case of secret levels, use the player spawn segment instead, since some levels (like PTMC: Castaway S1) require you leave and come back to access newly unlocked content.
 				//if (usedSecretReturn)
 					break;
-				//else
-					//usedSecretReturn = 1;
-				//if (!ParTime.loops && Current_level_num > 0) { // Only do this on the first loop before reactor is destroyed, as you can't come back from the secret level after it blows. Also secret levels still don't have secret return segments.
-					//for (i = 0; i < Num_triggers; i++) {
-						//if (Triggers[i].type == TT_SECRET_EXIT) {
-							//ParTime.segnum = Secret_return_segment;
-							//vms_vector segmentCenter;
-							//compute_segment_center(&segmentCenter, &Segments[Secret_return_segment]);
-							//ParTime.lastPosition = segmentCenter;
-							// Now we try again.
-						//}
-					//}
-				//}
+				/*else
+					usedSecretReturn = 1;
+				if (!ParTime.loops) { // Only do this on the first loop before reactor is destroyed, as you can't come back from the secret level after it blows.
+					if (Current_level_num > 0) {
+						for (i = 0; i < Num_triggers; i++) {
+							if (Triggers[i].type == TT_SECRET_EXIT) {
+								ParTime.segnum = Secret_return_segment;
+								vms_vector segmentCenter;
+								compute_segment_center(&segmentCenter, &Segments[Secret_return_segment]);
+								ParTime.lastPosition = segmentCenter;
+								// Now we try again.
+							}
+						}
+					}
+					else {
+						for (i = 0; i < Num_triggers; i++) {
+							if (Triggers[i].type == TT_SECRET_EXIT) {
+								ParTime.segnum = ConsoleObject->segnum;
+								vms_vector segmentCenter;
+								compute_segment_center(&segmentCenter, &Segments[Secret_return_segment]);
+								ParTime.lastPosition = segmentCenter;
+								// Now we try again.
+							}
+						}
+					}
+				}*/
 			}
 		}
 	
@@ -3724,11 +3744,11 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	// To account for time and skill bonuses being equal to this, as well as hostage bonus.
 	if (Current_level_num > 0) {
 		Ranking.maxScore *= 3;
-		Ranking.maxScore += Players[Player_num].hostages_level * 7500;
+		Ranking.maxScore += Ranking.num_hostages * 7500;
 	}
 	else {
 		Ranking.secretMaxScore *= 3;
-		Ranking.secretMaxScore += Ranking.hostages_secret_level * 7500;
+		Ranking.secretMaxScore += Ranking.secret_num_hostages * 7500;
 	}
 	
 	ParTime.energyTime = findEnergyTime();
@@ -3881,7 +3901,7 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 		Ranking.secretQuickload = 0;
 		if (Ranking.quickload)
 			RestartLevel.updateRestartStuff = 1; // If we quickload into a normal level, then go into a secret level and back out to the next level, restarting will give default loadout without this.
-		Ranking.hostages_secret_level = count_number_of_hostages();
+		Ranking.secret_num_hostages = 0;
 		Ranking.fromBestRanksButton = 2; // We need this for starting secret levels too, since the normal start can be bypassed with a save.
 		Ranking.secretNoDamage = 1;
 

@@ -962,19 +962,20 @@ void DoEndLevelScoreGlitz(int network)
 
 	shield_points = f2i(Players[Player_num].shields) * 10 * (Difficulty_level + 1);
 	energy_points = f2i(Players[Player_num].energy) * 5 * (Difficulty_level + 1);
-	time_points = ((Ranking.maxScore - Players[Player_num].hostages_level * 7500) / 1.5) / pow(2, Ranking.level_time / Ranking.parTime);
+	time_points = ((Ranking.maxScore - Ranking.num_hostages * 7500) / 1.5) / pow(2, Ranking.level_time / Ranking.parTime);
 	hostage_points = Players[Player_num].hostages_on_board * 500 * (Difficulty_level + 1);
 	hostage_points2 = Players[Player_num].hostages_on_board * 2500 * (2.0 / 3);
 
 	all_hostage_text[0] = 0;
 	endgame_text[0] = 0;
 
-	if (Players[Player_num].hostages_on_board == Players[Player_num].hostages_level) {
+	if (Players[Player_num].hostages_on_board == Players[Player_num].hostages_level)
 		all_hostage_points = Players[Player_num].hostages_on_board * 1000 * (Difficulty_level + 1);
-		hostage_points2 *= 3;
-	}
 	else
 		all_hostage_points = 0;
+
+	if (Players[Player_num].hostages_on_board >= Ranking.num_hostages) // Give bonus for greater too, just in case the algorithm misses a hostage that should've been counted.
+		hostage_points2 *= 3;
 	hostage_points2 = round(hostage_points2); // Round this because I got 24999 hostage bonus once.
 
 	skill_points2 = ceil(Ranking.rankScore + time_points + hostage_points2) * ((double)Difficulty_level / 8); // Round this up so you can't theoretically miss a rank by a point on levels or difficulties with weird scoring.
@@ -1022,7 +1023,7 @@ void DoEndLevelScoreGlitz(int network)
 			sprintf(parTimeString, "%i:%.0f", parMinutes, parSeconds);
 		sprintf(m_str[c++], "Level score\t%.0f", level_points - Ranking.excludePoints);
 		sprintf(m_str[c++], "Time: %s/%s\t%i", timeText, parTimeString, time_points);
-		sprintf(m_str[c++], "Hostages: %i/%i\t%.0f", Players[Player_num].hostages_on_board, Players[Player_num].hostages_level, hostage_points2);
+		sprintf(m_str[c++], "Hostages: %i/%i\t%.0f", Players[Player_num].hostages_on_board, Ranking.num_hostages, hostage_points2);
 		sprintf(m_str[c++], "Skill: %s\t%.0f", diffname, skill_points2);
 		if (Ranking.noDamage)
 			sprintf(m_str[c++], "No damage\t%i", death_points);
@@ -1072,8 +1073,8 @@ void DoEndLevelScoreGlitz(int network)
 				if (Ranking.rankScore > Ranking.calculatedScore || Ranking.rank == 0) {
 					time_t timeOfScore = time(NULL);
 					temp = PHYSFS_openWrite(temp_filename);
-					PHYSFSX_printf(temp, "%i\n", Players[Player_num].hostages_level);
-					PHYSFSX_printf(temp, "%.0f\n", (Ranking.maxScore - Players[Player_num].hostages_level * 7500) / 3);
+					PHYSFSX_printf(temp, "%i\n", Ranking.num_hostages);
+					PHYSFSX_printf(temp, "%.0f\n", (Ranking.maxScore - Ranking.num_hostages * 7500) / 3);
 					PHYSFSX_printf(temp, "%.0f\n", Ranking.parTime);
 					PHYSFSX_printf(temp, "%.0f\n", level_points - Ranking.excludePoints);
 					PHYSFSX_printf(temp, "%.3f\n", Ranking.level_time);
@@ -2898,8 +2899,10 @@ void respond_to_objective_partime(partime_objective objective, int index)
 	int i;
 	if (objective.type == OBJECTIVE_TYPE_OBJECT) { // We don't fight triggers.
 		object* obj = &Objects[objective.ID];
-		if (obj->type == OBJ_HOSTAGE)
+		if (obj->type == OBJ_HOSTAGE) {
 			Ranking.maxScore += HOSTAGE_SCORE;
+			Ranking.num_hostages++;
+		}
 		if (obj->type == OBJ_POWERUP) {
 			weapon_id = 0;
 			if (obj->id == POW_VULCAN_WEAPON)
@@ -3247,6 +3250,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	ParTime.objectives = 0;
 	ParTime.energy_gained_per_pickup = 18 - Difficulty_level * 3;
 	Ranking.isRankable = 0;
+	Ranking.num_hostages = 0;
 	ParTime.objectiveEnergies[0] = 100;
 	ParTime.objectiveFuelcenTripTimes[0] = -1; // We will never refill at the start because our energy is 100. Don't even bother doing the pathfinds here.
 	ParTime.energyUsed = 0;
@@ -3624,7 +3628,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	
 	// To account for time and skill bonuses being equal to this, as well as hostage bonus.
 	Ranking.maxScore *= 3;
-	Ranking.maxScore += Players[Player_num].hostages_level * 7500;
+	Ranking.maxScore += Ranking.num_hostages * 7500;
 
 	ParTime.energyTime = findEnergyTime();
 	
