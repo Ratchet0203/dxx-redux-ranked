@@ -2972,6 +2972,8 @@ void respond_to_objective_partime(partime_objective objective, int index)
 					printf("Took %.3fs to fight %i of robot type %i\n", fightTime, obj->contains_count, obj->contains_id);
 				}
 				else if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
+					if (robInfo->contains_prob == 16) // 100% drop chance, effectively fixed.
+						Ranking.maxScore += robInfo->score_value * robInfo->contains_count;
 					int assumedOffSpringCount = round(((double)robInfo->contains_count * ((double)robInfo->contains_prob / 16)));
 					fightTime = calculate_combat_time(obj, &Robot_info[robInfo->contains_id], 0) * assumedOffSpringCount;
 					combatTime += fightTime;

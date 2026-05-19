@@ -1301,7 +1301,7 @@ void DoEndSecretLevelScoreGlitz()
 
 	time_points = ((Ranking.secretMaxScore - Ranking.secret_num_hostages * 7500) / 1.5) / pow(2, Ranking.secretlevel_time / Ranking.secretParTime);
 	hostage_points = Ranking.secret_hostages_on_board * 2500 * (2.0 / 3);
-	if (Ranking.secret_hostages_on_board == Ranking.secret_num_hostages)
+	if (Ranking.secret_hostages_on_board >= Ranking.secret_num_hostages)
 		hostage_points *= 3;
 	hostage_points = round(hostage_points); // Round this because I got 24999 hostage bonus once.
 	skill_points = ceil(((Ranking.secretRankScore + time_points + hostage_points) * ((double)Difficulty_level / 8))); // Round this up so you can't theoretically miss a rank by a point on levels or difficulties with weird scoring.
@@ -1340,7 +1340,7 @@ void DoEndSecretLevelScoreGlitz()
 			sprintf(parTimeString, "%i:%.0f", parMinutes, parSeconds);
 		sprintf(m_str[c++], "Level score\t%.0f", level_points - Ranking.secretExcludePoints);
 		sprintf(m_str[c++], "Time: %s/%s\t%i", timeText, parTimeString, time_points);
-		sprintf(m_str[c++], "Hostages: %i/%.0f\t%.0f", Ranking.secret_hostages_on_board, Ranking.secret_num_hostages, hostage_points);
+		sprintf(m_str[c++], "Hostages: %i/%i\t%.0f", Ranking.secret_hostages_on_board, Ranking.secret_num_hostages, hostage_points);
 		sprintf(m_str[c++], "Skill: %s\t%i", diffname, skill_points);
 		if (Ranking.secretNoDamage)
 			sprintf(m_str[c++], "No damage\t%i", death_points);
@@ -3000,6 +3000,12 @@ void respond_to_objective_partime(partime_objective objective, int index)
 				}
 				else if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
 					if (!Robot_info[robInfo->contains_id].thief) {
+						if (robInfo->contains_prob == 16) { // 100% drop chance, effectively fixed.
+							if (Current_level_num > 0)
+								Ranking.maxScore += robInfo->score_value * robInfo->contains_count;
+							else
+								Ranking.secretMaxScore += robInfo->score_value * robInfo->contains_count;
+						}
 						int assumedOffSpringCount = round(((double)robInfo->contains_count * ((double)robInfo->contains_prob / 16)));
 						fightTime = calculate_combat_time(obj, &Robot_info[robInfo->contains_id], 0) * assumedOffSpringCount;
 						combatTime += fightTime;

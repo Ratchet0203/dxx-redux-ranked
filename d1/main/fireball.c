@@ -1232,7 +1232,7 @@ void do_explosion_sequence(object *obj)
 
 		Assert(del_obj->type==OBJ_ROBOT || del_obj->type==OBJ_CLUTTER || del_obj->type==OBJ_CNTRLCEN || del_obj->type == OBJ_PLAYER);
 		Assert(del_obj->segnum != -1);
-
+		
 		vclip_num = get_explosion_vclip(del_obj,1);
 
 		expl_obj = object_create_explosion( del_obj->segnum, spawn_pos, fixmul(del_obj->size, EXPLOSION_SCALE), vclip_num );
@@ -1254,7 +1254,10 @@ void do_explosion_sequence(object *obj)
 					if (!del_obj->matcen_creator && robptr->contains_type == OBJ_ROBOT)
 						Ranking.missedRngSpawn -= Robot_info[del_obj->contains_id].score_value * del_obj->contains_count;
 					maybe_replace_powerup_with_energy(del_obj);
-					fireball_flag_hack = 1; // Random drops, so set the no score flag.
+					if (robptr->contains_prob == 16)
+						fireball_flag_hack = 0; // Drops with 100% chance are effectively fixed drops, so treat them as such.
+					else
+						fireball_flag_hack = 1; // Random drops, so set the no score flag.
 					fireball_matcen_hack = del_obj->matcen_creator; // Set the child's matcen value to the parent's, so Ranking.missedrngspawn functions right.
 					object_create_egg(del_obj);
 				}
