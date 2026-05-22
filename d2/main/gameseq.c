@@ -1702,10 +1702,10 @@ void do_screen_message(char *fmt, ...)
 #define OBJECTIVE_TYPE_TRIGGER 2
 #define OBJECTIVE_TYPE_WALL 3
 #define PROB_THRESHOLD 0.0625 // The chance of not having a given weapon or item where we round it down and say Algo has it.
-// AB gives 2x thrust from 100 to 50% then linearly tapers back down to 1x from 50% to 0%. It takes 5s from 100 to 0 and 6s from 0 to 100.
-// The most optimal AB usage is boosting until 50%, then letting go until 100%. This nets us 2x avg thrust boost for 2.5s and 1x for 3s.
-// This will give us ~1.45x global average, which is about 8.5% faster than boosting to 0 instead of 50.
-#define AB_AVG_THRUST 16 / 11.0
+// AB gives 2x thrust from 100 to 50% then linearly tapers back down to 1x from 50% to 0%. It takes 3s from 100 to 0 and 8s from 0 to 100 (read_flying_controls in controls.c)
+// The most optimal AB usage is boosting until 50%, then letting go until 100%. This nets us 2x avg thrust boost for 1.5s and 1x for 4s.
+// This will give us ~1.27x global average, which is about 5.7% faster than boosting to 0 instead of 50.
+#define AB_AVG_THRUST 14 / 11.0
 
 int find_connecting_side(int from, int to) // Sirius' function, but I made it take ints instead of point segs for easier use (also the old '94 function "find_connect_side" already did it with point segs anyway).
 {
