@@ -2149,9 +2149,9 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	return accuracy * accuracy_multiplier;
 }
 
-double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // Tell algo to use the weapon that's fastest for the current enemy.
+double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int numRobots) // Tell algo to use the weapon that's fastest for the current enemy.
 {
-	double thisWeaponCombatTime = -1; // How much time does this enemy take to kill with the current weapon?
+	double thisWeaponCombatTime; // How much time does this enemy take to kill with the current weapon?
 	double lowestCombatTime = -1; // Track the time of the fastest weapon so far.
 	double energyUsed = 0;
 	double ammoUsed = 0;
@@ -2163,6 +2163,7 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 	// Weapon values converted to a format human beings in 2024 can understand.
 	for (int n = 0; n < 21; n++) {
 		if (!ParTime.heldWeapons[n]) {
+			thisWeaponCombatTime = max(1 - ParTime.lastMovementTime, 0);
 			weapon_info* weapon_info = &Weapon_info[n];
 			double gunpoints = 2;
 			if (!(n > LASER_ID_L4) && !ParTime.hasQuads) // Account for increased damage of quads.
@@ -2201,12 +2202,16 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject) // 
 			adjustedRobotHealth /= calculate_weapon_accuracy(weapon_info, n, obj, robInfo, isObject);
 			accuracy = adjustedRobotHealthNoAccuracy / adjustedRobotHealth;
 			int shots = round(ceil(adjustedRobotHealthNoAccuracy / damage) / accuracy); // Split time into shots to reflect how players really fire. A 30 HP robot will take two laser 1 shots to kill, not one and a half.
-			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage) // Make sure we have enough ammo for this robot before using vulcan.
+			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage) { // Make sure we have enough ammo for this robot before using vulcan.
 				// Factor energy and ammo usage in to which weapon Algo picks (won't contribute to final combat time of course).
 				// This will be based off of how long it would take to regenerate the amount used in a fuelcen (25 energy/sec).
-				thisWeaponCombatTime = shots / fire_rate + (shots * energy_usage) / 25;
-			else
+				thisWeaponCombatTime += shots / fire_rate + (shots * energy_usage) / 25;
+				if (!(weapon_info->persistent)) // Only consider one robot with piercing weapons (AKA fusion), as blobs of spawned bots will all be killed at once.
+					thisWeaponCombatTime *= numRobots;
+			}
+			else {
 				thisWeaponCombatTime = INFINITY; // Make vulcan's/gauss' time infinite so algo won't use it without ammo.
+			}
 			if (thisWeaponCombatTime <= lowestCombatTime || lowestCombatTime == -1) { // If it should be used, update algo's weapon stats to the new one's for use in combat time calculation.
 				lowestCombatTime = thisWeaponCombatTime;
 				ParTime.energy_usage = shots * energy_usage;
@@ -2829,9 +2834,9 @@ void examine_path_partime(int path_count)
 									for (n = 0; n < num_types; n++) {
 										robot_info* robInfo = &Robot_info[legal_types[n]];
 										if (legal_types[n] != 10) { // Don't consider matcen gophers. They run.
-											totalRobotTime += calculate_combat_time(NULL, robInfo, 0);
+											totalRobotTime += calculate_combat_time(NULL, robInfo, 0, 1);
 											if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
-												totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0) * round((robInfo->contains_count * (robInfo->contains_prob / 16.0)));
+												totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0, round((robInfo->contains_count * (robInfo->contains_prob / 16.0))));
 												robotHasPowerup(robInfo->contains_id, 1.0 / num_types);
 											}
 											else
@@ -2939,11 +2944,11 @@ void respond_to_objective_partime(partime_objective objective, int index)
 			double combatTime = 0;
 			double fightTime;
 			if (obj->type == OBJ_CNTRLCEN) {
-				combatTime += calculate_combat_time(obj, robInfo, 1);
+				combatTime += calculate_combat_time(obj, robInfo, 1, 1);
 				Ranking.maxScore += CONTROL_CEN_SCORE;
 			}
 			else {
-				combatTime += calculate_combat_time(obj, robInfo, 1);
+				combatTime += calculate_combat_time(obj, robInfo, 1, 1);
 				Ranking.maxScore += robInfo->score_value;
 				double teleportDistance = 0;
 				double teleportTime = 0;
@@ -2964,9 +2969,10 @@ void respond_to_objective_partime(partime_objective objective, int index)
 					ParTime.movementTime += teleportTime;
 					printf("Teleport time: %.3fs\n", teleportTime);
 				}
+				ParTime.lastMovementTime = 0; // We don't move between robots and their offspring.
 				if (obj->contains_type == OBJ_ROBOT && obj->contains_count > 0) {
 					robInfo = &Robot_info[obj->contains_id];
-					fightTime = calculate_combat_time(obj, robInfo, 0) * obj->contains_count;
+					fightTime = calculate_combat_time(obj, robInfo, 0, obj->contains_count);
 					combatTime += fightTime;
 					Ranking.maxScore += robInfo->score_value * obj->contains_count;
 					printf("Took %.3fs to fight %i of robot type %i\n", fightTime, obj->contains_count, obj->contains_id);
@@ -2975,7 +2981,7 @@ void respond_to_objective_partime(partime_objective objective, int index)
 					if (robInfo->contains_prob == 16) // 100% drop chance, effectively fixed.
 						Ranking.maxScore += robInfo->score_value * robInfo->contains_count;
 					int assumedOffSpringCount = round(((double)robInfo->contains_count * ((double)robInfo->contains_prob / 16)));
-					fightTime = calculate_combat_time(obj, &Robot_info[robInfo->contains_id], 0) * assumedOffSpringCount;
+					fightTime = calculate_combat_time(obj, &Robot_info[robInfo->contains_id], 0, assumedOffSpringCount);
 					combatTime += fightTime;
 					printf("Took %.3fs to fight %i of robot type %i\n", fightTime, assumedOffSpringCount, robInfo->contains_id);
 				}
@@ -3583,6 +3589,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 			}
 			if (!hasThisObjective) {
 				double movementTimeIncrease = calculateMovementTime(pathLength, 0);
+				ParTime.lastMovementTime = movementTimeIncrease;
 				int nearestObjectiveSegnum = getObjectiveSegnum(objective);
 				printf("Path from segment %i to %i: %.3fs\n", lastSegnum, nearestObjectiveSegnum, movementTimeIncrease);
 				respond_to_objective_partime(objective, index);
