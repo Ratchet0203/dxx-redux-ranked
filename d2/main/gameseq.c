@@ -2114,8 +2114,6 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 			adjustedRobotHealth /= (splash_radius - enemy_size) / splash_radius >= 0 ? 1 + (splash_radius - enemy_size) / splash_radius : 1; // Divide the health value of the enemy instead of increasing damage when accounting for splash damage, since we'll potentially have multiple damage values.
 			adjustedRobotHealthNoAccuracy = adjustedRobotHealth;
 			adjustedRobotHealth /= calculate_weapon_accuracy(weapon_info, weapon_id, obj, robInfo, isObject);
-			if (robInfo->thief)
-				ParTime.combatTime += 2.5; // To account for the death tantrum they throw when they get their comeuppance for stealing your stuff.
 			accuracy = adjustedRobotHealthNoAccuracy / adjustedRobotHealth;
 			int shots = round(ceil(adjustedRobotHealthNoAccuracy / damage) / accuracy); // Split time into shots to reflect how players really fire. A 30 HP robot will take two laser 1 shots to kill, not one and a half.
 			if (f2fl(ParTime.vulcanAmmo) >= shots * ammo_usage || Boss_invulnerable_energy[robInfo->boss_flag - BOSS_D2]) { // Make sure we have enough ammo for this robot before using vulcan, unless the boss is immune to energy.
@@ -2998,6 +2996,13 @@ void respond_to_objective_partime(partime_objective objective, int index)
 					}
 				}
 				ParTime.lastMovementTime = 0; // We don't move between robots and their offspring.
+				// Give time to wait out deathrolls in case key drops or exits opening relies on this bot's death.
+				if (robInfo->death_roll) { // Deathrolls were hardcoded for bosses in D1 and lasted 6s, but here it depends on a value for any bot.
+					if (robInfo->boss_flag > 0)
+						ParTime.combatTime += 6; // Like in D1, bosses always do a 6s deathroll regardless of the flag's value.
+					else
+						ParTime.combatTime += min(robInfo->death_roll / 2 + 1, 6) * F1_0; // Formula based on do_any_robot_dying_frame in ai2.c.
+				}
 				if (obj->contains_type == OBJ_ROBOT && obj->contains_count > 0) {
 					robInfo = &Robot_info[obj->contains_id];
 					if (!robInfo->thief) {
@@ -3434,7 +3439,6 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 							if (robInfo->contains_type == OBJ_POWERUP && robInfo->contains_id == POW_EXTRA_LIFE)
 								bossScore += robInfo->contains_count * 10000;
 						}
-						ParTime.combatTime += 6.2; // Each boss has its own deathroll that lasts roughly 6.2 seconds one at a time.
 						if (bossScore > highestBossScore) {
 							highestBossScore = bossScore;
 							targetedBossID = i;

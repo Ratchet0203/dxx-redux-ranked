@@ -3357,7 +3357,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 							if (robInfo->contains_type == OBJ_POWERUP && robInfo->contains_id == POW_EXTRA_LIFE)
 								bossScore += robInfo->contains_count * 10000;
 						}
-						ParTime.combatTime += 6.2; // Each boss has its own deathroll that lasts roughly 6.2 seconds one at a time.
+						ParTime.combatTime += 6; // Each boss has its own deathroll that lasts six seconds one at a time.
 						if (bossScore > highestBossScore) {
 							highestBossScore = bossScore;
 							targetedBossID = i;
