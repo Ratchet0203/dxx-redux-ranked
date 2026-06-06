@@ -2061,8 +2061,11 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 	// Weapon values converted to a format human beings in 2024 can understand.
 	for (int n = 0; n < 35; n++)
 		if (!ParTime.heldWeapons[n]) {
-			thisWeaponCombatTime = max(1 - ParTime.lastMovementTime, 0);
 			weapon_id = n;
+			if (weapon_id != ParTime.lastWeapon)
+				thisWeaponCombatTime = max(1 - ParTime.lastMovementTime, 0);
+			else
+				thisWeaponCombatTime = 0;
 			weapon_info* weapon_info = &Weapon_info[weapon_id];
 			double gunpoints = 2;
 			if ((!(weapon_id > LASER_ID_L4) || weapon_id == LASER_ID_L5 || weapon_id == LASER_ID_L6) && !ParTime.hasQuads) { // Account for increased damage of quads.
@@ -2182,6 +2185,7 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 			printf("Took %.3fs to fight robot type %i with omega, %.2f accuracy; Energy: %.3f, Ammo: %.0f\n", lowestCombatTime, obj->id, topAccuracy, ParTime.simulatedEnergy, f2fl((int)ParTime.vulcanAmmo));
 	}
 	ParTime.lastCombatTime = lowestCombatTime;
+	ParTime.lastWeapon = topWeapon;
 	return lowestCombatTime;
 }
 
@@ -3342,6 +3346,8 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	ParTime.energyUsed = 0;
 	ParTime.energyGained = 0;
 	ParTime.speed = 0;
+	ParTime.lastCombatTime = 0;
+	ParTime.lastWeapon = -1;
 	for (i = 0; i < MAX_OBJECTIVES; i++) {
 		for (j = 0; j < MAX_OBJECTIVES; j++)
 			ParTime.objectiveDistances[i][j] = -1;

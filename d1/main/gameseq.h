@@ -87,6 +87,7 @@ typedef struct parTime {
 	double speed; // For movement time calculation.
 	double lastCombatTime; // Also for movement time calculation.
 	double lastMovementTime; // For time spent switching weapons.
+	int lastWeapon; // Also for time spent switching weapons.
 } __pack__ parTime;
 
 
