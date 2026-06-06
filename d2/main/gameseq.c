@@ -3720,7 +3720,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 				// Now move ourselves to the objective for the next pathfinding iteration, unless the objective wasn't reachable with just flight, in which case move ourselves as far as we COULD fly.	
 				ParTime.movementTime += movementTimeIncrease;
 				lastSegnum = ParTime.segnum;
-				if (!ParTime.hasAfterburner && ParTime.simulatedEnergy > 0)
+				if (!ParTime.hasAfterburner && ParTime.simulatedEnergy > 10.0/11 * movementTimeIncrease)
 					changeAlgosEnergy(-10.0/11 * movementTimeIncrease);
 			}
 			else {
