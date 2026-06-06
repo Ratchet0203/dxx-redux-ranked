@@ -2050,6 +2050,7 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 	int weapon_id = 0; // Just a shortcut for the relevant index in algo's inventory.
 	double thisWeaponCombatTime; // How much time does this enemy take to kill with the current weapon?
 	double lowestCombatTime = -1; // Track the time of the fastest weapon so far.
+	double failsafeTime;
 	double energyUsed = 0;
 	double ammoUsed = 0;
 	int topWeapon = -1; // So when depleting energy/ammo, the right one is depleted. Also so the console shows the right weapon.
@@ -2123,6 +2124,8 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 				thisWeaponCombatTime += shots / fire_rate + (shots * energy_usage) / 25;
 				if (!(weapon_info->persistent)) // Only consider one robot with piercing weapons (AKA fusion), as blobs of spawned bots will all be killed at once.
 					thisWeaponCombatTime *= numRobots;
+				if (weapon_id == ParTime.laser_level)
+					failsafeTime = thisWeaponCombatTime;
 			}
 			else {
 				thisWeaponCombatTime = INFINITY; // Make vulcan's/gauss' time infinite so Algo won't use it without ammo.
@@ -2138,7 +2141,7 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 			}
 		}
 	if (lowestCombatTime == -1)
-		lowestCombatTime = 0; // Prevent a softlock if no primaries work on a given boss.
+		lowestCombatTime = failsafeTime; // Prevent a softlock by using lasers' time if no primaries work on a given boss.
 	lowestCombatTime -= energyUsed / 25;
 	if (isObject && obj->ctype.ai_info.behavior == AIB_RUN_FROM) // Give extra time to chase these guys down.
 		lowestCombatTime += calculateMovementTime(lowestCombatTime * robInfo->max_speed[Difficulty_level], 1) * 2;
