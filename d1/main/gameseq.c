@@ -1029,6 +1029,8 @@ void DoEndLevelScoreGlitz(int network)
 			sprintf(m_str[c++], "No damage\t%i", death_points);
 		else
 			sprintf(m_str[c++], "Deaths: %.0f\t%i", Ranking.deathCount, death_points);
+		if (Ranking.missedRngSpawn > 0)
+			Ranking.missedRngSpawn = 0; // This should only be a penalty, so don't let it give the player points in the case where it malfunctions.
 		if (Ranking.missedRngSpawn < 0)
 			sprintf(m_str[c++], "Missed RNG spawn: \t%.0f\n", missed_rng_drops);
 		else
