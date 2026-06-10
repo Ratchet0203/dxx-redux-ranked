@@ -896,8 +896,7 @@ int calculateRank(int level_num, int update_warm_start_status)
 		}
 	}
 	PHYSFS_close(fp);
-	double maxScore = levelPoints * 3;
-	maxScore = (int)maxScore;
+	double maxScore = (int)((levelPoints + levelHostages * 5000) * 3);
 	double timePoints = (maxScore / 1.5) / pow(2, secondsTaken / parTime);
 	if (!parTime)
 		timePoints = 0;
@@ -909,7 +908,6 @@ int calculateRank(int level_num, int update_warm_start_status)
 	double skillPoints = ceil(((playerPoints + timePoints + hostagePoints) * (difficulty / 8)));
 	missedRngSpawn = floor(missedRngSpawn * ((difficulty + 8) / 8)); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
-	maxScore += levelHostages * 7500;
 	double deathPoints;
 	if (deathCount == -1)
 		deathPoints = ceil(maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
@@ -1093,7 +1091,7 @@ void DoEndLevelScoreGlitz(int network)
 	shield_points -= shield_points % 50;
 	energy_points = f2i(Players[Player_num].energy) * 2 * mine_level;
 	energy_points -= energy_points % 50;
-	time_points = ((Ranking.maxScore - Ranking.num_hostages * 7500) / 1.5) / pow(2, Ranking.level_time / Ranking.parTime);
+	time_points = (Ranking.maxScore / 1.5) / pow(2, Ranking.level_time / Ranking.parTime);
 	hostage_points = Players[Player_num].hostages_on_board * 500 * (Difficulty_level + 1);
 	hostage_points2 = Players[Player_num].hostages_on_board * 2500 * (2.0 / 3);
 
@@ -1301,7 +1299,7 @@ void DoEndSecretLevelScoreGlitz()
 	level_points = Players[Player_num].score - Ranking.secretlast_score;
 	Ranking.secretRankScore = level_points - Ranking.secretExcludePoints;
 
-	time_points = ((Ranking.secretMaxScore - Ranking.secret_num_hostages * 7500) / 1.5) / pow(2, Ranking.secretlevel_time / Ranking.secretParTime);
+	time_points = (Ranking.secretMaxScore / 1.5) / pow(2, Ranking.secretlevel_time / Ranking.secretParTime);
 	hostage_points = Ranking.secret_hostages_on_board * 2500 * (2.0 / 3);
 	if (Ranking.secret_hostages_on_board >= Ranking.secret_num_hostages)
 		hostage_points *= 3;
@@ -1502,8 +1500,7 @@ void DoBestRanksScoreGlitz(int level_num)
 		}
 	}
 	PHYSFS_close(fp);
-	double maxScore = levelPoints * 3;
-	maxScore = (int)maxScore;
+	double maxScore = (int)((levelPoints + levelHostages * 5000) * 3);
 	double timePoints = (maxScore / 1.5) / pow(2, secondsTaken / parTime);
 	if (!parTime)
 		timePoints = 0;
@@ -1515,7 +1512,6 @@ void DoBestRanksScoreGlitz(int level_num)
 	double skillPoints = ceil(((playerPoints + timePoints + hostagePoints) * (difficulty / 8)));
 	missedRngSpawn = floor(missedRngSpawn * ((difficulty + 8) / 8)); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
-	maxScore += levelHostages * 7500;
 	double deathPoints;
 	if (deathCount == -1)
 		deathPoints = ceil(maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
@@ -3774,12 +3770,12 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	
 	// To account for time and skill bonuses being equal to this, as well as hostage bonus.
 	if (Current_level_num > 0) {
+		Ranking.maxScore += Ranking.num_hostages * 5000;
 		Ranking.maxScore *= 3;
-		Ranking.maxScore += Ranking.num_hostages * 7500;
 	}
 	else {
+		Ranking.secretMaxScore += Ranking.secret_num_hostages * 5000;
 		Ranking.secretMaxScore *= 3;
-		Ranking.secretMaxScore += Ranking.secret_num_hostages * 7500;
 	}
 	
 	ParTime.energyTime = findEnergyTime();
