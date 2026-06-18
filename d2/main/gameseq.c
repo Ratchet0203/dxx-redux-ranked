@@ -907,6 +907,8 @@ int calculateRank(int level_num, int update_warm_start_status)
 	hostagePoints = round(hostagePoints); // Round this because I got 24999 hostage bonus once.
 	double skillPoints = ceil(((playerPoints + timePoints + hostagePoints) * (difficulty / 8)));
 	missedRngSpawn = floor(missedRngSpawn * ((difficulty + 8) / 8)); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
+	if (missedRngSpawn > 0) // In case scores from versions before the cap are read.
+		missedRngSpawn = 0;
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
 	double deathPoints;
 	if (deathCount == -1)
@@ -1511,6 +1513,8 @@ void DoBestRanksScoreGlitz(int level_num)
 	hostagePoints = round(hostagePoints); // Round this because I got 24999 hostage bonus once.
 	double skillPoints = ceil(((playerPoints + timePoints + hostagePoints) * (difficulty / 8)));
 	missedRngSpawn = floor(missedRngSpawn * ((difficulty + 8) / 8)); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
+	if (missedRngSpawn > 0) // In case scores from versions before the cap are read.
+		missedRngSpawn = 0;
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
 	double deathPoints;
 	if (deathCount == -1)
