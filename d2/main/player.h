@@ -156,7 +156,6 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	int     cheated;                    // I went to level 3, turned on cheats, entered S1, then when I exited S1 the cheats disabled themselves and my score counted... alright, fixing that.
 	double  freezeTimer;                // Tells normal levels' in-game timer whether it should be frozen or not.
 	int     noDamage;                   // A new bonus I had to add. Thanks Marvin... 4/22/2025
-	double  isRankable;                 // Tells the mod whether to give an automatic X-rank on levels where a result screen can't be reached.
 	int     num_hostages;               // The number of hostages that are actually reachable in the level.
 
 	// Below are the ranking mod variables used for secret levels. Since we can play them in the middle of a normal one, we have to distinguish between them so results don't overlap.

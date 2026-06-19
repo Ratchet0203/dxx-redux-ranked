@@ -3341,7 +3341,6 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	ParTime.missingKeys = 0;	
 	ParTime.objectives = 0;
 	ParTime.energy_gained_per_pickup = 18 - Difficulty_level * 3;
-	Ranking.isRankable = 0;
 	Ranking.num_hostages = 0;
 	ParTime.objectiveEnergies[0] = 100;
 	ParTime.objectiveFuelcenTripTimes[0] = -1; // We will never refill at the start because our energy is 100. Don't even bother doing the pathfinds here.
@@ -3743,14 +3742,10 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 				compute_segment_center(&segmentCenter, &Segments[ParTime.segnum]);
 				ParTime.lastPosition = segmentCenter;
 			}
-			if (ParTime.loops == 1) // An accessible reactor or boss gives us a result screen.
-				Ranking.isRankable = 1;
 			if (ParTime.loops == 3) {
 				int wall_num = findConnectedWallNum(objective.ID);
 				if (wall_num == -1)
 					wall_num = objective.ID;
-				if (Triggers[Walls[wall_num].trigger].type == TT_EXIT && !(Walls[wall_num].type == WALL_CLOSED || Walls[wall_num].type == WALL_CLOAKED)) // Ignore exit triggers attached to walls we can't pass through.
-					Ranking.isRankable = 1; // An accessible exit trigger gives us a result screen. NOT a secret exit, as those only give us results when a reactor or boss is killed, which already sets isRankable to 1.
 				break; // Automatically break after one objective during the exits loop. We only wanna get the nearest accessible exit.
 			}
 			/*double shortestPathLength = -1;
@@ -3940,30 +3935,6 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 		calculateParTime();
 		if (calculateRank(Current_mission->last_level - level_num, 0) > 0)
 			Ranking.secretAlreadyBeaten = 1;
-		if (!Ranking.isRankable) { // If this level is not beatable, mark the level as beaten with zero points and an X-rank, so the mission can have an aggregate rank.
-			PHYSFS_File* temp;
-			char filename[256];
-			char temp_filename[256];
-			sprintf(filename, "ranks/%s/%s/levelS%i.hi", Players[Player_num].callsign, Current_mission->filename, Current_level_num * -1);
-			sprintf(temp_filename, "ranks/%s/%s/temp.hi", Players[Player_num].callsign, Current_mission->filename);
-			time_t timeOfScore = time(NULL);
-			temp = PHYSFS_openWrite(temp_filename);
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "%i\n", Difficulty_level);
-			PHYSFSX_printf(temp, "-1\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "%s\n", Current_level_name);
-			PHYSFSX_printf(temp, "%s\n", ctime(&timeOfScore));
-			PHYSFSX_printf(temp, "0");
-			PHYSFS_close(temp);
-			PHYSFS_delete(filename);
-			PHYSFSX_rename(temp_filename, filename);
-		}
 	}
 	First_secret_visit = 0;
 }
@@ -4806,30 +4777,6 @@ void StartNewLevel(int level_num)
 	}
 	else {
 		calculateParTime();
-		if (!Ranking.isRankable) { // If this level is not beatable, mark the level as beaten with zero points and an X-rank, so the mission can have an aggregate rank.
-			PHYSFS_File* temp;
-			char filename[256];
-			char temp_filename[256];
-			sprintf(filename, "ranks/%s/%s/level%i.hi", Players[Player_num].callsign, Current_mission->filename, Current_level_num);
-			sprintf(temp_filename, "ranks/%s/%s/temp.hi", Players[Player_num].callsign, Current_mission->filename);
-			time_t timeOfScore = time(NULL);
-			temp = PHYSFS_openWrite(temp_filename);
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "%i\n", Difficulty_level);
-			PHYSFSX_printf(temp, "-1\n");
-			PHYSFSX_printf(temp, "0\n");
-			PHYSFSX_printf(temp, "%s\n", Current_level_name);
-			PHYSFSX_printf(temp, "%s\n", ctime(&timeOfScore));
-			PHYSFSX_printf(temp, "0");
-			PHYSFS_close(temp);
-			PHYSFS_delete(filename);
-			PHYSFSX_rename(temp_filename, filename);
-		}
 	}
 	Ranking.alreadyBeaten = 0;
 	if (calculateRank(level_num, 0) > 0)

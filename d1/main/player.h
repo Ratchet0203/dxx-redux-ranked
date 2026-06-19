@@ -144,7 +144,6 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	int        warmStart;                  // If the player enters a level with anything non-default, this becomes 1. If this is 1 when a new record is set, the score will be marked as warm started, and display an asterisk when viewed.
 	double     freezeTimer;                // Tells levels' in-game timer whether it should be frozen or not (this is in D1 to keep par time text from turning red during the exit cutscene).
 	int        noDamage;                   // A new bonus I had to add. Thanks Marvin... 4/22/2025
-	int        isRankable;                 // Tells the mod whether to give an automatic X-rank on levels where a result screen can't be reached.
 	int        num_hostages;               // The number of hostages that are actually reachable in the level.
 } __pack__ ranking;
 
