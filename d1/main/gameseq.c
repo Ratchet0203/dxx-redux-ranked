@@ -1076,7 +1076,7 @@ void DoEndLevelScoreGlitz(int network)
 					time_t timeOfScore = time(NULL);
 					temp = PHYSFS_openWrite(temp_filename);
 					PHYSFSX_printf(temp, "%i\n", Ranking.num_hostages);
-					PHYSFSX_printf(temp, "%.0f\n", (Ranking.maxScore - Ranking.num_hostages * 7500) / 3);
+					PHYSFSX_printf(temp, "%.0f\n", (Ranking.maxScore / 3) - Ranking.num_hostages * 5000);
 					PHYSFSX_printf(temp, "%.0f\n", Ranking.parTime);
 					PHYSFSX_printf(temp, "%.0f\n", level_points - Ranking.excludePoints);
 					PHYSFSX_printf(temp, "%.3f\n", Ranking.level_time);

@@ -1013,25 +1013,30 @@ int load_mission_by_name(char *mission_name)
 void load_mission_by_name_aggregate(mle* mission_list) // Version of load_mission_by_name used to generate aggregate ranks for missions. The original function works, but loads missions^2 MSN files, causing massive load times.
 {
 	int i;
-	int rankPoints;
+	int playerRankPoints;
+	int totalRankPoints;
 	int currentRank;
 	for (i = 0; i < num_missions; i++) {
 		if (load_mission(mission_list + i)) {
-			rankPoints = 0;
+			playerRankPoints = 0;
+			totalRankPoints = 0;
 			for (int c = 1; c <= Current_mission->last_level - Current_mission->last_secret_level; c++) {
 				currentRank = calculateRank(c, 1);
-				if (currentRank)
-					rankPoints += currentRank;
-				else {
-					rankPoints = 0; // We found an N/A somewhere, don't return an aggregate rank.
+				if (currentRank) {
+					playerRankPoints += currentRank;
+					totalRankPoints++;
+				}
+				else if (c <= Current_mission->last_level) { // N/As on secret levels are allowed as they're not guaranteed to be beatable.
+					playerRankPoints = 0; // We found an N/A somewhere, don't return an aggregate rank.
+					totalRankPoints = 1; // To avoid div 0 error.
 					break;
 				}
 			}
 			// If all levels in the current mission are completed, an aggregate rank set here will show next to it.
 			if (PlayerCfg.RankShowPlusMinus)
-				Ranking.missionRanks[i] = rankPoints / (Current_mission->last_level - Current_mission->last_secret_level);
+				Ranking.missionRanks[i] = playerRankPoints / totalRankPoints;
 			else
-				Ranking.missionRanks[i] = truncateRanks(rankPoints / (Current_mission->last_level - Current_mission->last_secret_level));
+				Ranking.missionRanks[i] = truncateRanks(playerRankPoints / totalRankPoints);
 		}
 	}
 }
