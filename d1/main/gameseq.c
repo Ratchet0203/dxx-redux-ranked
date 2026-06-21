@@ -1888,7 +1888,7 @@ int find_connecting_side(int from, int to) // Sirius' function, but I made it ta
 }
 
 void changeAlgosEnergy(double amount)
-{ // To prevent having 500 lines changing simulatedEnergy.
+{ // To prevent having 500 lines changing simulatedEnergy and energyGained/Used separately.
 	if (ParTime.simulatedEnergy + amount > 200) // Make sure this can't push energy past 200.
 		amount = 200 - ParTime.simulatedEnergy;
 	ParTime.simulatedEnergy += amount;
@@ -2777,33 +2777,9 @@ void examine_path_partime(int path_count)
 				}
 			}
 		}
-		if (Walls[wall_num].type == WALL_DOOR) { // Gotta shoot doors to open them without slowing down. That takes resources. Doesn't sound like much but it adds up over a level.
-			double lowestEnergy = -1;
-			double lowestAmmo = -1;
-			int lowestID;
-			int weapon_id;
-			for (int n = 0; n < 21; n++) {
-				if (!ParTime.heldWeapons[n])
-					weapon_id = ParTime.heldWeapons[n];
-				else
-					continue;
-				if (Weapon_info[weapon_id].energy_usage < lowestEnergy || lowestEnergy == -1) {
-					lowestEnergy = Weapon_info[weapon_id].energy_usage;
-					lowestID = weapon_id;
-				}
-				if (Weapon_info[weapon_id].ammo_usage < lowestAmmo || lowestAmmo == -1 && ParTime.vulcanAmmo) {
-					lowestAmmo = Weapon_info[weapon_id].ammo_usage;
-					lowestID = weapon_id;
-				}
-			}
-			if (lowestAmmo != -1)
-				ParTime.vulcanAmmo -= 835939 * lowestAmmo; // Silly fixed point error compensation constant.
-			else {
-				if (lowestID != FUSION_ID) // Fusion doesn't get the difficulty-based energy use nerf.
-					lowestEnergy *= Difficulty_level < 2 ? 0.5 + Difficulty_level * 0.25 : 1;
-				changeAlgosEnergy(-f2fl(lowestEnergy));
-			}
-		}
+
+		// Accounting for the energy spent shooting doors is a waste of time since it would usually take at least 250 doors to add one 5s increment to par.
+
 		// How much time, energy and ammo does it take to handle any matcens along the way? Let's find out!
 		if (Num_robot_centers > 0) { // Don't bother constantly scanning the path for matcens on levels with no matcens.
 			int botsPerWave = Difficulty_level + 3; // 3, 4, 5, 6, 7 bots spawned per wave by difficulty.
@@ -2876,8 +2852,7 @@ void examine_path_partime(int path_count)
 						}
 						averageRobotTime = totalRobotTime / num_types;
 						matcenTime += averageRobotTime * botsToFight;
-						ParTime.simulatedEnergy -= (totalEnergyUsage / num_types) * botsToFight;
-						ParTime.energyUsed += (totalEnergyUsage / num_types) * botsToFight;
+						changeAlgosEnergy(-(totalEnergyUsage / num_types) * botsToFight);
 						ParTime.vulcanAmmo -= (totalAmmoUsage / num_types) * botsToFight;
 						if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 8) // Vulcan ammo can exceed 32768 and overflow if not capped properly. Prevent this from happening.
 							ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 8;
@@ -2907,7 +2882,7 @@ void examine_path_partime(int path_count)
 					}
 				if (!thisSourceCollected) {
 					if (Objects[objNum].id == POW_ENERGY)
-						ParTime.simulatedEnergy += ParTime.energy_gained_per_pickup;
+						changeAlgosEnergy(ParTime.energy_gained_per_pickup);
 					else
 						ParTime.vulcanAmmo += STARTING_VULCAN_AMMO / 2;
 					partime_objective ammoObjective = { OBJECTIVE_TYPE_OBJECT, objNum };
