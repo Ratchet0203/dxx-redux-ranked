@@ -1605,7 +1605,7 @@ void dead_player_frame(void)
 //	------------------------------------------------------------------------------------------------------------------
 void start_player_death_sequence(object* player)
 {
-	Ranking.deathCount++;
+	Ranking.deathLoadCount++;
 	Ranking.noDamage = 0; // In case someone dies to something that doesn't remove no damage status.
 	int	objnum;
 

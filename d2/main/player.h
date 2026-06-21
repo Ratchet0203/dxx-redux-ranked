@@ -137,7 +137,7 @@ typedef struct player {
 } __pack__ player;
 
 typedef struct ranking { // This struct contains variables for the ranking system mod. Most of them don't have to be doubles. It's either for math compatibility or consistency.
-	double  deathCount;                 // Number of times the player died during the level.
+	double  deathLoadCount;				// Number of times the player died or loaded a save during the level.
 	double  rankScore;                  // The version of score used for this mod, as to not disturb the vanilla score system.
 	double  excludePoints;              // Number of points gotten from sources we want to not count toward rank calculation, but still contribute to vanilla score.
 	double  maxScore;			        // The current level's S-rank score. Won't include hostage points until the result screen, to make calculation of other bonuses easier.
@@ -166,8 +166,8 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	double	secretlevel_time;
 	double  secretlast_score;		    // Secret equivalent of Players[Player_num].last_score.
 	int		secret_hostages_on_board;   // Since Players[Player_num].hostages_on_board carries over, and we don't want base level hostages' points counting for secret levels and vice versa.
-	double  secretDeathCount;           // We don't want starting a new base level to remove the secret level's death penalty, or vise versa, so increment this alongside deathCount, but only reset it upon starting a new secret level.
-	int     secretQuickload;		    // Same thing as secretDeathCount, but with quickloading.
+	double  secretDeathLoadCount;       // We don't want starting a new base level to remove the secret level's death penalty, or vise versa, so increment this alongside deathLoadCount, but only reset it upon starting a new secret level.
+	int     secretQuickload;		    // Same thing as secretDeathLoadCount, but with quickloading.
 	double  secretParTime;
 	double  secretMissedRngSpawn;
 	int     secretAlreadyBeaten;

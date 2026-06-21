@@ -126,7 +126,7 @@ typedef struct player {
 } __pack__ player;
 
 typedef struct ranking { // This struct contains variables for the ranking system mod. Most of them don't have to be doubles. It's either for math compatibility or consistency.
-	double     deathCount;                 // Number of times the player died during the level.
+	double     deathLoadCount;             // Number of times the player died or loaded a save during the level.
 	double     rankScore;                  // The version of score used for this mod, as to not disturb the vanilla score system.
 	double     excludePoints;              // Number of points gotten from sources we still want to contribute to vanilla score, but not count toward rank calculation.
 	double     maxScore;                   // The current level's S-rank score. Won't include hostage points until the result screen, to make calculation of other bonuses easier.

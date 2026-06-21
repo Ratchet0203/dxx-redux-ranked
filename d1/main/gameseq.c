@@ -731,14 +731,14 @@ int truncateRanks(int rank)
 int calculateRank(int level_num, int update_warm_start_status)
 {
 	int levelHostages = 0;
-	int levelPoints = 0;
+	double levelPoints = 0;
 	double parTime = 0;
-	int playerPoints = 0;
+	double playerPoints = 0;
 	double secondsTaken = 0;
 	int playerHostages = 0;
 	double hostagePoints = 0;
 	double difficulty = 0;
-	int deathCount = 0;
+	int deathLoadCount = 0;
 	double missedRngSpawn = 0;
 	double rankPoints2 = 0;
 	char buffer[256];
@@ -768,7 +768,7 @@ int calculateRank(int level_num, int update_warm_start_status)
 			PHYSFSX_getsTerminated(fp, buffer);
 			difficulty = atof(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
-			deathCount = atoi(buffer);
+			deathLoadCount = atoi(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
 			missedRngSpawn = atof(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
@@ -793,11 +793,13 @@ int calculateRank(int level_num, int update_warm_start_status)
 	if (missedRngSpawn > 0) // In case scores from versions before the cap are read.
 		missedRngSpawn = 0;
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
-	double deathPoints;
-	if (deathCount == -1)
+	double effectivedeathLoadCount = deathLoadCount;
+	effectivedeathLoadCount /= (parTime / DEATH_PENALTY_LENGTH_FACTOR); // Longer level = more forgiving penalty.
+	if (levelPoints)
+		effectivedeathLoadCount /= playerPoints / levelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
+	double deathPoints = -(maxScore * 0.5 - maxScore * (0.5 / pow(2, effectivedeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
+	if (deathLoadCount == -1)
 		deathPoints = ceil(maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
-	else
-		deathPoints = -(maxScore * 0.4 - maxScore * (0.4 / pow(2, deathCount / (parTime / DEATH_PENALTY_LENGTH_FACTOR))));
 	deathPoints = (int)deathPoints;
 	score += deathPoints;
 	if (rankPoints2 > -5)
@@ -953,7 +955,9 @@ void DoEndLevelScoreGlitz(int network)
 		mine_level *= -(Last_level / N_secret_levels);
 
 	level_points = Players[Player_num].score - Players[Player_num].last_score;
-	Ranking.rankScore = level_points - Ranking.excludePoints;
+	double playerLevelPoints = level_points - Ranking.excludePoints;
+	Ranking.rankScore = playerLevelPoints;
+	double maxLevelPoints = (Ranking.maxScore / 3) - Ranking.num_hostages * 5000;
 
 	skill_points = 0, skill_points2 = 0;
 	if (Difficulty_level > 1)
@@ -988,7 +992,11 @@ void DoEndLevelScoreGlitz(int network)
 		endgame_points = is_last_level = 0;
 	if (!cheats.enabled)
 		add_bonus_points_to_score(shield_points + energy_points + skill_points + hostage_points + all_hostage_points + endgame_points);
-	death_points = -(Ranking.maxScore * 0.4 - Ranking.maxScore * (0.4 / pow(2, Ranking.deathCount / (Ranking.parTime / DEATH_PENALTY_LENGTH_FACTOR))));
+	double effectivedeathLoadCount = Ranking.deathLoadCount;
+	effectivedeathLoadCount /= (Ranking.parTime / DEATH_PENALTY_LENGTH_FACTOR); // Longer level = more forgiving penalty.
+	if (maxLevelPoints)
+		effectivedeathLoadCount /= Ranking.rankScore / maxLevelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
+	death_points = -(Ranking.maxScore * 0.5 - Ranking.maxScore * (0.5 / pow(2, effectivedeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
 	if (Ranking.noDamage)
 		death_points = ceil(Ranking.maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	missed_rng_drops = floor(Ranking.missedRngSpawn * ((Difficulty_level + 8) / 8.0)); // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
@@ -1021,14 +1029,14 @@ void DoEndLevelScoreGlitz(int network)
 			sprintf(parTimeString, "%i:0%.0f", parMinutes, parSeconds);
 		else
 			sprintf(parTimeString, "%i:%.0f", parMinutes, parSeconds);
-		sprintf(m_str[c++], "Score: %.0f/%.0f\t%.0f", level_points - Ranking.excludePoints, (Ranking.maxScore / 3) - Ranking.num_hostages * 5000, level_points - Ranking.excludePoints);
+		sprintf(m_str[c++], "Score: %.0f/%.0f\t%.0f", playerLevelPoints, maxLevelPoints, playerLevelPoints);
 		sprintf(m_str[c++], "Time: %s/%s\t%i", timeText, parTimeString, time_points);
 		sprintf(m_str[c++], "Hostages: %i/%i\t%.0f", Players[Player_num].hostages_on_board, Ranking.num_hostages, hostage_points2);
 		sprintf(m_str[c++], "Skill: %s\t%.0f", diffname, skill_points2);
 		if (Ranking.noDamage)
 			sprintf(m_str[c++], "No damage\t%i", death_points);
 		else
-			sprintf(m_str[c++], "Deaths: %.0f\t%i", Ranking.deathCount, death_points);
+			sprintf(m_str[c++], "Deaths/loads: %.0f\t%i", Ranking.deathLoadCount, death_points);
 		if (Ranking.missedRngSpawn > 0)
 			Ranking.missedRngSpawn = 0; // This should only be a penalty, so don't let it give the player points in the case where it malfunctions.
 		if (Ranking.missedRngSpawn < 0)
@@ -1076,16 +1084,16 @@ void DoEndLevelScoreGlitz(int network)
 					time_t timeOfScore = time(NULL);
 					temp = PHYSFS_openWrite(temp_filename);
 					PHYSFSX_printf(temp, "%i\n", Ranking.num_hostages);
-					PHYSFSX_printf(temp, "%.0f\n", (Ranking.maxScore / 3) - Ranking.num_hostages * 5000);
+					PHYSFSX_printf(temp, "%.0f\n", maxLevelPoints);
 					PHYSFSX_printf(temp, "%.0f\n", Ranking.parTime);
-					PHYSFSX_printf(temp, "%.0f\n", level_points - Ranking.excludePoints);
+					PHYSFSX_printf(temp, "%.0f\n", playerLevelPoints);
 					PHYSFSX_printf(temp, "%.3f\n", Ranking.level_time);
 					PHYSFSX_printf(temp, "%i\n", Players[Player_num].hostages_on_board);
 					PHYSFSX_printf(temp, "%i\n", Difficulty_level);
 					if (Ranking.noDamage)
 						PHYSFSX_printf(temp, "%i\n", -1);
 					else
-						PHYSFSX_printf(temp, "%.0f\n", Ranking.deathCount);
+						PHYSFSX_printf(temp, "%.0f\n", Ranking.deathLoadCount);
 					PHYSFSX_printf(temp, "%.0f\n", Ranking.missedRngSpawn);
 					PHYSFSX_printf(temp, "%s\n", Current_level_name);
 					PHYSFSX_printf(temp, "%s", ctime(&timeOfScore));
@@ -1185,14 +1193,14 @@ void DoBestRanksScoreGlitz(int level_num)
 	char				title[128];
 	int				is_last_level = 0;
 	int levelHostages = 0;
-	int levelPoints = 0;
+	double levelPoints = 0;
 	double parTime;
-	int playerPoints = 0;
+	double playerPoints = 0;
 	double secondsTaken = 0;
 	int playerHostages = 0;
 	double hostagePoints = 0;
 	double difficulty = 0;
-	int deathCount = 0;
+	int deathLoadCount = 0;
 	double missedRngSpawn = 0;
 	char buffer[256];
 	char filename[256];
@@ -1226,7 +1234,7 @@ void DoBestRanksScoreGlitz(int level_num)
 			PHYSFSX_getsTerminated(fp, buffer);
 			difficulty = atof(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
-			deathCount = atoi(buffer);
+			deathLoadCount = atoi(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
 			missedRngSpawn = atof(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
@@ -1252,11 +1260,13 @@ void DoBestRanksScoreGlitz(int level_num)
 	if (missedRngSpawn > 0) // In case scores from versions before the cap are read.
 		missedRngSpawn = 0;
 	double score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints;
-	double deathPoints;
-	if (deathCount == -1)
+	double effectivedeathLoadCount = deathLoadCount;
+	effectivedeathLoadCount /= (parTime / DEATH_PENALTY_LENGTH_FACTOR); // Longer level = more forgiving penalty.
+	if (levelPoints)
+		effectivedeathLoadCount /= playerPoints / levelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
+	double deathPoints = -(maxScore * 0.5 - maxScore * (0.5 / pow(2, effectivedeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
+	if (deathLoadCount == -1)
 		deathPoints = ceil(maxScore / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
-	else
-		deathPoints = -(maxScore * 0.4 - maxScore * (0.4 / pow(2, deathCount / (parTime / DEATH_PENALTY_LENGTH_FACTOR))));
 	deathPoints = (int)deathPoints;
 	score += deathPoints;
 
@@ -1287,12 +1297,12 @@ void DoBestRanksScoreGlitz(int level_num)
 		sprintf(parTimeText, "%i:0%.0f", parMinutes, parSeconds);
 	else
 		sprintf(parTimeText, "%i:%.0f", parMinutes, parSeconds);
-	sprintf(m_str[c++], "Score: %i/%i\t%i", playerPoints, levelPoints, playerPoints);
+	sprintf(m_str[c++], "Score: %.0f/%.0f\t%.0f", playerPoints, levelPoints, playerPoints);
 	sprintf(m_str[c++], "Time: %s/%s\t%.0f", timeText, parTimeText, timePoints);
 	sprintf(m_str[c++], "Hostages: %i/%i\t%0.f", playerHostages, levelHostages, hostagePoints);
 	sprintf(m_str[c++], "Skill: %s\t%.0f", diffname, skillPoints);
-	if (deathCount > -1)
-		sprintf(m_str[c++], "Deaths: %i\t%0.f", deathCount, deathPoints);
+	if (deathLoadCount > -1)
+		sprintf(m_str[c++], "Deaths/loads: %i\t%0.f", deathLoadCount, deathPoints);
 	else
 		sprintf(m_str[c++], "No damage\t%.0f", deathPoints);
 	if (missedRngSpawn < 0)
@@ -3666,7 +3676,7 @@ void StartNewLevel(int level_num)
 	if (!RestartLevel.restarts)
 		do_briefing_screens(Briefing_text_filename, level_num);
 	
-	Ranking.deathCount = 0;
+	Ranking.deathLoadCount = 0;
 	Ranking.excludePoints = 0;
 	Ranking.rankScore = 0;
 	Ranking.missedRngSpawn = 0;
