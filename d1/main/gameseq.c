@@ -2804,77 +2804,92 @@ void examine_path_partime(int path_count)
 				changeAlgosEnergy(-f2fl(lowestEnergy));
 			}
 		}
-		// How much time and ammo does it take to handle the matcens along the way? Let's find out!
+		// How much time, energy and ammo does it take to handle any matcens along the way? Let's find out!
 		if (Num_robot_centers > 0) { // Don't bother constantly scanning the path for matcens on levels with no matcens.
-			side_num = find_connecting_side(Point_segs[i].segnum, Point_segs[i + 1].segnum); // Find the side both segments share.
-			wall_num = Segments[Point_segs[i].segnum].sides[side_num].wall_num; // Get its wall number.
+			int botsPerWave = Difficulty_level + 3; // 3, 4, 5, 6, 7 bots spawned per wave by difficulty.
+			double currentTime = ParTime.movementTime + ParTime.combatTime;
 			if (wall_num > -1) { // If that wall number is valid...
 				if (Walls[wall_num].trigger > -1) { // If this wall has a trigger...
 					if (Triggers[Walls[wall_num].trigger].flags & TRIGGER_MATCEN) { // If this trigger is a matcen type...
-						double matcenTime = 0;
-						double totalMatcenTime = 0;
 						for (int c = 0; c < Triggers[Walls[wall_num].trigger].num_links; c++) { // Repeat this loop for every segment linked to this trigger.
 							if (Segments[Triggers[Walls[wall_num].trigger].seg[c]].special == SEGMENT_IS_ROBOTMAKER) { // Check them to see if they're matcens. 
 								segment* segp = &Segments[Triggers[Walls[wall_num].trigger].seg[c]]; // Whenever one is, set this variable as a shortcut so we don't have to put that long string of text every time.
-								// If the matcen has robots in it, and isn't drained or on cooldown, consider it triggered... and DON'T subtract omitted movement time. Algo might skip a matcen it shouldn't.
-								if (RobotCenters[segp->matcen_num].robot_flags[0] > 0 && ParTime.matcenLives[segp->matcen_num] > 0 && ParTime.movementTime + ParTime.combatTime >= ParTime.matcenTriggeredAt[segp->matcen_num] + (30 - 2 * Difficulty_level)) {
-									uint	flags;
-									sbyte	legal_types[32];		//	32 bits in a word, the width of robot_flags.
-									int	num_types, robot_index;
-									robot_index = 0;
-									num_types = 0;
-									flags = RobotCenters[segp->matcen_num].robot_flags[0];
-									while (flags) {
-										if (flags & 1)
-											legal_types[num_types++] = robot_index;
-										flags >>= 1;
-										robot_index++;
-									}
-									ParTime.matcenTriggeredAt[segp->matcen_num] = ParTime.movementTime + ParTime.combatTime; // Do this before matcen time calculation, so the time fighting it is considered after it's triggered.
-									// Find the average fight time for the robots in this matcen and multiply that by the spawn count on this difficulty.
-									int n;
-									double totalRobotTime = 0;
-									double totalEnergyUsage = 0;
-									double totalAmmoUsage = 0;
-									double averageRobotTime = 0;
-									for (n = 0; n < num_types; n++) {
-										robot_info* robInfo = &Robot_info[legal_types[n]];
-										if (legal_types[n] != 10) { // Don't consider matcen gophers. They run.
-											totalRobotTime += calculate_combat_time(NULL, robInfo, 0, 1);
-											if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
-												totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0, round((robInfo->contains_count * (robInfo->contains_prob / 16.0))));
-												robotHasPowerup(robInfo->contains_id, 1.0 / num_types);
-											}
-											else
-												robotHasPowerup(legal_types[n], 1.0 / num_types);
-										}
-										totalEnergyUsage += ParTime.energy_usage;
-										totalAmmoUsage += ParTime.ammo_usage;
-									}
-									averageRobotTime = totalRobotTime / num_types;
-									matcenTime += averageRobotTime * (Difficulty_level + 3);
+								// If the matcen has robots in it, and isn't drained or on cooldown, consider it triggered...
+								if (RobotCenters[segp->matcen_num].robot_flags[0] > 0 && ParTime.matcenLives[segp->matcen_num] > 0 && currentTime >= ParTime.matcenLastTriggered[segp->matcen_num] + (30 - 2 * Difficulty_level)) {
+									ParTime.matcenLastTriggered[segp->matcen_num] = currentTime; // Do this before matcen time calculation, so the time fighting it is considered after it's triggered.
+									ParTime.matcenLastInteracted[segp->matcen_num] = currentTime; // Update this too, so we don't have to use the triggered time in the fighting code.
 									ParTime.matcenLives[segp->matcen_num]--;
-									changeAlgosEnergy(-((totalEnergyUsage / num_types) * (Difficulty_level + 3)));
-								 	ParTime.vulcanAmmo -= (totalAmmoUsage / num_types) * (f1_0 * (Difficulty_level + 3));
-									if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 4) // Vulcan ammo can exceed 32768 and overflow if not capped properly. Prevent this from happening.
-										ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 4;
-									if (ParTime.vulcanAmmo < 0) // Just cap vulcan ammo at 0 if it goes negative here. This isn't the right way to handle things, but doing it right would get very complex.
-										ParTime.vulcanAmmo = 0;
-									if (matcenTime > 0)
-										printf("Fought matcen %i at segment %i; lives left: %i\n", segp->matcen_num, getMatcenSegnum(segp->matcen_num), ParTime.matcenLives[segp->matcen_num]);
-									totalMatcenTime += averageRobotTime; // Add up the average fight times of each link so we can add them to the minimum time later.
+									ParTime.matcenQueuedBots[segp->matcen_num] += botsPerWave;
 								}
 							}
 						}
-						// There's a minimum time for all matcen robots spawned on this path to be killed.
-						if (matcenTime > 0) {
-							if (matcenTime < 3.5 * (Difficulty_level + 2) + totalMatcenTime)
-								matcenTime = 3.5 * (Difficulty_level + 2) + totalMatcenTime;
-							printf("Total fight time: %.3fs\n", matcenTime);
-						}
-						ParTime.combatTime += matcenTime;
-						ParTime.matcenTime += matcenTime;
 					}
+				}
+			}
+			// Check which matcens we're within range of.
+			for (int n = 0; n < Num_robot_centers; n++) {
+				// If we're within eyeshot of it, and it's less than 200 units away, we're in range of it (WIP).
+				bool matcenInRange = 1;
+				if (matcenInRange) {
+					// Once we are, kill all the bots that have spawned from it so far.
+					double matcenTime = 0;
+					if (ParTime.matcenQueuedBots[n] > botsPerWave) {
+						ParTime.matcenSpawnedBots[n] += ParTime.matcenQueuedBots[n] - botsPerWave;
+						ParTime.matcenQueuedBots[n] = botsPerWave;
+					}
+					double botsToSpawn = (currentTime - ParTime.matcenLastInteracted[n]) / 3.5; // 3.5s between spawns.
+					if (botsToSpawn > ParTime.matcenQueuedBots[n])
+						botsToSpawn = ParTime.matcenQueuedBots[n];
+					ParTime.matcenQueuedBots[n] -= botsToSpawn;
+					ParTime.matcenSpawnedBots[n] += botsToSpawn;
+					int botsToFight = ParTime.matcenSpawnedBots[n];
+	
+					if (botsToFight) { // Don't waste time calculating combat time if we're not gonna fight bots.
+						uint	flags;
+						sbyte	legal_types[32];
+						int	num_types, robot_index;
+						robot_index = 0;
+						num_types = 0;
+						flags = RobotCenters[n].robot_flags[0];
+						while (flags) {
+							if (flags & 1)
+							legal_types[num_types++] = robot_index;
+							flags >>= 1;
+							robot_index++;
+							}
+						// Find the average fight time for the robots in this matcen and multiply that by the number of bots currently spawned.
+						double totalRobotTime = 0;
+						double totalEnergyUsage = 0;
+						double totalAmmoUsage = 0;
+						double averageRobotTime = 0;
+						for (int c = 0; c < num_types; c++) {
+							robot_info* robInfo = &Robot_info[legal_types[c]];
+							totalRobotTime += calculate_combat_time(NULL, robInfo, 0, 1);
+							if (robInfo->contains_type == OBJ_ROBOT && robInfo->contains_count > 0) {
+								totalRobotTime += calculate_combat_time(NULL, &Robot_info[robInfo->contains_id], 0, round((robInfo->contains_count * (robInfo->contains_prob / 16.0))));
+								robotHasPowerup(robInfo->contains_id, 1.0 / num_types);
+							}
+							else
+								robotHasPowerup(legal_types[c], 1.0 / num_types);
+							totalEnergyUsage += ParTime.energy_usage;
+							totalAmmoUsage += ParTime.ammo_usage;
+						}
+						averageRobotTime = totalRobotTime / num_types;
+						matcenTime += averageRobotTime * botsToFight;
+						ParTime.simulatedEnergy -= (totalEnergyUsage / num_types) * botsToFight;
+						ParTime.energyUsed += (totalEnergyUsage / num_types) * botsToFight;
+						ParTime.vulcanAmmo -= (totalAmmoUsage / num_types) * botsToFight;
+						if (ParTime.vulcanAmmo > STARTING_VULCAN_AMMO * 8) // Vulcan ammo can exceed 32768 and overflow if not capped properly. Prevent this from happening.
+							ParTime.vulcanAmmo = STARTING_VULCAN_AMMO * 8;
+						if (ParTime.vulcanAmmo < 0) // Just cap vulcan ammo at 0 if it goes negative here. This isn't the right way to handle things, but doing it right would get very complex.
+						ParTime.vulcanAmmo = 0;
+						if (matcenTime)
+							printf("Spent %.3fs fighting %i bots from matcen %i at segment %i\n", matcenTime, botsToFight, n, getMatcenSegnum(n));
+						ParTime.matcenSpawnedBots[n] -= botsToFight;
+					}
+					ParTime.matcenLastInteracted[n] = currentTime;
+					ParTime.combatTime += matcenTime;
+					ParTime.matcenTime += matcenTime;
 				}
 			}
 		}
@@ -3245,7 +3260,6 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	int i;
 	int j;
 	double pathLength; // Store create_path_partime's result in pathLength to compare to current shortest.
-	double matcenTime = 0; // Debug variable to see how much time matcens are adding to the par time.
 	point_seg* path_start; // The current path we are looking at (this is a pointer into somewhere in Point_segs).
 	int path_count; // The number of segments in the path we're looking at.
 	// The values for each held weapon go by weapon ID, and are set based on how likely it is Algo doesn't have the weapon. It's only allowed to use a certain ID's weapon if its index is 0.
@@ -3313,7 +3327,10 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	// Initialize all matcens to 3 lives and no cooldown.
 	for (i = 0; i < Num_robot_centers; i++) {
 		ParTime.matcenLives[i] = 3;
-		ParTime.matcenTriggeredAt[i] = -30; // 0 would mean matcens can't be triggered for up to 30 seconds into Algo's run.
+		ParTime.matcenLastTriggered[i] = -(30 - 2 * Difficulty_level); // 0 would mean matcens can't be triggered for up to 30 seconds into Algo's run.
+		ParTime.matcenLastInteracted[i] = 0;
+		ParTime.matcenQueuedBots[i] = 0;
+		ParTime.matcenSpawnedBots[i] = 0;
 	}
 		
 	while (ParTime.loops < 4) {
@@ -3523,7 +3540,7 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 		partime_objective tempDoneList[MAX_OBJECTIVES];
 		for (n = 0; n < ParTime.doneListSize; n++)
 			tempDoneList[n] = ParTime.doneList[n];
-		while (pathImproved) {
+		while (!pathImproved) {
 			pathImproved = 0;
 			// We SHOULD start at i = 1 because we always want to start at spawn, but consequences for not doing so are negligible, and consequences for doing so can be severe.
 			// We are at least certain that the starting point used won't be inacessible with starting locked walls.

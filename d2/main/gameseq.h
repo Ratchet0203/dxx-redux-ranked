@@ -54,10 +54,15 @@ typedef struct parTime {
 	int doneListIndex;
 	int secondaryDoneListSize;
 	vms_vector lastPosition; // Tracks the last place algo went to within the same segment.
+	
+	// Matcen stuff.
 	int matcenLives[MAX_ROBOT_CENTERS]; // We need to track how many times we trip matcens, since each one can only be tripped three times.
-	double matcenTriggeredAt[MAX_ROBOT_CENTERS]; // So Algo respects the cooldown matcens have.
-	// Time spent clearing matcens.
-	double matcenTime;
+	double matcenLastTriggered[MAX_ROBOT_CENTERS]; // So Algo respects the cooldown matcens have.
+	double matcenLastInteracted[MAX_ROBOT_CENTERS]; // How long since a matcen was last in range.
+	double matcenQueuedBots[MAX_ROBOT_CENTERS]; // The amount of bots that are ready to spawn in this matcen (double to prevent loss of partial spawn window waits).
+	double matcenSpawnedBots[MAX_ROBOT_CENTERS]; // The amount of bots already spawned and ready to fight.
+	double matcenTime; // Total time spent clearing matcens for the level, for debug purposes.
+
 	double energyTime;
 	double simulatedEnergy; // What it sounds like.
 	fix vulcanAmmo; // Also what it sounds like.
