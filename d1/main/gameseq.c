@@ -1021,7 +1021,7 @@ void DoEndLevelScoreGlitz(int network)
 			sprintf(parTimeString, "%i:0%.0f", parMinutes, parSeconds);
 		else
 			sprintf(parTimeString, "%i:%.0f", parMinutes, parSeconds);
-		sprintf(m_str[c++], "Level score\t%.0f", level_points - Ranking.excludePoints);
+		sprintf(m_str[c++], "Score: %.0f/%.0f\t%.0f", level_points - Ranking.excludePoints, (Ranking.maxScore / 3) - Ranking.num_hostages * 5000, level_points - Ranking.excludePoints);
 		sprintf(m_str[c++], "Time: %s/%s\t%i", timeText, parTimeString, time_points);
 		sprintf(m_str[c++], "Hostages: %i/%i\t%.0f", Players[Player_num].hostages_on_board, Ranking.num_hostages, hostage_points2);
 		sprintf(m_str[c++], "Skill: %s\t%.0f", diffname, skill_points2);
@@ -1287,7 +1287,7 @@ void DoBestRanksScoreGlitz(int level_num)
 		sprintf(parTimeText, "%i:0%.0f", parMinutes, parSeconds);
 	else
 		sprintf(parTimeText, "%i:%.0f", parMinutes, parSeconds);
-	sprintf(m_str[c++], "Level score\t%i", playerPoints);
+	sprintf(m_str[c++], "Score: %i/%i\t%i", playerPoints, levelPoints, playerPoints);
 	sprintf(m_str[c++], "Time: %s/%s\t%.0f", timeText, parTimeText, timePoints);
 	sprintf(m_str[c++], "Hostages: %i/%i\t%0.f", playerHostages, levelHostages, hostagePoints);
 	sprintf(m_str[c++], "Skill: %s\t%.0f", diffname, skillPoints);
