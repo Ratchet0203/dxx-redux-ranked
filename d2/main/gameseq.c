@@ -1478,6 +1478,7 @@ void DoBestRanksScoreGlitz(int level_num)
 	char timeOfScore[256];
 	int warmStart;
 	Ranking.quickload = 0; // Set this to 0 so the rank image loads if the player quickloaded on their last played level.
+	Ranking.secretQuickload = 0; // Same thing but secret level.
 	Ranking.fromBestRanksButton = 1; // So exiting a level and immediately going back into one via best ranks menu doesn't cause a loop.
 	sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num); // Find file for the requested level.
 	if (level_num > Current_mission->last_level)
