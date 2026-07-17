@@ -2799,10 +2799,15 @@ void examine_path_partime(int path_count)
 			}
 			// Check which matcens we're within range of.
 			for (int n = 0; n < Num_robot_centers; n++) {
-				// If we're within eyeshot of it, and it's less than 200 units away, we're in range of it (WIP).
-				bool matcenInRange = 1;
-				if (matcenInRange) {
-					// Once we are, kill all the bots that have spawned from it so far.
+				// If we're less than 200 units away, we're in range of it This is because robots can't shoot from further.
+				// Ideally we should be in eyeshot too, but that's too computationally demanding to track.
+				vms_vector segmentCenter;
+				compute_segment_center(&segmentCenter, &Segments[RobotCenters[n].segnum]);
+				vms_vector matcenLocation = segmentCenter;
+				compute_segment_center(&segmentCenter, &Segments[Point_segs[i + 1].segnum]);
+				vms_vector algoLocation = segmentCenter;
+				double matcenDistance = f2fl(sqrt(pow(algoLocation.x - matcenLocation.x, 2) + pow(algoLocation.y - matcenLocation.y, 2) + pow(algoLocation.z - matcenLocation.z, 2)));
+				if (matcenDistance < 200) {
 					double matcenTime = 0;
 					if (ParTime.matcenQueuedBots[n] > botsPerWave) {
 						ParTime.matcenSpawnedBots[n] += ParTime.matcenQueuedBots[n] - botsPerWave;
