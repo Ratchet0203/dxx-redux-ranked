@@ -2511,8 +2511,6 @@ int findKeyObjectID(int keyType, int addingToDoneList, int unlockCheck, int inde
 		Int3();
 		return 0;
 	}
-	//if (ParTime.missingKeys & keyType && unlockCheck)
-		//return 1; // Allow Algo through colored doors whose keys are missing or inaccessible. This prevents softlocks on certain edge case levels.
 	for (int i = 0; i <= Highest_object_index; i++) {
 		if ((Objects[i].type == OBJ_POWERUP && Objects[i].id == powerupID) || robotHasKey(&Objects[i]) == powerupID) {
 			partime_objective objective = { OBJECTIVE_TYPE_OBJECT, i };
@@ -2525,8 +2523,6 @@ int findKeyObjectID(int keyType, int addingToDoneList, int unlockCheck, int inde
 				}
 			}
 			else {
-				if (!addingToDoneList && ParTime.missingKeys & keyType && ParTime.isSegmentAccessible[Objects[i].segnum])
-					ParTime.missingKeys -= keyType; // We just set this flag to missing in initLockedWalls. Undo that since we can reach this key.
 				if (addingToDoneList || ParTime.isSegmentAccessible[Objects[i].segnum]) { // Make sure the key or the robot that contains it can be physically flown to by the player.
 					foundKey = 1;
 					if (addingToDoneList)
@@ -2568,17 +2564,6 @@ void removeObjectiveFromList(partime_objective objective)
 void initLockedWalls(int removeUnlockableWalls)
 {
 	int i;
-	if (removeUnlockableWalls) { // Only count keys as missing if there's even a door of that color to unlock. Without this, levels using less than three key colors could break.
-		for (i = 0; i < Num_walls; i++)
-			if (Walls[i].type == WALL_DOOR) {
-				if (Walls[i].keys & KEY_BLUE && !(ParTime.missingKeys & KEY_BLUE))
-					ParTime.missingKeys |= KEY_BLUE;
-				if (Walls[i].keys & KEY_GOLD && !(ParTime.missingKeys & KEY_GOLD))
-					ParTime.missingKeys |= KEY_GOLD;
-				if (Walls[i].keys & KEY_RED && !(ParTime.missingKeys & KEY_RED))
-					ParTime.missingKeys |= KEY_RED;
-			}
-	}
 	int foundUnlock;
 	ParTime.numTypeThreeWalls = 0;
 	for (i = 0; i < Num_walls; i++) {
@@ -3259,7 +3244,6 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	ParTime.simulatedEnergy = 100;
 	ParTime.vulcanAmmo = 0;
 	ParTime.matcenTime = 0;
-	ParTime.missingKeys = 0;
 	ParTime.objectives = 0;
 	ParTime.energy_gained_per_pickup = 18 - Difficulty_level * 3;
 	Ranking.num_hostages = 0;

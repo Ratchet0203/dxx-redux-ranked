@@ -81,7 +81,6 @@ typedef struct parTime {
 	int typeThreeUnlockIDs[MAX_WALLS];
 	bool shipFitsThroughSide[MAX_SEGMENTS][MAX_SIDES_PER_SEGMENT]; // So we can cache this and avoid having millions upon millions of vm_vec_dist calls in par time.
 	int warpBackPoint;
-	int missingKeys; // Tells Also which keys are missing from a level, allowing it to go through cooresponding colored doors to prevent softlocks.
 	int objectives; // Keeps track of how many things we've gotten so far. Important for backtracking omission and energy stuff.
 	int energy_gained_per_pickup;
 	double objectiveEnergies[MAX_OBJECTIVES]; // For use in energy time calculation, which uses energy after each objective on a node graph.
