@@ -1912,11 +1912,12 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 			enemy_weapon_size = f2fl(Weapon_info[robInfo->weapon_type].blob_size);
 	}
 	double enemy_attack_type = robInfo->attack_type;
+	bool enemy_is_silly = (enemy_behavior == AIB_RUN_FROM || (enemy_behavior == AIB_SNIPE && !enemy_attack_type) || robInfo->thief);
 	
 	// Next, find the "optimal distance" for fighting the given enemy with the given weapon. This is the distance where the enemy's fire can be dodged off of pure reaction time, without any prediction.
 	// Once the player's ship can start moving 250ms (avg human reaction time) after the enemy shoots, and get far enough out of the way for the enemy's shots to miss, it's at the optimal distance.
 	// Any closer, and the player is put in too much danger. Any further, and the player faces potential accuracy loss due to the enemy having more time to dodge themselves.
-	double optimal_distance;
+	double optimal_distance = 0;
 	double optimal_distance2 = 0;
 	double player_dodge_distance;
 	double enemy_weapon_speed = f2fl(Weapon_info[robInfo->weapon_type].speed[Difficulty_level]);
@@ -1940,7 +1941,7 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 			optimal_distance += speed / 64;
 		}
 	}
-	else {
+	else if (!enemy_is_silly) {
 		player_dodge_distance = player_size + enemy_weapon_size;
 		if (player_dodge_distance < enemy_splash_radius)
 			player_dodge_distance = enemy_splash_radius;
@@ -1964,19 +1965,11 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	}
 	if (optimal_distance2 > optimal_distance)
 		optimal_distance = optimal_distance2;
-	if (robInfo->thief)
-		optimal_distance += enemy_max_speed; // Thieves are the worst of both worlds.
-	else {
-		if (enemy_behavior == AIB_RUN_FROM && isObject) // We don't want snipe robots to use this, as they actually shoot things.
-				optimal_distance = robotHasKey(obj) ? 0 : 0; // Ideally you want to be as close to these guys as you can, but give a bonus for key holders. Placeholder, might increase the 0.
-		if (enemy_behavior == AIB_SNIPE)
-			optimal_distance += enemy_max_speed; // These enemies can back away from you as you shoot. Can't be exact on this or else enemies faster than your weapons will return infinite optimal distance.
-	}
 	optimal_distance = optimal_distance > robInfo->badass ? optimal_distance : robInfo->badass; // Also ensure we avoid their blast radius.
 	optimal_distance = optimal_distance > f2fl(Weapon_info[weapon_id].damage_radius) ? optimal_distance : f2fl(Weapon_info[weapon_id].damage_radius); // Don't stay close enough to get damaged by our own weapon!
 	optimal_distance = optimal_distance > f2fl(ConsoleObject->size) + enemy_size ? optimal_distance : f2fl(ConsoleObject->size) + enemy_size; // Player and robot cannot be inside each other!
-	if (optimal_distance > 200)
-		optimal_distance = 200; // Due to Descent being Descent, robots can't shoot at you from any further than 200 units.
+	if (optimal_distance > 200 || enemy_is_silly) // These will run as soon as they see you (assuming thief isn't stealing), so set to max distance.
+		optimal_distance = 200; // Due to Descent being Descent, robots can't shoot at you from any further than 200 units. We'll use this as a cap to prevent things from getting too crazy.
 
 	// Next, figure out how well the enemy will dodge a player attack of this weapon coming from the optimal distance away, then base accuracy off of that.
 	// For simplicity, we assume enemies face longways and dodge sideways relative to player rotation, and that the player is shooting at the middle of the target from directly ahead.
@@ -2005,7 +1998,7 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	if (robInfo->mass > 0) // Avoid div 0 errors with stuff like reactors.
 		enemy_evade_speed += (projectile_speed * f2fl(Weapon_info[weapon_id].mass)) / f2fl(robInfo->mass); // Factor in the amount the robot will move from the force of being hit.
 	enemy_evade_speed /= 64; // We want speed per physics tick, not per second.
-	if (robInfo->thief || enemy_behavior == AIB_RUN_FROM) // Mine layers and thieves always move at a set speed; they don't try to dodge.
+	if (enemy_is_silly) // These bots keep moving instead of just dodging.
 		dodge_distance = enemy_max_speed * dodge_time;
 	else {
 		int num_frames = dodge_time * 64;
@@ -2162,10 +2155,6 @@ double calculate_combat_time(object* obj, robot_info* robInfo, int isObject, int
 	if (lowestCombatTime == -1)
 		lowestCombatTime = failsafeTime; // Prevent a softlock by using lasers' time if no primaries work on a given boss.
 	lowestCombatTime -= energyUsed / 25;
-	if (isObject && obj->ctype.ai_info.behavior == AIB_RUN_FROM) // Give extra time to chase these guys down.
-		lowestCombatTime += calculateMovementTime(lowestCombatTime * robInfo->max_speed[Difficulty_level], 1) * 2;
-	if (robInfo->thief)
-		lowestCombatTime += calculateMovementTime(lowestCombatTime * robInfo->max_speed[Difficulty_level], 1) * 2;
 	if (isObject) {
 		changeAlgosEnergy(-energyUsed);
 		ParTime.vulcanAmmo -= ammoUsed * f1_0;
@@ -2809,8 +2798,7 @@ void examine_path_partime(int path_count)
 			}
 			// Check which matcens we're within range of.
 			for (int n = 0; n < Num_robot_centers; n++) {
-				// If we're less than 200 units away, we're in range of it This is because robots can't shoot from further.
-				// Ideally we should be in eyeshot too, but that's too computationally demanding to track.
+				// If we're less than 200 units away, we're in range of it. Ideally we should be in eyeshot too, but that's too computationally demanding to track.
 				vms_vector segmentCenter;
 				compute_segment_center(&segmentCenter, &Segments[RobotCenters[n].segnum]);
 				vms_vector matcenLocation = segmentCenter;
