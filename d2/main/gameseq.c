@@ -1922,8 +1922,7 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	double player_dodge_distance;
 	double enemy_weapon_speed = f2fl(Weapon_info[robInfo->weapon_type].speed[Difficulty_level]);
 	// Technically doing player splash radius and adding that to dodge_distance later would be consistent, but it would be unfair to the player in certain cases which we don't want.
-	// Cap the splash radius used for accuracy estimation at the missile's damage. If we don't, flash missiles become an extreme problem in cases like Hydro 18 where the first enemy takes OVER TWO MINUTES to fight on Insane.
-	double enemy_splash_radius = f2fl(Weapon_info[robInfo->weapon_type].damage_radius) > f2fl(Weapon_info[robInfo->weapon_type].strength[Difficulty_level]) ? f2fl(Weapon_info[robInfo->weapon_type].strength[Difficulty_level]) : f2fl(Weapon_info[robInfo->weapon_type].damage_radius);
+	double enemy_splash_radius = f2fl(Weapon_info[robInfo->weapon_type].damage_radius);
 	double weapon_homing_flag = weapon_info->homing_flag;
 	// Smart missiles/mines have homing capabilities, but are significantly weaker than actual homing weapons. Running bots can't actually shoot homing things at you, even if the weapon they would've had otherwise is.
 	double enemy_weapon_homing_flag = ((Weapon_info[robInfo->weapon_type].homing_flag || Weapon_info[robInfo->weapon_type2].homing_flag) && enemy_behavior != AIB_RUN_FROM && !enemy_attack_type);
