@@ -1132,9 +1132,9 @@ void DoEndLevelScoreGlitz(int network)
 		sprintf(m_str[c++], "%s%i", TXT_HOSTAGE_BONUS, hostage_points);
 		sprintf(m_str[c++], "%s%i\n", TXT_SKILL_BONUS, skill_points);
 		if (!cheats.enabled && (Players[Player_num].hostages_on_board == Players[Player_num].hostages_level))
-			sprintf(all_hostage_text, "%s%i\n", TXT_FULL_RESCUE_BONUS, all_hostage_points);
+			sprintf(m_str[c++], "%s%i\n", TXT_FULL_RESCUE_BONUS, all_hostage_points);
 		if (!cheats.enabled && !(Game_mode & GM_MULTI) && (Players[Player_num].lives) && (Current_level_num == Last_level))		//player has finished the game!
-			sprintf(endgame_text, "%s%i\n", TXT_SHIP_BONUS, endgame_points);
+			sprintf(m_str[c++], "%s%i\n", TXT_SHIP_BONUS, endgame_points);
 		sprintf(m_str[c++], "%s%i\n", TXT_TOTAL_BONUS, shield_points + energy_points + hostage_points + skill_points + all_hostage_points + endgame_points);
 		sprintf(m_str[c++], "%s%i", TXT_TOTAL_SCORE, Players[Player_num].score);
 	}
