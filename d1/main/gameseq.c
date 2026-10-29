@@ -2152,6 +2152,8 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	double accuracy = dodge_requirement / dodge_distance; // Estimated accuracy will be the factor by which a robot successfully dodges a player attack in the above simulation, with the homing adjustments and multiplier slapped on top.
 	if (accuracy > 1) // Do this first so homing enemies always give a substantial time increase.
 		accuracy = 1; // Accuracy can't be greater than 100%.
+	if (accuracy < 0.1)
+		accuracy = 0.1; // Cap accuracy at 10% (5% with enemy homing) so doing things like increasing a robot's weapon speed to 10000 won't make the par time hours.
 	if (weapon_homing_flag)
 		accuracy = accuracy / 2 + 0.5; // Buff player accuracy if their weapon has homing. Average of acc and 100 is good enough since enemies are kinda stupid when it comes to dodging homing stuff.
 	if (enemy_weapon_homing_flag) // We want the enemy's check to be last so both having homing still has a net negative effect. Homing enemies are hard to avoid and take extra time to kill.
