@@ -2080,7 +2080,9 @@ double calculate_weapon_accuracy(weapon_info* weapon_info, int weapon_id, object
 	}
 	optimal_distance = optimal_distance > Weapon_info[weapon_id].damage_radius ? optimal_distance : Weapon_info[weapon_id].damage_radius; // Don't stay close enough to get damaged by our own weapon!
 	optimal_distance = optimal_distance > f2fl(ConsoleObject->size) + enemy_size ? optimal_distance : f2fl(ConsoleObject->size) + enemy_size; // Player and robot cannot be inside each other!
-	if (optimal_distance > 200 || enemy_runs) // These will run as soon as they see you, so set to max distance.
+	if (enemy_runs)
+		optimal_distance = enemy_max_speed;
+	if (optimal_distance > 200)
 		optimal_distance = 200; // Due to Descent being Descent, robots can't shoot at you from any further than 200 units. We'll use this as a cap to prevent things from getting too crazy.
 
 	// Next, figure out how well the enemy will dodge a player attack of this weapon coming from the optimal distance away, then base accuracy off of that.
