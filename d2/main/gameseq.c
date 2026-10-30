@@ -4152,7 +4152,7 @@ void DoEndGame(void)
 #ifdef NETWORK
 	if (Game_mode & GM_MULTI)
 		multi_endlevel_score();
-	else if (Current_level_num != Last_level)
+	else if (Current_level_num != Last_level && Current_level_num > 0)
 #endif
 		// NOTE LINK TO ABOVE
 		DoEndLevelScoreGlitz(0);
