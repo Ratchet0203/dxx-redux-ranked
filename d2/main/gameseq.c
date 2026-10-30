@@ -4168,9 +4168,6 @@ void DoEndGame(void)
 
 int checkForWarmStart()
 {
-	// Does the player have a point advantage for the next life?
-	if (!(Players[Player_num].score % 50000))
-		return 1;
 	// First, check for too much shields, energy, lives, concussion missiles, vulcan ammo or laser level. Also check for quads.
 	if (f2fl(Players[Player_num].shields) > 100 || f2fl(Players[Player_num].energy) > 100 || Players[Player_num].lives > 3 || Players[Player_num].secondary_ammo[CONCUSSION_INDEX] > 7 - Difficulty_level || Players[Player_num].primary_ammo[VULCAN_INDEX] || Players[Player_num].laser_level || Players[Player_num].flags & PLAYER_FLAGS_QUAD_LASERS)
 		return 1;
@@ -4181,6 +4178,9 @@ int checkForWarmStart()
 	for (int i = 1; i < 10; i++)
 		if (Players[Player_num].primary_weapon_flags & HAS_FLAG(i))
 			return 1;
+	// Does the player have a point advantage for the next life?
+	if (!(Players[Player_num].score % 50000))
+		return 1;
 	// Last, check for the presence of any missiles besides concussions.
 	for (int i = 1; i < 10; i++)
 		if (Players[Player_num].secondary_ammo[i])
@@ -4255,7 +4255,6 @@ void AdvanceLevel(int secret_flag)
 			// END NMN
 
 			StartNewLevel(Next_level_num);
-			Ranking.warmStart = checkForWarmStart(); // Don't consider the player to be warm starting unless they actually have more than the default loadout.
 		}
 	}
 }
@@ -4742,6 +4741,7 @@ void StartNewLevel(int level_num)
 		RestartLevel.omega_charge = Omega_charge;
 		RestartLevel.Missile_gun = Missile_gun;
 	}
+	Ranking.warmStart = checkForWarmStart();
 
 	if (level_num > 0) {
 		maybe_set_first_secret_visit(level_num);
