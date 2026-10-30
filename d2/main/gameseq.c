@@ -915,10 +915,15 @@ int calculateRank(int level_num, int update_warm_start_status)
 	if (levelPoints)
 		effectivedeathLoadCount /= playerPoints / levelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
 	double deathPoints;
-	if (playerPoints)
+	if (playerPoints) {
 		deathPoints = -(maxScore * 0.5 - maxScore * (0.5 / pow(2, effectivedeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
-	else
-		deathPoints = -maxScore * 0.5; // Player got no level points, max out penalty to avoid div 0 error.
+	}
+	else {
+		if (deathLoadCount)
+			deathPoints = -maxScore * 0.5; // Player got no level points, max out penalty to avoid div 0 error.
+		else
+			deathPoints = 0;
+	}
 	if (deathLoadCount == -1)
 		deathPoints = ceil(maxScore / 12) * (playerPoints / levelPoints); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	deathPoints = (int)deathPoints;
@@ -1069,7 +1074,7 @@ void DoEndLevelScoreGlitz(int network)
 	RestartLevel.restartsCache = RestartLevel.restarts;
 	RestartLevel.restarts = 0;
 	RestartLevel.isResults = 1;
-	
+
 	int level_points, skill_points, death_points, shield_points, energy_points, time_points, hostage_points, all_hostage_points, endgame_points;
 	double skill_points2, missed_rng_drops, hostage_points2;
 	char	all_hostage_text[64];
@@ -1111,7 +1116,7 @@ void DoEndLevelScoreGlitz(int network)
 
 	if (Players[Player_num].hostages_on_board == Players[Player_num].hostages_level)
 		all_hostage_points = Players[Player_num].hostages_on_board * 1000 * (Difficulty_level + 1);
-	
+
 	if (!cheats.enabled && !(Game_mode & GM_MULTI) && (Players[Player_num].lives) && (Current_level_num == Last_level)) {		//player has finished the game!
 		endgame_points = Players[Player_num].lives * 10000;
 		is_last_level = 1;
@@ -1128,10 +1133,15 @@ void DoEndLevelScoreGlitz(int network)
 	effectivedeathLoadCount /= (Ranking.parTime / DEATH_PENALTY_LENGTH_FACTOR); // Longer level = more forgiving penalty.
 	if (maxLevelPoints)
 		effectivedeathLoadCount /= Ranking.rankScore / maxLevelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
-	if (Ranking.rankScore)
+	if (Ranking.rankScore) {
 		death_points = -(Ranking.maxScore * 0.5 - Ranking.maxScore * (0.5 / pow(2, effectivedeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
-	else
-		death_points = -Ranking.maxScore * 0.5; // Player got no level points, max out penalty to avoid div 0 error.
+	}
+	else {
+		if (Ranking.deathLoadCount)
+			death_points = -Ranking.maxScore * 0.5; // Player got no level points, max out penalty to avoid div 0 error.
+		else
+			death_points = 0;
+	}
 	if (Ranking.noDamage && maxLevelPoints)
 		death_points = ceil(Ranking.maxScore / 12) * (Ranking.rankScore / maxLevelPoints); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	missed_rng_drops = floor(Ranking.missedRngSpawn * ((Difficulty_level + 8) / 8.0)); // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.	
@@ -1328,10 +1338,15 @@ void DoEndSecretLevelScoreGlitz()
 	effectivedeathLoadCount /= (Ranking.secretParTime / DEATH_PENALTY_LENGTH_FACTOR); // Longer level = more forgiving penalty.
 	if (maxLevelPoints)
 		effectivedeathLoadCount /= Ranking.secretRankScore / maxLevelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
-	if (Ranking.secretRankScore)
+	if (Ranking.secretRankScore) {
 		death_points = -(Ranking.secretMaxScore * 0.5 - Ranking.secretMaxScore * (0.5 / pow(2, effectivedeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
-	else
-		death_points = -Ranking.secretMaxScore * 0.5; // Player got no level points, max out penalty to avoid div 0 error.
+	}
+	else {
+		if (Ranking.secretDeathLoadCount)
+			death_points = -Ranking.secretMaxScore * 0.5; // Player got no level points, max out penalty to avoid div 0 error.
+		else
+			death_points = 0;
+	}
 	if (Ranking.secretNoDamage && maxLevelPoints)
 		death_points = ceil(Ranking.secretMaxScore / 12) * (Ranking.secretRankScore / maxLevelPoints); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	missed_rng_drops = floor(Ranking.secretMissedRngSpawn * ((Difficulty_level + 8) / 8.0)); // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
@@ -1546,10 +1561,15 @@ void DoBestRanksScoreGlitz(int level_num)
 	if (levelPoints)
 		effectivedeathLoadCount /= playerPoints / levelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
 	double deathPoints;
-	if (playerPoints)
+	if (playerPoints) {
 		deathPoints = -(maxScore * 0.5 - maxScore * (0.5 / pow(2, effectivedeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
-	else
-		deathPoints = -maxScore * 0.5; // Player got no level points, max out penalty to avoid div 0 error.
+	}
+	else {
+		if (deathLoadCount)
+			deathPoints = -maxScore * 0.5; // Player got no level points, max out penalty to avoid div 0 error.
+		else
+			deathPoints = 0;
+	}
 	if (deathLoadCount == -1)
 		deathPoints = ceil(maxScore / 12) * (playerPoints / levelPoints); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	deathPoints = (int)deathPoints;
