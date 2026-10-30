@@ -3813,6 +3813,8 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 //	robots, powerups, walls, doors, etc.
 void StartNewLevelSecret(int level_num, int page_in_textures)
 {
+	Ranking.secretLevelEnteredYet = 1;
+	
 	ThisLevelTime = 0;
 
 	last_drawn_cockpit = -1;
@@ -4742,6 +4744,7 @@ void StartNewLevel(int level_num)
 		RestartLevel.Missile_gun = Missile_gun;
 	}
 	Ranking.warmStart = checkForWarmStart();
+	Ranking.secretLevelEnteredYet = 0;
 
 	if (level_num > 0) {
 		maybe_set_first_secret_visit(level_num);

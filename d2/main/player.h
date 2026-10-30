@@ -157,6 +157,7 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	double  freezeTimer;                // Tells normal levels' in-game timer whether it should be frozen or not.
 	int     noDamage;                   // A new bonus I had to add. Thanks Marvin... 4/22/2025
 	int     num_hostages;               // The number of hostages that are actually reachable in the level.
+	int     secretLevelEnteredYet;      // If a secret level has been entered since the current base level started, both death counters will be incremented if the player dies, to prevent suiciding on the other side of a teleporter for an unpenalized shield reset.
 
 	// Below are the ranking mod variables used for secret levels. Since we can play them in the middle of a normal one, we have to distinguish between them so results don't overlap.
 	
