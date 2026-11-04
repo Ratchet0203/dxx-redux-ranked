@@ -1446,7 +1446,7 @@ void DoEndSecretLevelScoreGlitz()
 						sprintf(m_str[c++], "New record!");
 				}
 				PHYSFS_close(fp);
-				if (Ranking.rankScore > Ranking.calculatedScore && Ranking.rank > 0)
+				if (Ranking.secretRankScore > Ranking.calculatedScore && Ranking.rank > 0)
 					strcpy(m_str[c++], "\n\n");
 				else
 					strcpy(m_str[c++], "\n\n\n");
