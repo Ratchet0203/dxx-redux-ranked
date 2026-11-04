@@ -1712,7 +1712,7 @@ void add_bonus_points_to_score(int points)
 	prev_score=Players[Player_num].score;
 
 	Players[Player_num].score += points;
-
+	Ranking.secretExcludePoints += points;
 
 	if (Newdemo_state == ND_STATE_RECORDING)
 		newdemo_record_player_score(points);

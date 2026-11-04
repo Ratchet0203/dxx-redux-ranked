@@ -21,8 +21,10 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #ifndef _STATE_H
 #define _STATE_H
 
-#define SECRETB_FILENAME	GameArg.SysUsePlayersDir? "Players/secret.sgb" : "secret.sgb"
-#define SECRETC_FILENAME	GameArg.SysUsePlayersDir? "Players/secret.sgc" : "secret.sgc"
+#define SECRETB_FILENAME     	GameArg.SysUsePlayersDir? "Players/secret.sgb" : "secret.sgb"
+#define SECRETC_FILENAME     	GameArg.SysUsePlayersDir? "Players/secret.sgc" : "secret.sgc"
+#define SECRETB_FILENAME_COPY	GameArg.SysUsePlayersDir? "Players/secret.sgb1" : "secret.sgb1"
+#define SECRETC_FILENAME_COPY	GameArg.SysUsePlayersDir? "Players/secret.sgc1" : "secret.sgc1"
 
 int state_save_all(int secret_save, char *filename_override, int blind_save);
 int state_restore_all(int in_game, int secret_restore, char *filename_override);

@@ -1609,6 +1609,25 @@ int AdvanceLevel(int secret_flag)
 	return 0;
 }
 
+void MakeRestartStuffCold()
+{
+	// Set restart stuff here so dying during self destruct correctly sets it for the next level. If this isn't done, the player can restart to get their "incinerated" stuff back.
+	RestartLevel.primary_weapon = 0;
+	RestartLevel.secondary_weapon = 0;
+	RestartLevel.flags &= ~(PLAYER_FLAGS_QUAD_LASERS | PLAYER_FLAGS_CLOAKED | PLAYER_FLAGS_INVULNERABLE);
+	RestartLevel.energy = INITIAL_ENERGY;
+	RestartLevel.shields = StartingShields;
+	RestartLevel.lives = Players[Player_num].lives;
+	RestartLevel.laser_level = 0;
+	RestartLevel.primary_weapon_flags = HAS_LASER_FLAG;
+	RestartLevel.secondary_weapon_flags = HAS_CONCUSSION_FLAG;
+	for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
+		RestartLevel.primary_ammo[i] = 0;
+	for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+		RestartLevel.secondary_ammo[i] = 0;
+	RestartLevel.secondary_ammo[0] = 2 + NDL - Difficulty_level;
+}
+
 //called when the player has died
 void DoPlayerDead()
 {
@@ -1697,21 +1716,7 @@ void DoPlayerDead()
 				DoEndLevelScoreGlitz(0);		// Note above link!
 			rval = AdvanceLevel(0);			//if finished, go on to next level
 			if (RestartLevel.updateRestartStuff) {
-				// Set restart stuff here so dying during self destruct correctly sets it for the next level. If this isn't done, the player can restart to get their "incinerated" stuff back.
-				RestartLevel.primary_weapon = 0;
-				RestartLevel.secondary_weapon = 0;
-				RestartLevel.flags = 0;
-				RestartLevel.energy = INITIAL_ENERGY;
-				RestartLevel.shields = StartingShields;
-				RestartLevel.lives = Players[Player_num].lives;
-				RestartLevel.laser_level = 0;
-				RestartLevel.primary_weapon_flags = HAS_LASER_FLAG;
-				RestartLevel.secondary_weapon_flags = HAS_CONCUSSION_FLAG;
-				for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-					RestartLevel.primary_ammo[i] = 0;
-				for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-					RestartLevel.secondary_ammo[i] = 0;
-				RestartLevel.secondary_ammo[0] = 2 + NDL - Difficulty_level;
+				MakeRestartStuffCold();
 				Ranking.warmStart = 0; // Don't count next level as a warm start, since the player just lost all their stuff in self destruct.
 				init_player_stats_new_ship(Player_num);
 			}
@@ -3677,6 +3682,23 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 
 // - - - - - - - - - -  END OF PAR TIME ALGORITHM STUFF  - - - - - - - - - - \\
 
+void UpdateRestartStuff()
+{
+	RestartLevel.primary_weapon = Players[Player_num].primary_weapon;
+	RestartLevel.secondary_weapon = Players[Player_num].secondary_weapon;
+	RestartLevel.flags = Players[Player_num].flags;
+	RestartLevel.energy = Players[Player_num].energy;
+	RestartLevel.shields = Players[Player_num].shields;
+	RestartLevel.lives = Players[Player_num].lives;
+	RestartLevel.laser_level = Players[Player_num].laser_level;
+	RestartLevel.primary_weapon_flags = Players[Player_num].primary_weapon_flags;
+	RestartLevel.secondary_weapon_flags = Players[Player_num].secondary_weapon_flags;
+	for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
+		RestartLevel.primary_ammo[i] = Players[Player_num].primary_ammo[i];
+	for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+		RestartLevel.secondary_ammo[i] = Players[Player_num].secondary_ammo[i];
+}
+
 //called when the player is starting a new level for normal game model
 void StartNewLevel(int level_num)
 {
@@ -3697,38 +3719,14 @@ void StartNewLevel(int level_num)
 	Ranking.fromBestRanksButton = 2; // So the result screen knows it's not just viewing record details.
 	Ranking.noDamage = 1;
 	if (PlayerCfg.ColdStart) { // Force player to have default loadout if the option to always cold start is on.
-		Players[Player_num].primary_weapon = 0;
-		Players[Player_num].secondary_weapon = 0;
-		Players[Player_num].flags = 0;
-		Players[Player_num].energy = INITIAL_ENERGY;
-		Players[Player_num].shields = StartingShields;
-		Players[Player_num].lives = 3;
-		Players[Player_num].laser_level = 0;
-		Players[Player_num].primary_weapon_flags = HAS_LASER_FLAG;
-		Players[Player_num].secondary_weapon_flags = HAS_CONCUSSION_FLAG;
-		for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-			Players[Player_num].primary_ammo[i] = 0;
-		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-			Players[Player_num].secondary_ammo[i] = 0;
-		Players[Player_num].secondary_ammo[0] = 2 + NDL - Difficulty_level;
-		Players[Player_num].score = 0; // This setting isn't vanilla behavior so this is okay. Make sure players always start 50k points from next life.
+		MakeRestartStuffCold();
+		InitiateRestart();
+		// This setting isn't vanilla behavior, so the below changes are okay.
+		Players[Player_num].lives = 3; // Make sure players have default lives.
+		Players[Player_num].score = 0; // Make sure players always start 50k points from next life.
 	}
-	if (RestartLevel.updateRestartStuff) {
-		RestartLevel.primary_weapon = Players[Player_num].primary_weapon;
-		RestartLevel.secondary_weapon = Players[Player_num].secondary_weapon;
-		RestartLevel.flags = Players[Player_num].flags;
-		RestartLevel.energy = Players[Player_num].energy;
-		RestartLevel.shields = Players[Player_num].shields;
-		RestartLevel.lives = Players[Player_num].lives;
-		RestartLevel.laser_level = Players[Player_num].laser_level;
-		RestartLevel.primary_weapon_flags = Players[Player_num].primary_weapon_flags;
-		RestartLevel.secondary_weapon_flags = Players[Player_num].secondary_weapon_flags;
-		for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-			RestartLevel.primary_ammo[i] = Players[Player_num].primary_ammo[i];
-		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-			RestartLevel.secondary_ammo[i] = Players[Player_num].secondary_ammo[i];
-		RestartLevel.Missile_gun = Missile_gun;
-	}
+	if (RestartLevel.updateRestartStuff)
+		UpdateRestartStuff();
 	Ranking.warmStart = checkForWarmStart();
 	
 	StartNewLevelSub(level_num, 1, 0);

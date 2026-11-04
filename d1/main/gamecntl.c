@@ -681,24 +681,7 @@ int HandleSystemKey(int key)
 				state_restore_all(1);
 			break;
 		case KEY_ALTED + KEY_F5:
-			// Only change equipped weapon when restarting if it's one player didn't already have.
-			if (!(RestartLevel.primary_weapon_flags & HAS_FLAG(Players[Player_num].primary_weapon)))
-				Players[Player_num].primary_weapon = RestartLevel.primary_weapon;
-			if (!(RestartLevel.secondary_weapon_flags & HAS_FLAG(Players[Player_num].secondary_weapon)))
-				Players[Player_num].secondary_weapon = RestartLevel.secondary_weapon;
-			Players[Player_num].score = Players[Player_num].last_score;
-			Players[Player_num].flags = RestartLevel.flags;
-			Players[Player_num].energy = RestartLevel.energy;
-			Players[Player_num].shields = RestartLevel.shields;
-			Players[Player_num].lives = RestartLevel.lives;
-			Players[Player_num].laser_level = RestartLevel.laser_level;
-			Players[Player_num].primary_weapon_flags = RestartLevel.primary_weapon_flags;
-			Players[Player_num].secondary_weapon_flags = RestartLevel.secondary_weapon_flags;
-			for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-				Players[Player_num].primary_ammo[i] = RestartLevel.primary_ammo[i];
-			for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-				Players[Player_num].secondary_ammo[i] = RestartLevel.secondary_ammo[i];
-			Missile_gun = RestartLevel.Missile_gun;
+			InitiateRestart();
 			RestartLevel.restarts++;
 			// Note: time abuse with restarts is possible due to player speed not resetting properly and idk how to fix it.
 			StartNewLevel(Current_level_num);

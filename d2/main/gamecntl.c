@@ -779,7 +779,7 @@ int HandleSystemKey(int key)
 				int choice;
 				int allow_loadsave = !(Game_mode & GM_MULTI) || (Game_mode & GM_MULTI_COOP);
 				// If the level was reached via quickload, don't show the restart level button, as that's supposed to be part of the ranking mod, which is disabled in this case. Also can't restart on secret levels so don't give the option there.
-				if (Ranking.quickload || Current_level_num < 0) {
+				if (Ranking.quickload) {
 					choice = allow_loadsave ?
 						nm_messagebox(NULL, 4, "Abort Game", TXT_OPTIONS_, "Save Game...", TXT_LOAD_GAME, "Game menu") :
 						nm_messagebox(NULL, 2, "Abort Game", TXT_OPTIONS_, "Game menu");
@@ -966,30 +966,15 @@ int HandleSystemKey(int key)
 			}
 				break;
 		case KEY_ALTED+KEY_F5:
-			if (Current_level_num > 0)
-				// Only change equipped weapon when restarting if it's one player didn't already have.
-				if (!(RestartLevel.primary_weapon_flags & HAS_FLAG(Players[Player_num].primary_weapon)))
-					Players[Player_num].primary_weapon = RestartLevel.primary_weapon;
-				if (!(RestartLevel.secondary_weapon_flags & HAS_FLAG(Players[Player_num].secondary_weapon)))
-					Players[Player_num].secondary_weapon = RestartLevel.secondary_weapon;
-				Players[Player_num].score = Players[Player_num].last_score;
-				Players[Player_num].flags = RestartLevel.flags;
-				Players[Player_num].energy = RestartLevel.energy;
-				Players[Player_num].shields = RestartLevel.shields;
-				Players[Player_num].lives = RestartLevel.lives;
-				Players[Player_num].laser_level = RestartLevel.laser_level;
-				Players[Player_num].primary_weapon_flags = RestartLevel.primary_weapon_flags;
-				Players[Player_num].secondary_weapon_flags = RestartLevel.secondary_weapon_flags;
-				for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-					Players[Player_num].primary_ammo[i] = RestartLevel.primary_ammo[i];
-				for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-					Players[Player_num].secondary_ammo[i] = RestartLevel.secondary_ammo[i];
-				Players[Player_num].afterburner_charge = RestartLevel.afterburner_charge;
-				Omega_charge = RestartLevel.omega_charge;
-				Missile_gun = RestartLevel.Missile_gun;
+			if (Current_level_num > 0) {
+				InitiateRestart();
 				RestartLevel.restarts++;
 				// Note: time abuse with restarts is possible due to player speed not resetting properly and idk how to fix it.
 				StartNewLevel(Current_level_num);
+			}
+			else {
+				HUD_init_message_literal(HM_DEFAULT, "Can't restart in secret level!");
+			}
 			break;
 
 

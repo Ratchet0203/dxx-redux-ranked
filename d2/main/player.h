@@ -195,6 +195,15 @@ typedef struct restartLevel { // Recreate and store certain info from player to 
 	int     restartsCache; // Just one of the many hoops needed to keep the restart counter accurate when restarting at result screen.
 	int     isResults; // So pressing R on a wide array of menus doesn't try to restart a level you aren't on.
 	int     updateRestartStuff; // Self explanatory.
+	double	secretRankScore;
+	double  secretExcludePoints;
+	double	secretlevel_time;
+	double  secretlast_score;
+	int		secret_hostages_on_board;
+	double  secretDeathLoadCount;
+	int     secretQuickload;
+	double  secretMissedRngSpawn;
+	int     secretNoDamage;
 } __pack__ restartLevel;
 
 // Same as above but structure how Savegames expect

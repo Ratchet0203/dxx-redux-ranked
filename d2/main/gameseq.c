@@ -4295,6 +4295,28 @@ void AdvanceLevel(int secret_flag)
 	}
 }
 
+void MakeRestartStuffCold()
+{
+	// Set restart stuff here so dying during self destruct correctly sets it for the next level. If this isn't done, the player can restart to get their "incinerated" stuff back.
+	RestartLevel.primary_weapon = 0;
+	RestartLevel.secondary_weapon = 0;
+	RestartLevel.flags &= ~(PLAYER_FLAGS_QUAD_LASERS | PLAYER_FLAGS_CLOAKED | PLAYER_FLAGS_INVULNERABLE);
+	RestartLevel.energy = INITIAL_ENERGY;
+	RestartLevel.shields = StartingShields;
+	RestartLevel.lives = Players[Player_num].lives;
+	RestartLevel.laser_level = 0;
+	RestartLevel.primary_weapon_flags = HAS_LASER_FLAG;
+	RestartLevel.secondary_weapon_flags = HAS_CONCUSSION_FLAG;
+	for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
+		RestartLevel.primary_ammo[i] = 0;
+	for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+		RestartLevel.secondary_ammo[i] = 0;
+	RestartLevel.secondary_ammo[0] = 2 + NDL - Difficulty_level;
+	RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
+	RestartLevel.omega_charge = Omega_charge;
+	RestartLevel.Missile_gun = Missile_gun;
+}
+
 void DoPlayerDead()
 {
 
@@ -4373,24 +4395,7 @@ void DoPlayerDead()
 				else {
 					do_screen_message(TXT_SECRET_ADVANCE);
 					StartNewLevel(Entered_from_level+1);
-					// Set restart stuff here so dying during self destruct correctly sets it for the next level. If this isn't done, the player can restart to get their "incinerated" stuff back.
-					RestartLevel.primary_weapon = 0;
-					RestartLevel.secondary_weapon = 0;
-					RestartLevel.flags &= ~(PLAYER_FLAGS_QUAD_LASERS | PLAYER_FLAGS_CLOAKED | PLAYER_FLAGS_INVULNERABLE);
-					RestartLevel.energy = INITIAL_ENERGY;
-					RestartLevel.shields = StartingShields;
-					RestartLevel.lives = Players[Player_num].lives;
-					RestartLevel.laser_level = 0;
-					RestartLevel.primary_weapon_flags = HAS_LASER_FLAG;
-					RestartLevel.secondary_weapon_flags = HAS_CONCUSSION_FLAG;
-					for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-						RestartLevel.primary_ammo[i] = 0;
-					for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-						RestartLevel.secondary_ammo[i] = 0;
-					RestartLevel.secondary_ammo[0] = 2 + NDL - Difficulty_level;
-					RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
-					RestartLevel.omega_charge = Omega_charge;
-					RestartLevel.Missile_gun = Missile_gun;
+					MakeRestartStuffCold();
 					Ranking.warmStart = 0; // Don't count next level as a warm start, since the player just lost all their stuff in self destruct.
 					init_player_stats_new_ship(Player_num);	//	New, MK, 05/29/96!, fix bug with dying in secret level, advance to next level, keep powerups!
 				}
@@ -4400,24 +4405,7 @@ void DoPlayerDead()
 			AdvanceLevel(0);			//if finished, go on to next level
 
 			if (RestartLevel.updateRestartStuff) {
-				// Set restart stuff here so dying during self destruct correctly sets it for the next level. If this isn't done, the player can restart to get their "incinerated" stuff back.
-				RestartLevel.primary_weapon = 0;
-				RestartLevel.secondary_weapon = 0;
-				RestartLevel.flags &= ~(PLAYER_FLAGS_QUAD_LASERS | PLAYER_FLAGS_CLOAKED | PLAYER_FLAGS_INVULNERABLE);
-				RestartLevel.energy = INITIAL_ENERGY;
-				RestartLevel.shields = StartingShields;
-				RestartLevel.lives = Players[Player_num].lives;
-				RestartLevel.laser_level = 0;
-				RestartLevel.primary_weapon_flags = HAS_LASER_FLAG;
-				RestartLevel.secondary_weapon_flags = HAS_CONCUSSION_FLAG;
-				for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-					RestartLevel.primary_ammo[i] = 0;
-				for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-					RestartLevel.secondary_ammo[i] = 0;
-				RestartLevel.secondary_ammo[0] = 2 + NDL - Difficulty_level;
-				RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
-				RestartLevel.omega_charge = Omega_charge;
-				RestartLevel.Missile_gun = Missile_gun;
+				MakeRestartStuffCold();
 				Ranking.warmStart = 0; // Don't count next level as a warm start, since the player just lost all their stuff in self destruct.
 				init_player_stats_new_ship(Player_num);
 			}
@@ -4725,6 +4713,62 @@ void maybe_set_first_secret_visit(int level_num)
 	}
 }
 
+// Replaces file 1 with a copy of file 2. If file 2 doesn't exist, delete file 1 anyway.
+void OverwriteSecretFiles(const char *fname, const char *fname2)
+{
+	char temp_filename[256];
+	sprintf(temp_filename, GameArg.SysUsePlayersDir ? "Players/secrettemp.sg" : "secrettemp.sg");
+	if (PHYSFSX_exists(fname2, 0)) {
+		// Thanks to SaladBadger for help debugging this code.
+		char buffer[256];
+		PHYSFS_file* old = PHYSFS_openRead(fname2);
+		PHYSFS_file* temp = PHYSFS_openWrite(temp_filename);
+		while (!PHYSFS_eof(old))
+		{
+			PHYSFS_sint64 count = PHYSFS_read(old, buffer, 1, 256);
+			PHYSFS_write(temp, buffer, 1, count);
+		}
+		PHYSFS_close(old);
+		PHYSFS_close(temp);
+	}
+	if (!PHYSFS_delete(fname))
+		printf("File meant for deletion not found. Likely intended.\n");
+	if (!PHYSFSX_rename(temp_filename, fname)) {
+		printf("File meant for renaming not found. Likely intended.\n");
+		PHYSFS_delete(temp_filename);
+	}
+	return;
+}
+
+void UpdateRestartStuff()
+{
+	RestartLevel.primary_weapon = Players[Player_num].primary_weapon;
+	RestartLevel.secondary_weapon = Players[Player_num].secondary_weapon;
+	RestartLevel.flags = Players[Player_num].flags;
+	RestartLevel.energy = Players[Player_num].energy;
+	RestartLevel.shields = Players[Player_num].shields;
+	RestartLevel.lives = Players[Player_num].lives;
+	RestartLevel.laser_level = Players[Player_num].laser_level;
+	RestartLevel.primary_weapon_flags = Players[Player_num].primary_weapon_flags;
+	RestartLevel.secondary_weapon_flags = Players[Player_num].secondary_weapon_flags;
+	for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
+		RestartLevel.primary_ammo[i] = Players[Player_num].primary_ammo[i];
+	for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+		RestartLevel.secondary_ammo[i] = Players[Player_num].secondary_ammo[i];
+	RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
+	RestartLevel.omega_charge = Omega_charge;
+	RestartLevel.Missile_gun = Missile_gun;
+	RestartLevel.secretRankScore = Ranking.secretRankScore;
+	RestartLevel.secretExcludePoints = Ranking.secretExcludePoints;
+	RestartLevel.secretlevel_time = Ranking.secretlevel_time;
+	RestartLevel.secretlast_score = Ranking.secretlast_score;
+	RestartLevel.secret_hostages_on_board = Ranking.secret_hostages_on_board;
+	RestartLevel.secretDeathLoadCount = Ranking.secretDeathLoadCount;
+	RestartLevel.secretQuickload = Ranking.secretQuickload;
+	RestartLevel.secretMissedRngSpawn = Ranking.secretMissedRngSpawn;
+	RestartLevel.secretNoDamage = Ranking.secretNoDamage;
+}
+
 //called when the player is starting a new level for normal game model
 //	secret_flag if came from a secret level
 void StartNewLevel(int level_num)
@@ -4743,51 +4787,38 @@ void StartNewLevel(int level_num)
 	Ranking.fromBestRanksButton = 2; // So the result screen knows it's not just viewing record details.
 	Ranking.noDamage = 1;
 	if (PlayerCfg.ColdStart) { // Force player to have default loadout if the option to always cold start is on.
-		Players[Player_num].primary_weapon = 0;
-		Players[Player_num].secondary_weapon = 0;
-		Players[Player_num].flags = 0;
-		Players[Player_num].energy = INITIAL_ENERGY;
-		Players[Player_num].shields = StartingShields;
-		Players[Player_num].lives = 3;
-		Players[Player_num].laser_level = 0;
-		Players[Player_num].primary_weapon_flags = HAS_LASER_FLAG;
-		Players[Player_num].secondary_weapon_flags = HAS_CONCUSSION_FLAG;
-		for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-			Players[Player_num].primary_ammo[i] = 0;
-		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-			Players[Player_num].secondary_ammo[i] = 0;
-		Players[Player_num].secondary_ammo[0] = 2 + NDL - Difficulty_level;
-		Players[Player_num].score = 0; // This setting isn't vanilla behavior so this is okay. Make sure players always start 50k points from next life.
+		MakeRestartStuffCold();
+		InitiateRestart();
+		// This setting isn't vanilla behavior, so the below changes are okay.
+		Players[Player_num].lives = 3; // Make sure players have default lives.
+		Players[Player_num].score = 0; // Make sure players always start 50k points from next life.
 	}
-	if (RestartLevel.updateRestartStuff) {
-		RestartLevel.primary_weapon = Players[Player_num].primary_weapon;
-		RestartLevel.secondary_weapon = Players[Player_num].secondary_weapon;
-		RestartLevel.flags = Players[Player_num].flags;
-		RestartLevel.energy = Players[Player_num].energy;
-		RestartLevel.shields = Players[Player_num].shields;
-		RestartLevel.lives = Players[Player_num].lives;
-		RestartLevel.laser_level = Players[Player_num].laser_level;
-		RestartLevel.primary_weapon_flags = Players[Player_num].primary_weapon_flags;
-		RestartLevel.secondary_weapon_flags = Players[Player_num].secondary_weapon_flags;
-		for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-			RestartLevel.primary_ammo[i] = Players[Player_num].primary_ammo[i];
-		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-			RestartLevel.secondary_ammo[i] = Players[Player_num].secondary_ammo[i];
-		RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
-		RestartLevel.omega_charge = Omega_charge;
-		RestartLevel.Missile_gun = Missile_gun;
-	}
+	if (RestartLevel.updateRestartStuff)
+		UpdateRestartStuff();
 	Ranking.warmStart = checkForWarmStart();
 	Ranking.secretLevelEnteredYet = 0;
 
 	if (level_num > 0) {
 		maybe_set_first_secret_visit(level_num);
 	}
+	
+	// If cold starts are forced, secret levels should act as if they were never entered.
+	if (PlayerCfg.ColdStart)
+		First_secret_visit = 1;
 
-	if (!RestartLevel.restarts && RestartLevel.isResults < 2) // Skip briefing for restarts.
+	if (!RestartLevel.restarts && RestartLevel.isResults < 2) { // Skip briefing for restarts.
 		ShowLevelIntro(level_num);
-	else
-		First_secret_visit = 1; // Reset a secret level upon restarting its base level, for continuity's sake.
+		// Make a copy of the secret sgb and sgc files.
+		// This is so we can restore them later if the level is restarted.
+		OverwriteSecretFiles(SECRETB_FILENAME_COPY, SECRETB_FILENAME);
+		OverwriteSecretFiles(SECRETC_FILENAME_COPY, SECRETC_FILENAME);
+	}
+	else {
+		// Reset a secret level to the state it was in when the base level was first entered.
+		// We do this by replacing the sgb and sgc files with the copy we made then.
+		OverwriteSecretFiles(SECRETB_FILENAME, SECRETB_FILENAME_COPY);
+		OverwriteSecretFiles(SECRETC_FILENAME, SECRETC_FILENAME_COPY);
+	}
 
 	StartNewLevelSub(level_num, 1, 0);
 

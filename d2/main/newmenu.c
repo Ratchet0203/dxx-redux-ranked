@@ -880,6 +880,39 @@ int newmenu_mouse(window *wind, d_event *event, newmenu *menu, int button)
 	return 0;
 }
 
+void InitiateRestart()
+{
+	// Only change equipped weapon when restarting if it's one player didn't already have.
+	if (!(RestartLevel.primary_weapon_flags & HAS_FLAG(Players[Player_num].primary_weapon)))
+		Players[Player_num].primary_weapon = RestartLevel.primary_weapon;
+	if (!(RestartLevel.secondary_weapon_flags & HAS_FLAG(Players[Player_num].secondary_weapon)))
+		Players[Player_num].secondary_weapon = RestartLevel.secondary_weapon;
+	Players[Player_num].score = Players[Player_num].last_score;
+	Players[Player_num].flags = RestartLevel.flags;
+	Players[Player_num].energy = RestartLevel.energy;
+	Players[Player_num].shields = RestartLevel.shields;
+	Players[Player_num].lives = RestartLevel.lives;
+	Players[Player_num].laser_level = RestartLevel.laser_level;
+	Players[Player_num].primary_weapon_flags = RestartLevel.primary_weapon_flags;
+	Players[Player_num].secondary_weapon_flags = RestartLevel.secondary_weapon_flags;
+	for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
+		Players[Player_num].primary_ammo[i] = RestartLevel.primary_ammo[i];
+	for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+		Players[Player_num].secondary_ammo[i] = RestartLevel.secondary_ammo[i];
+	Players[Player_num].afterburner_charge = RestartLevel.afterburner_charge;
+	Omega_charge = RestartLevel.omega_charge;
+	Missile_gun = RestartLevel.Missile_gun;
+	Ranking.secretRankScore = RestartLevel.secretRankScore;
+	Ranking.secretExcludePoints = RestartLevel.secretExcludePoints;
+	Ranking.secretlevel_time = RestartLevel.secretlevel_time;
+	Ranking.secretlast_score = RestartLevel.secretlast_score;
+	Ranking.secret_hostages_on_board = RestartLevel.secret_hostages_on_board;
+	Ranking.secretDeathLoadCount = RestartLevel.secretDeathLoadCount;
+	Ranking.secretQuickload = RestartLevel.secretQuickload;
+	Ranking.secretMissedRngSpawn = RestartLevel.secretMissedRngSpawn;
+	Ranking.secretNoDamage = RestartLevel.secretNoDamage;
+}
+
 int newmenu_key_command(window *wind, d_event *event, newmenu *menu)
 {
 	newmenu_item *item = &menu->items[menu->citem];
@@ -1053,26 +1086,7 @@ int newmenu_key_command(window *wind, d_event *event, newmenu *menu)
 					if (menu->rval)
 						*menu->rval = menu->citem;
 				window_close(menu->wind);
-				// Only change equipped weapon when restarting if it's one player didn't already have.
-				if (!(RestartLevel.primary_weapon_flags & HAS_FLAG(Players[Player_num].primary_weapon)))
-					Players[Player_num].primary_weapon = RestartLevel.primary_weapon;
-				if (!(RestartLevel.secondary_weapon_flags & HAS_FLAG(Players[Player_num].secondary_weapon)))
-					Players[Player_num].secondary_weapon = RestartLevel.secondary_weapon;
-				Players[Player_num].score = Players[Player_num].last_score;
-				Players[Player_num].flags = RestartLevel.flags;
-				Players[Player_num].energy = RestartLevel.energy;
-				Players[Player_num].shields = RestartLevel.shields;
-				Players[Player_num].lives = RestartLevel.lives;
-				Players[Player_num].laser_level = RestartLevel.laser_level;
-				Players[Player_num].primary_weapon_flags = RestartLevel.primary_weapon_flags;
-				Players[Player_num].secondary_weapon_flags = RestartLevel.secondary_weapon_flags;
-				for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-					Players[Player_num].primary_ammo[i] = RestartLevel.primary_ammo[i];
-				for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-					Players[Player_num].secondary_ammo[i] = RestartLevel.secondary_ammo[i];
-				Players[Player_num].afterburner_charge = RestartLevel.afterburner_charge;
-				Omega_charge = RestartLevel.omega_charge;
-				Missile_gun = RestartLevel.Missile_gun;
+				InitiateRestart();
 				RestartLevel.restarts = RestartLevel.restartsCache;
 				RestartLevel.restarts++;
 				RestartLevel.isResults = 2;
