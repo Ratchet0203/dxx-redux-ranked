@@ -1752,7 +1752,7 @@ int state_restore_all_sub(char* filename, int secret_restore)
 	reset_time();
 	if (Ranking.quickload == 1) {
 		Ranking.fromBestRanksButton = 0; // So loading a save doesn't cause the next result screen to let you select difficulty.
-		HUD_init_message_literal(HM_DEFAULT, "You quickloaded! Ranking system mod disabled for this level.");
+		HUD_init_message_literal(HM_DEFAULT, "You quickloaded! d2x-redux-ranked disabled for this level.");
 		digi_play_sample(SOUND_BAD_SELECTION, F1_0);
 	}
 	return 1;

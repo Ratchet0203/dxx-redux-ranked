@@ -2407,7 +2407,7 @@ void do_rso_menu()
 	m[3].type = NM_TYPE_CHECK;
 	m[3].text = "Use PSX world map";
 
-	i = newmenu_do1(NULL, "Ranking system mod Options", SDL_arraysize(m), m, NULL, &misc_menu_data, i);
+	i = newmenu_do1(NULL, "d1x-redux-ranked options", SDL_arraysize(m), m, NULL, &misc_menu_data, i);
 
 	PlayerCfg.RankShowPlusMinus = m[0].value;
 	PlayerCfg.Speedometer = m[1].value;
@@ -2749,7 +2749,7 @@ void do_options_menu()
 	m[8].type = NM_TYPE_MENU;   m[8].text = "Secondary autoselect ordering...";
 	m[9].type = NM_TYPE_MENU;   m[9].text = "Misc Options...";
 	m[10].type = NM_TYPE_MENU;   m[10].text = "Observer Options...";
-	m[11].type = NM_TYPE_MENU;   m[11].text = "Ranking system mod Options...";
+	m[11].type = NM_TYPE_MENU;   m[11].text = "d1x-redux-ranked options...";
 
 	// Fall back to main event loop
 	// Allows clean closing and re-opening when resolution changes

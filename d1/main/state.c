@@ -1517,7 +1517,7 @@ RetryObjectLoading:
 		PHYSFS_read(fp, &Ranking.parTime, sizeof(ubyte), 1);
 	//}
 	//else {
-		//HUD_init_message_literal(HM_DEFAULT, "Save file has no ranking system data! Mod disabled for this level.");
+		//HUD_init_message_literal(HM_DEFAULT, "Save file has no d1x-redux-ranked data! Mod disabled for this level.");
 		Ranking.quickload = 1;
 	//}
 	PHYSFS_close(fp);
