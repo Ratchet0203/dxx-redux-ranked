@@ -925,7 +925,7 @@ int calculateRank(int level_num, int update_warm_start_status)
 			deathPoints = 0;
 	}
 	if (deathLoadCount == -1 && levelPoints)
-		deathPoints = ceil(maxScore / 4) * (playerPoints / levelPoints) * ((8 + difficulty) / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
+		deathPoints = ceil(maxScore / 4) * (playerPoints / levelPoints) * ((8.0 + difficulty) / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	deathPoints = (int)deathPoints;
 	score += deathPoints;
 	if (rankPoints2 > -5)
@@ -1143,7 +1143,7 @@ void DoEndLevelScoreGlitz(int network)
 			death_points = 0;
 	}
 	if (Ranking.noDamage && maxLevelPoints)
-		death_points = ceil(Ranking.maxScore / 4) * (Ranking.rankScore / maxLevelPoints) * ((8 + Difficulty_level) / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
+		death_points = ceil(Ranking.maxScore / 4) * (Ranking.rankScore / maxLevelPoints) * ((8.0 + Difficulty_level) / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	missed_rng_drops = floor(Ranking.missedRngSpawn * ((Difficulty_level + 8) / 8.0)); // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.	
 	Ranking.rankScore += skill_points2 + time_points + hostage_points2 + death_points + missed_rng_drops;
 
@@ -1348,7 +1348,7 @@ void DoEndSecretLevelScoreGlitz()
 			death_points = 0;
 	}
 	if (Ranking.secretNoDamage && maxLevelPoints)
-		death_points = ceil(Ranking.secretMaxScore / 4) * (Ranking.secretRankScore / maxLevelPoints) * ((8 + Difficulty_level) / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
+		death_points = ceil(Ranking.secretMaxScore / 4) * (Ranking.secretRankScore / maxLevelPoints) * ((8.0 + Difficulty_level) / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	missed_rng_drops = floor(Ranking.secretMissedRngSpawn * ((Difficulty_level + 8) / 8.0)); // Add would-be skill bonus into the penalty for ignored random offspring. This makes ignoring them on high difficulties more consistent and punishing.
 	Ranking.secretRankScore += skill_points + time_points + hostage_points + death_points + missed_rng_drops;
 
@@ -1571,7 +1571,7 @@ void DoBestRanksScoreGlitz(int level_num)
 			deathPoints = 0;
 	}
 	if (deathLoadCount == -1 && levelPoints)
-		deathPoints = ceil(maxScore / 4) * (playerPoints / levelPoints) * ((8 + difficulty) / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
+		deathPoints = ceil(maxScore / 4) * (playerPoints / levelPoints) * ((8.0 + difficulty) / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	deathPoints = (int)deathPoints;
 	score += deathPoints;
 
