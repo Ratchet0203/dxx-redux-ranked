@@ -801,8 +801,8 @@ int calculateRank(int level_num, int update_warm_start_status)
 		else
 			deathPoints = 0;
 	}
-	if (deathLoadCount == -1 && levelPoints)
-		deathPoints = ceil((double)maxScore / 4) * ((double)playerPoints / levelPoints) * ((8.0 + difficulty) / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
+	if (deathLoadCount == -1 && levelPoints) // No damage = +1 rank letter
+		deathPoints = ceil((double)maxScore / 4) * ((double)playerPoints / levelPoints); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	Ranking.calculatedScore = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints + deathPoints;
 	// Calculate rank based on how much of the max score the player achieved.
 	// X >= 125%, S = 100-124%, A = 75-99%, B = 50-74%, C = 25-49%, D = 0-24%, E < 0%
@@ -1079,8 +1079,8 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 			else
 				deathPoints = 0;
 		}
-		if (deathLoadCount == -1 && levelPoints)
-			deathPoints = ceil((double)maxScore / 4) * ((double)playerPoints / levelPoints) * ((8.0 + difficulty) / 12); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
+		if (deathLoadCount == -1 && levelPoints) // No damage = +1 rank letter
+			deathPoints = ceil((double)maxScore / 4) * ((double)playerPoints / levelPoints); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 		int score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints + deathPoints;
 
 		int minutes = playerTime / 60;
