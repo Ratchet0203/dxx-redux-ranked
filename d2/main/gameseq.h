@@ -170,9 +170,7 @@ extern void goto_secret_level();
 void editor_reset_stuff_on_level();
 
 // Show endlevel bonus scores
-extern void DoEndLevelScoreGlitz(int network);
-extern void DoEndSecretLevelScoreGlitz();
-extern void DoBestRanksScoreGlitz(int level_num);
+extern void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num);
 
 extern int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck, int index);
 extern int check_gap_size(int seg, int side);
