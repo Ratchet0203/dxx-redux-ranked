@@ -1373,7 +1373,7 @@ int checkForWarmStart()
 		if (Players[Player_num].primary_weapon_flags & HAS_FLAG(i))
 			return 1;
 	// Does the player have a point advantage for the next life?
-	if (!(Players[Player_num].score % 50000))
+	if (Players[Player_num].score % 50000)
 		return 1;
 	// Last, check for the presence of any missiles besides concussions.
 	for (int i = 1; i < 5; i++)

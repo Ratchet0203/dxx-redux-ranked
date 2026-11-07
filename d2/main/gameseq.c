@@ -3959,7 +3959,7 @@ int checkForWarmStart()
 		if (Players[Player_num].primary_weapon_flags & HAS_FLAG(i))
 			return 1;
 	// Does the player have a point advantage for the next life?
-	if (!(Players[Player_num].score % 50000))
+	if (Players[Player_num].score % 50000)
 		return 1;
 	// Last, check for the presence of any missiles besides concussions.
 	for (int i = 1; i < 10; i++)
@@ -4476,9 +4476,9 @@ void OverwriteSecretFiles(const char *fname, const char *fname2)
 		PHYSFS_close(temp);
 	}
 	if (!PHYSFS_delete(fname))
-		printf("File meant for deletion not found. Likely intended.\n");
+		printf("File '%s' meant for deletion not found. Likely intended.\n", fname);
 	if (!PHYSFSX_rename(temp_filename, fname)) {
-		printf("File meant for renaming not found. Likely intended.\n");
+		printf("File '%s' meant for renaming not found. Likely intended.\n", fname);
 		PHYSFS_delete(temp_filename);
 	}
 	return;
