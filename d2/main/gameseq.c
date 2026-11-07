@@ -3577,6 +3577,29 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 
 // - - - - - - - - - -  END OF PAR TIME ALGORITHM STUFF  - - - - - - - - - - \\
 
+// If this level's rank data file doesn't exist, create it now so it can be written to on the rank screen.
+void initRankFile(int level_num)
+{
+	PHYSFS_file* fp;
+	char filename[256];
+	char buffer[256];
+	sprintf(buffer, "ranks/%s/%s", Players[Player_num].callsign, Current_mission->filename);
+	PHYSFS_mkdir(buffer);
+	if (level_num > 0)
+		sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num);
+	else
+		sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, -level_num);
+	fp = PHYSFS_openRead(filename);
+	if (fp == NULL) {
+		fp = PHYSFS_openWrite(filename);
+		PHYSFSX_printf(fp, "-1\n");
+		for (int n = 0; n < 9; n++)
+			PHYSFSX_printf(fp, "\n");
+		PHYSFSX_printf(fp, "???");
+	}
+	PHYSFS_close(fp);
+}
+
 // called when the player is starting a new level for normal game mode and restore state
 //	Need to deal with whether this is the first time coming to this level or not.  If not the
 //	first time, instead of initializing various things, need to do a game restore for all the
@@ -3676,22 +3699,7 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 	// Say player can use FLASH cheat to mark path to exit.
 	Last_level_path_created = -1;
 	
-	// Check for absence of record file here too, just in case a player never directly started this level.
-	PHYSFS_file* fp;
-	char filename[256];
-	char buffer[256];
-	sprintf(buffer, "ranks/%s/%s", Players[Player_num].callsign, Current_mission->filename);
-	PHYSFS_mkdir(buffer);
-	sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num * -1);
-	fp = PHYSFS_openRead(filename);
-	if (fp == NULL) { // If this level's rank data file doesn't exist, create it now so it can be written to on the rank screen.
-		fp = PHYSFS_openWrite(filename);
-		PHYSFSX_printf(fp, "-1\n");
-		for (int n = 0; n < 9; n++)
-			PHYSFSX_printf(fp, "\n");
-		PHYSFSX_printf(fp, "???");
-	}
-	PHYSFS_close(fp);
+	initRankFile(level_num);
 	
 	if (First_secret_visit) {
 		Ranking.secretDeathLoadCount = 0;
@@ -4558,22 +4566,7 @@ void StartNewLevel(int level_num)
 
 	StartNewLevelSub(level_num, 1, 0);
 
-	// Check for absence of record file here too, just in case a player never directly started this level.
-	PHYSFS_file* fp;
-	char filename[256];
-	char buffer[256];
-	sprintf(buffer, "ranks/%s/%s", Players[Player_num].callsign, Current_mission->filename);
-	PHYSFS_mkdir(buffer);
-	sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num);
-	fp = PHYSFS_openRead(filename);
-	if (fp == NULL) { // If this level's rank data file doesn't exist, create it now so it can be written to on the rank screen.
-		fp = PHYSFS_openWrite(filename);
-		PHYSFSX_printf(fp, "-1\n");
-		for (int n = 0; n < 9; n++)
-			PHYSFSX_printf(fp, "\n");
-		PHYSFSX_printf(fp, "???");
-	}
-	PHYSFS_close(fp);
+	initRankFile(level_num);
 	
 	RestartLevel.isResults = 0;
 	if (RestartLevel.restarts) {

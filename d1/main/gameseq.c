@@ -3555,6 +3555,28 @@ void UpdateRestartStuff()
 		RestartLevel.secondary_ammo[i] = Players[Player_num].secondary_ammo[i];
 }
 
+// If this level's rank data file doesn't exist, create it now so it can be written to on the rank screen.
+void initRankFile(int level_num)
+{
+	PHYSFS_file* fp;
+	char filename[256];
+	char buffer[256];
+	sprintf(buffer, "ranks/%s/%s", Players[Player_num].callsign, Current_mission->filename);
+	PHYSFS_mkdir(buffer);
+	sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num);
+	if (level_num < 0)
+		sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num * -1);
+	fp = PHYSFS_openRead(filename);
+	if (fp == NULL) {
+		fp = PHYSFS_openWrite(filename);
+		PHYSFSX_printf(fp, "-1\n");
+		for (int n = 0; n < 9; n++)
+			PHYSFSX_printf(fp, "\n");
+		PHYSFSX_printf(fp, "???");
+	}
+	PHYSFS_close(fp);
+}
+
 //called when the player is starting a new level for normal game model
 void StartNewLevel(int level_num)
 {
@@ -3587,24 +3609,7 @@ void StartNewLevel(int level_num)
 	
 	StartNewLevelSub(level_num, 1, 0);
 
-	// Check for absence of record file here too, just in case a player never directly started this level.
-	PHYSFS_file* fp;
-	char filename[256];
-	char buffer[256];
-	sprintf(buffer, "ranks/%s/%s", Players[Player_num].callsign, Current_mission->filename);
-	PHYSFS_mkdir(buffer);
-	sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num);
-	if (level_num < 0)
-		sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num * -1);
-	fp = PHYSFS_openRead(filename);
-	if (fp == NULL) { // If this level's rank data file doesn't exist, create it now so it can be written to on the rank screen.
-		fp = PHYSFS_openWrite(filename);
-		PHYSFSX_printf(fp, "-1\n");
-		for (int n = 0; n < 9; n++)
-			PHYSFSX_printf(fp, "\n");
-		PHYSFSX_printf(fp, "???");
-	}
-	PHYSFS_close(fp);
+	initRankFile(level_num);
 
 	RestartLevel.isResults = 0;
 	if (!RestartLevel.restarts) { // Don't calculate par time if we're restarting. We already have that information and it's not changing. This will reduce restart load times slightly.
