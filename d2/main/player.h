@@ -142,7 +142,7 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	int     rankScore;                  // The version of score used for this mod, as to not disturb the vanilla score system.
 	int     excludePoints;              // Number of points gotten from sources we want to not count toward rank calculation, but still contribute to vanilla score.
 	int     maxScore;			        // The current level's S-rank score. Won't include hostage points until the result screen, to make calculation of other bonuses easier.
-	int     level_time;                 // Time variable used in rank calculation. Updates to match Players[Player_num].time_level at specific points to protect players from being penalized for not skipping things.
+	double  level_time;                 // Time variable used in rank calculation. Updates to match Players[Player_num].time_level at specific points to protect players from being penalized for not skipping things.
 	int     modDisabled;			    // Whether the mod is disabled. Happens when player loads an unsupported save to prevent unintended side effects of data loss.
 	int     parTime;                    // The algorithmically-generated required time for the current level.
 	int     calculatedScore;	       	// Stores the score determined in calculateRank.

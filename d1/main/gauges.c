@@ -781,7 +781,7 @@ void hud_show_speedometer()
 
 void hud_show_pointsleftinlevel()
 {
-	double pointsleftinlevel = 0;
+	int pointsleftinlevel = 0;
 	for (int i = 0; i <= Highest_object_index; i++) {
 		if (Objects[i].type == OBJ_ROBOT && !Objects[i].matcen_creator && !(Objects[i].flags & OF_EXPLODING))
 			pointsleftinlevel += Robot_info[Objects[i].id].score_value;
@@ -802,7 +802,7 @@ void hud_show_pointsleftinlevel()
 	gr_set_fontcolor(Color_0_31_0, -1);
 
 	if (pointsleftinlevel)
-		gr_printf(SWIDTH - FSPACX(65), FSPACY(15), "%.0f remains", pointsleftinlevel);
+		gr_printf(SWIDTH - FSPACX(65), FSPACY(15), "%i remains", pointsleftinlevel);
 	else {
 		gr_set_fontcolor(BM_XRGB(255, 215, 0), -1);
 		gr_printf(SWIDTH - FSPACX(55), FSPACY(15), "FULL CLEAR!");
