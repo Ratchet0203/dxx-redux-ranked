@@ -115,28 +115,6 @@ static inline int PHYSFSX_gets(PHYSFS_file* file, char* s)
 	return strlen(s);
 }
 
-static inline int PHYSFSX_getsTerminated(PHYSFS_file* file, char* s)
-{
-	char* ptr = s;
-
-	if (PHYSFS_eof(file))
-		*ptr = 0;
-	else
-	{
-		do
-		{
-			char c;
-			PHYSFS_read(file, &c, 1, 1);
-			if (c == '\n')
-				break;
-			*ptr++ = c;
-		} while (!PHYSFS_eof(file));
-		*ptr = '\0';
-	}
-
-	return strlen(s);
-}
-
 static inline int PHYSFSX_writeU8(PHYSFS_file *file, PHYSFS_uint8 val)
 {
 	return PHYSFS_write(file, &val, 1, 1);

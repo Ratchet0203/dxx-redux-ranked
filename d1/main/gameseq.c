@@ -750,35 +750,35 @@ int calculateRank(int level_num, int update_warm_start_status)
 	if (fp == NULL)
 		Ranking.rank = 0; // If no data exists, just assume level never played and set rankPoints in the range that returns N/A.
 	else {
-		PHYSFSX_getsTerminated(fp, buffer); // Fetch level data starting here. If a parameter isn't present in the file, it'll default to 0 in calculation.
+		PHYSFSX_fgets(buffer, 256, fp); // Fetch level data starting here. If a parameter isn't present in the file, it'll default to 0 in calculation.
 		levelHostages = atoi(buffer);
 		if (levelHostages < 0) // If level is unplayed, we know because the first value in the file will be -1, which is impossible for the hostage count.
 			Ranking.rank = 0;
 		else {
-			PHYSFSX_getsTerminated(fp, buffer);
+			PHYSFSX_fgets(buffer, 256, fp);
 			levelPoints = atoi(buffer);
-			PHYSFSX_getsTerminated(fp, buffer);
+			PHYSFSX_fgets(buffer, 256, fp);
 			parTime = atoi(buffer);
-			PHYSFSX_getsTerminated(fp, buffer); // Fetch player data starting here.
+			PHYSFSX_fgets(buffer, 256, fp); // Fetch player data starting here.
 			playerPoints = atoi(buffer);
-			PHYSFSX_getsTerminated(fp, buffer);
+			PHYSFSX_fgets(buffer, 256, fp);
 			playerTime = atof(buffer);
-			PHYSFSX_getsTerminated(fp, buffer);
+			PHYSFSX_fgets(buffer, 256, fp);
 			playerHostages = atoi(buffer);
-			PHYSFSX_getsTerminated(fp, buffer);
+			PHYSFSX_fgets(buffer, 256, fp);
 			difficulty = atoi(buffer);
-			PHYSFSX_getsTerminated(fp, buffer);
+			PHYSFSX_fgets(buffer, 256, fp);
 			deathCount = atoi(buffer);
-			PHYSFSX_getsTerminated(fp, buffer);
+			PHYSFSX_fgets(buffer, 256, fp);
 			missedRngSpawn = atoi(buffer);
-			PHYSFSX_getsTerminated(fp, buffer);
-			PHYSFSX_getsTerminated(fp, buffer);
-			PHYSFSX_getsTerminated(fp, buffer);
+			PHYSFSX_fgets(buffer, 256, fp);
+			PHYSFSX_fgets(buffer, 256, fp);
+			PHYSFSX_fgets(buffer, 256, fp);
 			if (update_warm_start_status)
 				Ranking.warmStart = atoi(buffer);
 			else
-				PHYSFSX_getsTerminated(fp, buffer);
-			PHYSFSX_getsTerminated(fp, buffer);
+				PHYSFSX_fgets(buffer, 256, fp);
+			PHYSFSX_fgets(buffer, 256, fp);
 			loadCount = atoi(buffer);
 		}
 	}
@@ -835,7 +835,7 @@ void getLevelNameFromRankFile(int level_num, char* buffer)
 		sprintf(buffer, "???");
 	else {
 		for (int i = 0; i < 10; i++)
-			PHYSFSX_getsTerminated(fp, buffer); // Get a line ten times because the tenth line has the level name.
+			PHYSFSX_fgets(buffer, 256, fp); // Get a line ten times because the tenth line has the level name.
 	}
 	PHYSFS_close(fp);
 }
@@ -1027,34 +1027,34 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 			if (fp == NULL)
 				return;
 			else {
-				PHYSFSX_getsTerminated(fp, buffer); // Fetch level data starting here. If a parameter isn't present in the file, it'll default to 0 in calculation.
+				PHYSFSX_fgets(buffer, 256, fp); // Fetch level data starting here. If a parameter isn't present in the file, it'll default to 0 in calculation.
 				levelHostages = atoi(buffer);
 				if (levelHostages < 0) // If level is unplayed, we know because the first (and only) value in the file will be -1, which is impossible for the hostage count.
 					return;
 				else {
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					levelPoints = atoi(buffer);
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					parTime = atoi(buffer);
-					PHYSFSX_getsTerminated(fp, buffer); // Fetch player data starting here.
+					PHYSFSX_fgets(buffer, 256, fp); // Fetch player data starting here.
 					playerPoints = atoi(buffer);
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					playerTime = atof(buffer);
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					playerHostages = atoi(buffer);
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					difficulty = atoi(buffer);
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					deathCount = atoi(buffer);
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					missedRngSpawn = atoi(buffer);
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					sprintf(levelName, buffer);
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					sprintf(timeOfScore, buffer);
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					warmStart = atoi(buffer);
-					PHYSFSX_getsTerminated(fp, buffer);
+					PHYSFSX_fgets(buffer, 256, fp);
 					loadCount = atoi(buffer);
 					maxScore = (levelPoints + levelHostages * 5000) * 3;
 				}
