@@ -442,7 +442,10 @@ void name_frame(automap *am)
 		gr_get_string_size(xoutofy, &wr, &h, &aw);
 		gr_printf(grd_curcanv->cv_bitmap.bm_w - wr - (SWIDTH / 64), (SHEIGHT / 24), "%s", xoutofy);
 
-		sprintf(complete, "%.2f%% complete", ((double)playerPoints / levelPoints) * 100);
+		if (levelPoints)
+			sprintf(complete, "%.2f%% complete", ((double)playerPoints / levelPoints) * 100);
+		else
+			sprintf(complete, "100.00%% complete");
 		gr_get_string_size(complete, &wr, &h, &aw);
 		gr_printf(grd_curcanv->cv_bitmap.bm_w - wr - (SWIDTH / 64), (SHEIGHT / 16), "%s", complete);
 	}
