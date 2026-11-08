@@ -907,7 +907,7 @@ int calculateRank(int level_num, int update_warm_start_status)
 		hostagePoints /= 3;
 	int skillPoints = ceil(((playerPoints + timePoints + hostagePoints) * (difficulty / 8.0)));
 	missedRngSpawn = floor(missedRngSpawn * ((difficulty + 8) / 8.0)); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
-	if (missedRngSpawn > 0) // In case scores from versions before the cap are read.
+	if (missedRngSpawn > 0) // In case scores are read from versions where the bug that made this positive was present.
 		missedRngSpawn = 0;
 	int deathPoints = 0;
 	double effectiveDeathLoadCount = max(0, deathCount) + loadCount;
@@ -1264,8 +1264,6 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 			else
 				sprintf(m_str[c++], "Deaths: %i\t%i", deathCount, deathPoints);
 		}
-		if (missedRngSpawn > 0)
-			missedRngSpawn = 0; // This should only be a penalty, so don't let it give the player points in the case where it malfunctions.
 		if (missedRngSpawn < 0)
 			sprintf(m_str[c++], "Missed RNG spawn: \t%i\n", missedRngSpawn);
 		else

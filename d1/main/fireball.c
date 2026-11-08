@@ -55,7 +55,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 //--unused-- ubyte	Frame_processed[MAX_OBJECTS];
 
-int fireball_flag_hack;
+int object_dropped_randomly;
 int fireball_matcen_hack;
 
 object *object_create_explosion_sub(object *objp, short segnum, vms_vector * position, fix size, int vclip_type, fix maxdamage, fix maxdistance, fix maxforce, int parent )
@@ -134,11 +134,7 @@ object *object_create_explosion_sub(object *objp, short segnum, vms_vector * pos
 								if ( obj0p->shields >= 0 ) {
 									if (apply_damage_to_robot(obj0p, damage, parent))
 										if (objp != NULL) {
-											if (obj0p->matcen_creator || obj0p->flags & OF_OBJECT_DROPPED) {
-												Ranking.excludePoints += Robot_info[obj0p->id].score_value;
-												if (!obj0p->matcen_creator && (obj0p->flags & OF_OBJECT_DROPPED))
-													Ranking.missedRngSpawn += Robot_info[obj0p->id].score_value;
-											}
+											updateMissedRngSpawn(obj0p);
 											if (!(parent == Players[Player_num].objnum)) {
 												Ranking.excludePoints -= Robot_info[obj0p->id].score_value;
 												add_points_to_score(0);
@@ -915,7 +911,7 @@ int drop_powerup(int type, int id, int num, vms_vector *init_vel, vms_vector *po
 #endif
 
 				obj = &Objects[objnum];
-				if (fireball_flag_hack)
+				if (object_dropped_randomly)
 					Objects[objnum].flags |= OF_OBJECT_DROPPED;
 
 				obj->mtype.phys_info.velocity = new_velocity;
@@ -990,7 +986,7 @@ int drop_powerup(int type, int id, int num, vms_vector *init_vel, vms_vector *po
 #endif
 
 				obj = &Objects[objnum];
-				if (fireball_flag_hack || obj->id == Robot_info[obj->id].contains_id) // To prevent most infinite robot drop loops.
+				if (object_dropped_randomly || obj->id == Robot_info[obj->id].contains_id) // To prevent most infinite robot drop loops.
 					obj->flags |= OF_OBJECT_DROPPED;
 
 				obj->matcen_creator = fireball_matcen_hack;
@@ -1241,7 +1237,7 @@ void do_explosion_sequence(object *obj)
 			//	If dropping a weapon that the player has, drop energy instead, unless it's vulcan, in which case drop vulcan ammo.
 			if (del_obj->contains_type == OBJ_POWERUP)
 				maybe_replace_powerup_with_energy(del_obj);
-			fireball_flag_hack = 0; // Fixed drops, so don't set the no score flag.
+			object_dropped_randomly = 0; // Fixed drops, so don't set the no score flag.
 			fireball_matcen_hack = 0; // Set the child's matcen value to the parent's, so Ranking.missedrngspawn functions right.
 			object_create_egg(del_obj);
 		} else if ((del_obj->type == OBJ_ROBOT) && !(Game_mode & GM_MULTI)) { // Multiplayer handled outside this code!!
@@ -1255,9 +1251,9 @@ void do_explosion_sequence(object *obj)
 						Ranking.missedRngSpawn -= Robot_info[del_obj->contains_id].score_value * del_obj->contains_count;
 					maybe_replace_powerup_with_energy(del_obj);
 					if (robptr->contains_prob == 16)
-						fireball_flag_hack = 0; // Drops with 100% chance are effectively fixed drops, so treat them as such.
+						object_dropped_randomly = 0; // Drops with 100% chance are effectively fixed drops, so treat them as such.
 					else
-						fireball_flag_hack = 1; // Random drops, so set the no score flag.
+						object_dropped_randomly = 1; // Random drops, so set the no score flag.
 					fireball_matcen_hack = del_obj->matcen_creator; // Set the child's matcen value to the parent's, so Ranking.missedrngspawn functions right.
 					object_create_egg(del_obj);
 				}

@@ -54,4 +54,6 @@ char* weapon_id_to_name(int weapon_id);
 
 void do_shield_warnings();
 
+void updateMissedRngSpawn(object* obj);
+
 #endif /* _COLLIDE_H */

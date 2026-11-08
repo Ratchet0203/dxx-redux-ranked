@@ -127,6 +127,14 @@ int apply_damage_to_clutter(object *clutter, fix damage)
 		return 0;
 }
 
+void updateMissedRngSpawn(object* obj)
+{
+	if (obj->matcen_creator || obj->flags & OF_OBJECT_DROPPED) {
+		Ranking.excludePoints += Robot_info[obj->id].score_value;
+		if (!obj->matcen_creator && (obj->flags & OF_OBJECT_DROPPED))
+			Ranking.missedRngSpawn += Robot_info[obj->id].score_value;
+	}
+}
 
 //given the specified force, apply damage from that force to an object
 void apply_force_damage(object *obj,fix force,object *other_obj)
@@ -160,11 +168,7 @@ void apply_force_damage(object *obj,fix force,object *other_obj)
 			}
 
 			if (result) {
-				if (obj->matcen_creator || obj->flags & OF_OBJECT_DROPPED) {
-					Ranking.excludePoints += Robot_info[obj->id].score_value;
-					if (!obj->matcen_creator && (obj->flags & OF_OBJECT_DROPPED))
-						Ranking.missedRngSpawn += Robot_info[obj->id].score_value;
-				}
+				updateMissedRngSpawn(obj);
 				if (!(other_obj->ctype.laser_info.parent_signature == ConsoleObject->signature)) {
 					Ranking.excludePoints -= Robot_info[obj->id].score_value;
 					add_points_to_score(0);
@@ -1010,10 +1014,7 @@ void collide_robot_and_weapon( object * robot, object * weapon, vms_vector *coll
 			if (! apply_damage_to_robot(robot, damage, weapon->ctype.laser_info.parent_num))
 				bump_two_objects(robot, weapon, 0);		//only bump if not dead. no damage from bump
 			else if (weapon->ctype.laser_info.parent_signature == ConsoleObject->signature || !(Game_mode & GM_MULTI_COOP)) {
-				if (robot->matcen_creator || robot->flags & OF_OBJECT_DROPPED)
-					Ranking.excludePoints += Robot_info[robot->id].score_value;
-				if (!robot->matcen_creator && (robot->flags & OF_OBJECT_DROPPED))
-					Ranking.missedRngSpawn += Robot_info[robot->id].score_value;
+				updateMissedRngSpawn(robot);
 				add_points_to_score(Robot_info[robot->id].score_value);
 			}
 		}
