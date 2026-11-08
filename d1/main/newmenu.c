@@ -1057,7 +1057,7 @@ int newmenu_key_command(window *wind, d_event *event, newmenu *menu)
 			break;
 
 		case KEY_R: // Allow restarting level from result screen with R.
-			if (RestartLevel.isResults && !Ranking.quickload) {
+			if (RestartLevel.isResults && !Ranking.modDisabled) {
 				if (item->type == NM_TYPE_INPUT_MENU)
 					item->group = 0;	// go out of editing mode
 				// Tell callback, allow staying in menu

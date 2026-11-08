@@ -779,7 +779,7 @@ int HandleSystemKey(int key)
 				int choice;
 				int allow_loadsave = !(Game_mode & GM_MULTI) || (Game_mode & GM_MULTI_COOP);
 				// If the level was reached via quickload, don't show the restart level button, as that's supposed to be part of the ranking mod, which is disabled in this case. Also can't restart on secret levels so don't give the option there.
-				if (Ranking.quickload) {
+				if (Ranking.modDisabled) {
 					choice = allow_loadsave ?
 						nm_messagebox(NULL, 4, "Abort Game", TXT_OPTIONS_, "Save Game...", TXT_LOAD_GAME, "Game menu") :
 						nm_messagebox(NULL, 2, "Abort Game", TXT_OPTIONS_, "Game menu");
@@ -1629,7 +1629,7 @@ int FinalCheats(int key)
 			*cheat_codes[i].stateptr = !*cheat_codes[i].stateptr;
 			Ranking.cheated = 1;
 			cheats.enabled = 1;
-			if (Newdemo_state == ND_STATE_PLAYBACK || (Game_mode & GM_MULTI_COOP) || (Ranking.quickload == 1 && Current_level_num > 0) || (Ranking.secretQuickload == 1 && Current_level_num < 0))
+			if (Newdemo_state == ND_STATE_PLAYBACK || (Game_mode & GM_MULTI_COOP) || (Ranking.modDisabled == 1 && Current_level_num > 0) || (Ranking.secretModDisabled == 1 && Current_level_num < 0))
 				Players[Player_num].score = 0;
 			digi_play_sample( SOUND_CHEATER, F1_0);
 			gotcha = i;

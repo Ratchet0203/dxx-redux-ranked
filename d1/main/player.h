@@ -126,23 +126,24 @@ typedef struct player {
 } __pack__ player;
 
 typedef struct ranking { // This struct contains variables for the ranking system mod. Most of them don't have to be doubles. It's either for math compatibility or consistency.
-	double     deathLoadCount;             // Number of times the player died or loaded a save during the level.
-	double     rankScore;                  // The version of score used for this mod, as to not disturb the vanilla score system.
-	double     excludePoints;              // Number of points gotten from sources we still want to contribute to vanilla score, but not count toward rank calculation.
-	double     maxScore;                   // The current level's S-rank score. Won't include hostage points until the result screen, to make calculation of other bonuses easier.
-	double     level_time;                 // Time variable used in rank calculation. Updates to match Players[Player_num].time_level at specific points to protect players from being penalized for not skipping things.
-	int        quickload;                  // Whether the player has quickloaded into the current level without any mod data in their save file.
-	double     parTime;                    // The algorithmically-generated required time for the current level.
-	double     calculatedScore;            // Stores the score determined in calculateRank.
+	int        deathCount;				   // Number of times the player died or loaded a save during the level.
+	int		   loadCount;                  // Number of times a supported save has been loaded during the level.
+	int        rankScore;                  // The version of score used for this mod, as to not disturb the vanilla score system.
+	int        excludePoints;              // Number of points gotten from sources we still want to contribute to vanilla score, but not count toward rank calculation.
+	int        maxScore;                   // The current level's S-rank score. Won't include hostage points until the result screen, to make calculation of other bonuses easier.
+	int        level_time;                 // Time variable used in rank calculation. Updates to match Players[Player_num].time_level at specific points to protect players from being penalized for not skipping things.
+	int		   modDisabled;				   // Whether the mod is disabled. Happens when player loads an unsupported save to prevent unintended side effects of data loss.
+	int        parTime;                    // The algorithmically-generated required time for the current level.
+	int        calculatedScore;            // Stores the score determined in calculateRank.
 	int        rank;                       // Stores the rank determined in calculateRank.
-	double     missedRngSpawn;             // Tracks the points from randomly-dropped robots that were ignored by the player, so they're subtracted at the end.
+	int        missedRngSpawn;             // Tracks the points from randomly-dropped robots that were ignored by the player, so they're subtracted at the end.
 	int        alreadyBeaten;              // Tracks whether the current level has been beaten before, so points remaining and par time HUD elements are not shown on a new level.
 	int		   fromBestRanksButton;        // Tracks whether the mission list was accessed from the best ranks button for not, to know whether to show aggregate ranks and allow record deleting. 0 means no, 1 means yes.
 	int        startingLevel;              // I hate making a ranking variable for this, but endlevel_handler doesn't support a level_num parameter due to the way it's called, so I have to use this for when levels are started from the record details screen.
 	int        lastSelectedItem;           // So the best ranks listbox doesn't keep putting you back at level 1 when you're retrying stuff. (Edit: This was back when the restart level button didn't exist, so it's a lot less important now but still a bit useful.)
 	int        missionRanks[MAX_MISSIONS]; // A struct for the aggregate ranks on the missions list because the userdata field for the list is already used by something.
 	int        warmStart;                  // If the player enters a level with anything non-default, this becomes 1. If this is 1 when a new record is set, the score will be marked as warm started, and display an asterisk when viewed.
-	double     freezeTimer;                // Tells levels' in-game timer whether it should be frozen or not (this is in D1 to keep par time text from turning red during the exit cutscene).
+	int        freezeTimer;                // Tells levels' in-game timer whether it should be frozen or not (this is in D1 to keep par time text from turning red during the exit cutscene).
 	int        noDamage;                   // A new bonus I had to add. Thanks Marvin... 4/22/2025
 	int        num_hostages;               // The number of hostages that are actually reachable in the level.
 } __pack__ ranking;

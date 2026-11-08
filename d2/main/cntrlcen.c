@@ -229,10 +229,10 @@ void do_countdown_frame()
 			//controlcen->MaxCapacity = Fuelcen_max_amount;
 			//gauge_message( "Control Center Reset" );
 			if (!Player_is_dead) {
-				Ranking.deathLoadCount++;
+				Ranking.deathCount++;
 				Ranking.noDamage = 0;
 				if (Current_level_num < 0) {
-					Ranking.secretDeathLoadCount++;
+					Ranking.secretDeathCount++;
 					Ranking.secretNoDamage = 0;
 				}
 			}
@@ -261,7 +261,7 @@ void do_controlcen_destroyed_stuff(object *objp)
 	// And start the countdown stuff.
 	Control_center_destroyed = 1;
 	if (Player_is_dead && Current_level_num > 0)
-			Ranking.secretDeathLoadCount--;
+			Ranking.secretDeathCount--;
 
 	// If a secret level, delete secret.sgc to indicate that we can't return to our secret level.
 	if (Current_level_num < 0)

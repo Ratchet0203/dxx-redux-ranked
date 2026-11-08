@@ -1127,7 +1127,7 @@ int state_restore_all_sub(char* filename)
 	fix tmptime32 = 0;
 	player_rw* pl_rw;
 	int rebirth = 0;
-	//Ranking.quickload = 1;
+	//Ranking.modDisabled = 1;
 
 #ifndef NDEBUG
 	if (GameArg.SysUsePlayersDir && strncmp(filename, "Players/", 8))
@@ -1518,7 +1518,7 @@ RetryObjectLoading:
 	//}
 	//else {
 		//HUD_init_message_literal(HM_DEFAULT, "Save file has no d1x-redux-ranked data! Mod disabled for this level.");
-		Ranking.quickload = 1;
+		Ranking.modDisabled = 1;
 	//}
 	PHYSFS_close(fp);
 

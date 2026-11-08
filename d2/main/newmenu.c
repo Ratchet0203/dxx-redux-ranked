@@ -907,8 +907,8 @@ void InitiateRestart()
 	Ranking.secretlevel_time = RestartLevel.secretlevel_time;
 	Ranking.secretlast_score = RestartLevel.secretlast_score;
 	Ranking.secret_hostages_on_board = RestartLevel.secret_hostages_on_board;
-	Ranking.secretDeathLoadCount = RestartLevel.secretDeathLoadCount;
-	Ranking.secretQuickload = RestartLevel.secretQuickload;
+	Ranking.secretDeathCount = RestartLevel.secretDeathCount;
+	Ranking.secretModDisabled = RestartLevel.secretQuickload;
 	Ranking.secretMissedRngSpawn = RestartLevel.secretMissedRngSpawn;
 	Ranking.secretNoDamage = RestartLevel.secretNoDamage;
 }
@@ -1076,7 +1076,7 @@ int newmenu_key_command(window *wind, d_event *event, newmenu *menu)
 			break;
 
 		case KEY_R: // Allow restarting level from result screen with R.
-			if (RestartLevel.isResults && !Ranking.quickload && Current_level_num > 0) {
+			if (RestartLevel.isResults && !Ranking.modDisabled && Current_level_num > 0) {
 				if (item->type == NM_TYPE_INPUT_MENU)
 					item->group = 0;	// go out of editing mode
 					// Tell callback, allow staying in menu

@@ -855,7 +855,8 @@ int calculateRank(int level_num, int update_warm_start_status)
 	double playerTime = 0;
 	int playerHostages = 0;
 	int difficulty = 0;
-	int deathLoadCount = 0;
+	int deathCount = 0;
+	int loadCount = 0;
 	int missedRngSpawn = 0;
 	char buffer[256];
 	char filename[256];
@@ -874,7 +875,7 @@ int calculateRank(int level_num, int update_warm_start_status)
 			PHYSFSX_getsTerminated(fp, buffer);
 			levelPoints = atoi(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
-			parTime = atof(buffer);
+			parTime = atoi(buffer);
 			PHYSFSX_getsTerminated(fp, buffer); // Fetch player data starting here.
 			playerPoints = atoi(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
@@ -882,16 +883,20 @@ int calculateRank(int level_num, int update_warm_start_status)
 			PHYSFSX_getsTerminated(fp, buffer);
 			playerHostages = atoi(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
-			difficulty = atof(buffer);
+			difficulty = atoi(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
-			deathLoadCount = atoi(buffer);
+			deathCount = atoi(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
-			missedRngSpawn = atof(buffer);
+			missedRngSpawn = atoi(buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
 			PHYSFSX_getsTerminated(fp, buffer);
 			if (update_warm_start_status)
 				Ranking.warmStart = atoi(buffer);
+			else
+				PHYSFSX_getsTerminated(fp, buffer);
+			PHYSFSX_getsTerminated(fp, buffer);
+			loadCount = atoi(buffer);
 		}
 	}
 	PHYSFS_close(fp);
@@ -904,29 +909,26 @@ int calculateRank(int level_num, int update_warm_start_status)
 	missedRngSpawn = floor(missedRngSpawn * ((difficulty + 8) / 8.0)); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
 	if (missedRngSpawn > 0) // In case scores from versions before the cap are read.
 		missedRngSpawn = 0;
-	double effectivedeathLoadCount = deathLoadCount;
-	effectivedeathLoadCount /= ((double)parTime / DEATH_PENALTY_LENGTH_FACTOR); // Longer level = more forgiving penalty.
-	if (levelPoints)
-		effectivedeathLoadCount /= (double)playerPoints / levelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
-	int deathPoints;
-	if (playerPoints) {
-		deathPoints = -(maxScore * 0.5 - maxScore * (0.5 / pow(2, effectivedeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
-	}
-	else {
-		if (deathLoadCount)
+	int deathPoints = 0;
+	double effectiveDeathLoadCount = max(0, deathCount) + loadCount;
+	if (effectiveDeathLoadCount) {
+		effectiveDeathLoadCount /= ((double)parTime / DEATH_PENALTY_LENGTH_FACTOR); // Longer level = more forgiving penalty.
+		if (levelPoints)
+			effectiveDeathLoadCount /= (double)playerPoints / levelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
+		if (playerPoints)
+			deathPoints = -(maxScore * 0.5 - maxScore * (0.5 / pow(2, effectiveDeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
+		else if (deathCount)
 			deathPoints = -maxScore * 0.5; // Player got no level points, max out penalty to avoid div 0 error.
-		else
-			deathPoints = 0;
 	}
-	if (deathLoadCount == -1 && levelPoints) // No damage = +1 rank letter
-		deathPoints = ceil((double)maxScore / 4) * ((double)playerPoints / levelPoints); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
+	if (deathCount == -1 && levelPoints) // No damage = +1 rank letter
+		deathPoints += ceil(((double)maxScore / 4) * ((double)playerPoints / levelPoints)); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 	Ranking.calculatedScore = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints + deathPoints;
 	// Calculate rank based on how much of the max score the player achieved.
 	// X >= 125%, S = 100-124%, A = 75-99%, B = 50-74%, C = 25-49%, D = 0-24%, E < 0%
 	// For ranks A-D, if RankShowPlusMinus is enabled, the lower third of the range gets a - and the upper third gets a +.
 	if (Ranking.rank) {
 		Ranking.rank = 1;
-		int rankPoints = floor((Ranking.calculatedScore / maxScore) * 12);
+		int rankPoints = floor(((double)Ranking.calculatedScore / maxScore) * 12);
 		if (rankPoints >= 0)
 			Ranking.rank = rankPoints + 2;
 		if (rankPoints > 11 && rankPoints < 15)
@@ -1014,7 +1016,7 @@ int endlevel_current_rank;
 extern grs_bitmap nm_background1;
 grs_bitmap transparent;
 int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
-	if (!((Current_level_num > 0 && Ranking.quickload) || (Current_level_num < 0 && Ranking.secretQuickload))) {
+	if (!((Current_level_num > 0 && Ranking.modDisabled) || (Current_level_num < 0 && Ranking.secretModDisabled))) {
 		switch (event->type) {
 		case EVENT_WINDOW_DRAW:
 			gr_palette_load(gr_palette);
@@ -1104,13 +1106,13 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 		level_points = Players[Player_num].score - Ranking.secretlast_score;
 
 	if (fromBestRanksMenu) {
-		Ranking.quickload = 0; // Set this to 0 so the rank image loads if the player quickloaded on their last played level.
-		Ranking.secretQuickload = 0; // Same thing but secret level.
+		Ranking.modDisabled = 0; // Set this to 0 so the rank image loads if the player quickloaded on their last played level.
+		Ranking.secretModDisabled = 0; // Same thing but secret level.
 	}
 	else
 		RestartLevel.isResults = 1;
 
-	int modDisabled = level_num > 0 ? Ranking.quickload : Ranking.secretQuickload;
+	int modDisabled = level_num > 0 ? Ranking.modDisabled : Ranking.secretModDisabled;
 	if (modDisabled) { // Only print the modded result screen if the player didn't quickload. Print the vanilla one otherwise, because loading unsupported saves causes missing crucial mod info.
 		if (cheats.enabled) { // Zero out all the bonuses when cheating while the mod's off.
 			shield_points = 0;
@@ -1145,7 +1147,8 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 		int playerPoints = level_points - Ranking.excludePoints;;
 		double playerTime = Ranking.level_time;
 		int playerHostages = Players[Player_num].hostages_on_board;
-		int deathLoadCount = Ranking.noDamage ? -1 : Ranking.deathLoadCount;
+		int deathCount = Ranking.noDamage ? -1 : Ranking.deathCount;
+		int loadCount = 1;//Ranking.loadCount;
 		int missedRngSpawn = Ranking.missedRngSpawn;
 		int maxScore = Ranking.maxScore;
 		int warmStart = Ranking.warmStart;
@@ -1178,7 +1181,7 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 					PHYSFSX_getsTerminated(fp, buffer);
 					difficulty = atoi(buffer);
 					PHYSFSX_getsTerminated(fp, buffer);
-					deathLoadCount = atoi(buffer);
+					deathCount = atoi(buffer);
 					PHYSFSX_getsTerminated(fp, buffer);
 					missedRngSpawn = atoi(buffer);
 					PHYSFSX_getsTerminated(fp, buffer);
@@ -1187,6 +1190,8 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 					sprintf(timeOfScore, buffer);
 					PHYSFSX_getsTerminated(fp, buffer);
 					warmStart = atoi(buffer);
+					PHYSFSX_getsTerminated(fp, buffer);
+					loadCount = atoi(buffer);
 					maxScore = (levelPoints + levelHostages * 5000) * 3;
 				}
 			}
@@ -1199,7 +1204,8 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 			playerPoints = level_points - Ranking.secretExcludePoints;
 			playerTime = f2fl(Ranking.secretlevel_time);
 			playerHostages = Ranking.secret_hostages_on_board;
-			deathLoadCount = Ranking.secretNoDamage ? -1 : Ranking.secretDeathLoadCount;
+			deathCount = Ranking.secretNoDamage ? -1 : Ranking.secretDeathCount;
+			loadCount = 0; // Loads pertaining to secret levels are... complicated. Set to 0 for now.
 			missedRngSpawn = Ranking.secretMissedRngSpawn;
 			maxScore = Ranking.secretMaxScore;
 			warmStart = 0;
@@ -1208,27 +1214,23 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 		int hostagePoints = playerHostages * 5000;
 		if (playerHostages < levelHostages)
 			hostagePoints /= 3;
-		hostagePoints = round(hostagePoints);
 		int skillPoints = ceil(((playerPoints + timePoints + hostagePoints) * (difficulty / 8.0)));
 		missedRngSpawn = floor(missedRngSpawn * ((difficulty + 8) / 8.0)); // Add skill bonus multiplier here instead of in the record file at results, in case we wanna change the multiplier.
 		if (missedRngSpawn > 0) // In case scores from versions before the cap are read.
 			missedRngSpawn = 0;
-		double effectivedeathLoadCount = deathLoadCount;
-		effectivedeathLoadCount /= ((double)parTime / DEATH_PENALTY_LENGTH_FACTOR); // Longer level = more forgiving penalty.
-		if (levelPoints)
-			effectivedeathLoadCount /= (double)playerPoints / levelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
-		int deathPoints;
-		if (playerPoints) {
-			deathPoints = -(maxScore * 0.5 - maxScore * (0.5 / pow(2, effectivedeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
-		}
-		else {
-			if (deathLoadCount)
+		int deathPoints = 0;
+		double effectiveDeathLoadCount = max(0, deathCount) + loadCount;
+		if (effectiveDeathLoadCount) {
+			effectiveDeathLoadCount /= ((double)parTime / DEATH_PENALTY_LENGTH_FACTOR); // Longer level = more forgiving penalty.
+			if (levelPoints)
+				effectiveDeathLoadCount /= (double)playerPoints / levelPoints; // Less completion = harsher penalty to avoid rewarding early suicides on countdown levels.
+			if (playerPoints)
+				deathPoints = -(maxScore * 0.5 - maxScore * (0.5 / pow(2, effectiveDeathLoadCount / 2))); // Every two deaths/loads = half the score loss of the previous two, for a max of half the S-rank score.
+			else if (deathCount)
 				deathPoints = -maxScore * 0.5; // Player got no level points, max out penalty to avoid div 0 error.
-			else
-				deathPoints = 0;
 		}
-		if (deathLoadCount == -1 && levelPoints) // No damage = +1 rank letter
-			deathPoints = ceil((double)maxScore / 4) * ((double)playerPoints / levelPoints); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
+		if (deathCount == -1 && levelPoints) // No damage = +1 rank letter
+			deathPoints += ceil(((double)maxScore / 4) * ((double)playerPoints / levelPoints)); // Round up instead of down for no damage bonus so score can't fall a point short and miss a rank.
 		int score = playerPoints + skillPoints + timePoints + missedRngSpawn + hostagePoints + deathPoints;
 
 		int minutes = playerTime / 60;
@@ -1250,10 +1252,18 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 		sprintf(m_str[c++], "Time: %s/%s\t%i", timeText, parTimeString, timePoints);
 		sprintf(m_str[c++], "Hostages: %i/%i\t%i", playerHostages, levelHostages, hostagePoints);
 		sprintf(m_str[c++], "Skill: %s\t%i", diffnames[difficulty], skillPoints);
-		if (deathLoadCount == -1)
-			sprintf(m_str[c++], "No damage\t%i", deathPoints);
-		else
-			sprintf(m_str[c++], "Deaths/loads: %i\t%i", deathLoadCount, deathPoints);
+		if (loadCount) {
+			if (deathCount == -1)
+				sprintf(m_str[c++], "No damage, Loads: %i\t%i", loadCount, deathPoints);
+			else
+				sprintf(m_str[c++], "Deaths: %i, Loads: %i\t%i", deathCount, loadCount, deathPoints);
+		}
+		else {
+			if (deathCount == -1)
+				sprintf(m_str[c++], "No damage\t%i", deathPoints);
+			else
+				sprintf(m_str[c++], "Deaths: %i\t%i", deathCount, deathPoints);
+		}
 		if (missedRngSpawn > 0)
 			missedRngSpawn = 0; // This should only be a penalty, so don't let it give the player points in the case where it malfunctions.
 		if (missedRngSpawn < 0)
@@ -1312,7 +1322,7 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 						PHYSFSX_printf(temp, "%.3f\n", playerTime);
 						PHYSFSX_printf(temp, "%i\n", playerHostages);
 						PHYSFSX_printf(temp, "%i\n", difficulty);
-						PHYSFSX_printf(temp, "%i\n", deathLoadCount);
+						PHYSFSX_printf(temp, "%i\n", deathCount);
 						PHYSFSX_printf(temp, "%i\n", missedRngSpawn);
 						PHYSFSX_printf(temp, "%s\n", levelName);
 						PHYSFSX_printf(temp, "%s", ctime(&timeOfScore));
@@ -3702,15 +3712,15 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 	initRankFile(level_num);
 	
 	if (First_secret_visit) {
-		Ranking.secretDeathLoadCount = 0;
+		Ranking.secretDeathCount = 0;
 		Ranking.secretlevel_time = 0;
 		Ranking.secretExcludePoints = 0;
 		Ranking.secretRankScore = 0;
 		Ranking.secretMissedRngSpawn = 0;
 		Ranking.secretlast_score = Players[Player_num].score;
 		Ranking.secret_hostages_on_board = 0;
-		Ranking.secretQuickload = 0;
-		if (Ranking.quickload)
+		Ranking.secretModDisabled = 0;
+		if (Ranking.modDisabled)
 			RestartLevel.updateRestartStuff = 1; // If we quickload into a normal level, then go into a secret level and back out to the next level, restarting will give default loadout without this.
 		Ranking.secret_num_hostages = 0;
 		Ranking.fromBestRanksButton = 2; // We need this for starting secret levels too, since the normal start can be bypassed with a save.
@@ -3738,7 +3748,7 @@ void ExitSecretLevel(void)
 
 	if (!Control_center_destroyed)
 		state_save_all(2, SECRETC_FILENAME, 0);
-	else if (Ranking.secretQuickload == 0) // Don't show quickloaders a result screen for secret levels, as that's not in the vanilla game, and quickloaded levels have this mod disabled.
+	else if (Ranking.secretModDisabled == 0) // Don't show quickloaders a result screen for secret levels, as that's not in the vanilla game, and quickloaded levels have this mod disabled.
 		DoEndLevelScoreGlitz(0, 0, Current_level_num);
 
 	if (PHYSFSX_exists(SECRETB_FILENAME,0))
@@ -3844,7 +3854,7 @@ void EnterSecretLevel(void)
 	if (Game_wind)
 		window_set_visible(Game_wind, 1);
 	Ranking.fromBestRanksButton = 0; // So loading a save doesn't cause the next result screen to let you select difficulty.
-	if (Ranking.secretQuickload == 1) {
+	if (Ranking.secretModDisabled == 1) {
 		HUD_init_message_literal(HM_DEFAULT, "You quickloaded! d2x-redux-ranked disabled for this level.");
 		digi_play_sample(SOUND_BAD_SELECTION, F1_0);
 	}
@@ -4124,7 +4134,7 @@ void DoPlayerDead()
 		do_screen_message(TXT_DIED_IN_MINE); // Give them some indication of what happened
 
 		if (Current_level_num < 0) {
-			if (!Ranking.secretQuickload) // Don't show quickloaders a result screen for secret levels, as that's not in the vanilla game, and quickloaded levels have this mod disabled.
+			if (!Ranking.secretModDisabled) // Don't show quickloaders a result screen for secret levels, as that's not in the vanilla game, and quickloaded levels have this mod disabled.
 				DoEndLevelScoreGlitz(0, 0, Current_level_num);
 			if (PHYSFSX_exists(SECRETB_FILENAME,0))
 			{
@@ -4507,8 +4517,8 @@ void UpdateRestartStuff()
 	RestartLevel.secretlevel_time = Ranking.secretlevel_time;
 	RestartLevel.secretlast_score = Ranking.secretlast_score;
 	RestartLevel.secret_hostages_on_board = Ranking.secret_hostages_on_board;
-	RestartLevel.secretDeathLoadCount = Ranking.secretDeathLoadCount;
-	RestartLevel.secretQuickload = Ranking.secretQuickload;
+	RestartLevel.secretDeathCount = Ranking.secretDeathCount;
+	RestartLevel.secretQuickload = Ranking.secretModDisabled;
 	RestartLevel.secretMissedRngSpawn = Ranking.secretMissedRngSpawn;
 	RestartLevel.secretNoDamage = Ranking.secretNoDamage;
 }
@@ -4522,11 +4532,12 @@ void StartNewLevel(int level_num)
 	GameTime64 = 0;
 	ThisLevelTime = 0;
 
-	Ranking.deathLoadCount = 0;
+	Ranking.deathCount = 0;
+	Ranking.loadCount = 0;
 	Ranking.excludePoints = 0;
 	Ranking.rankScore = 0;
 	Ranking.missedRngSpawn = 0;
-	Ranking.quickload = 0;
+	Ranking.modDisabled = 0;
 	Ranking.level_time = 0; // Set this to 0 despite it going unused until set to time_level, so we can save a variable when telling the in-game timer which time variable to display.
 	Ranking.fromBestRanksButton = 2; // So the result screen knows it's not just viewing record details.
 	Ranking.noDamage = 1;

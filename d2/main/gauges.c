@@ -710,14 +710,14 @@ void hud_show_score()
 	if ( (Game_mode & GM_MULTI) && !((Game_mode & GM_MULTI_COOP) || (Game_mode & GM_MULTI_ROBOTS)) ) {
 		sprintf(score_str, "%s: %5d", TXT_KILLS, Players[pnum].net_kills_total);
 	} else {
-		if (!(Newdemo_state == ND_STATE_NORMAL || Newdemo_state == ND_STATE_RECORDING) || (Game_mode & GM_MULTI) || (Ranking.quickload == 1 && Current_level_num > 0) || (Ranking.secretQuickload == 1 && Current_level_num < 0)) {
+		if (!(Newdemo_state == ND_STATE_NORMAL || Newdemo_state == ND_STATE_RECORDING) || (Game_mode & GM_MULTI) || (Ranking.modDisabled == 1 && Current_level_num > 0) || (Ranking.secretModDisabled == 1 && Current_level_num < 0)) {
 			sprintf(score_str, "%s: %5d", TXT_SCORE, Players[Player_num].score);
 		}
 		else {
 			if (Current_level_num > 0)
-				sprintf(score_str, "%s: %5.0f", TXT_SCORE, Ranking.rankScore);
+				sprintf(score_str, "%s: %5d", TXT_SCORE, Ranking.rankScore);
 			else
-				sprintf(score_str, "%s: %5.0f", TXT_SCORE, Ranking.secretRankScore);
+				sprintf(score_str, "%s: %5d", TXT_SCORE, Ranking.secretRankScore);
 		}
   	}
 
@@ -1498,7 +1498,7 @@ void hud_show_shield(void)
 	if (PlayerCfg.HudMode<2) {
 		gr_set_curfont( GAME_FONT );
 		// Turn the shield text gold when the no damage bonus is active, as sometimes damage can be <1 unit of shield.
-		if ((Ranking.noDamage && Current_level_num > 0 && !Ranking.quickload) || (Ranking.secretNoDamage && Current_level_num < 0 && !Ranking.secretQuickload))
+		if ((Ranking.noDamage && Current_level_num > 0 && !Ranking.modDisabled) || (Ranking.secretNoDamage && Current_level_num < 0 && !Ranking.secretModDisabled))
 			gr_set_fontcolor(BM_XRGB(255,215,0),-1 );
 		else
 			gr_set_fontcolor(BM_XRGB(0,31,0),-1 );
@@ -1650,7 +1650,7 @@ void add_points_to_score(int points)
 {
 	if ((Game_mode & GM_MULTI) && !((Game_mode & GM_MULTI_COOP) || (Game_mode & GM_MULTI_ROBOTS)))
 		return;
-	if (cheats.enabled && ((Ranking.quickload == 1 && Current_level_num > 0) || (Ranking.secretQuickload == 1 && Current_level_num < 0))) {
+	if (cheats.enabled && ((Ranking.modDisabled == 1 && Current_level_num > 0) || (Ranking.secretModDisabled == 1 && Current_level_num < 0))) {
 		score_time += f1_0 * 2;
 		if (score_time > f1_0 * 4)
 			score_time = f1_0 * 4;
@@ -1658,7 +1658,7 @@ void add_points_to_score(int points)
 	}
 	int prev_score = Players[Player_num].score;
 	Players[Player_num].score += points;
-	if (!(Game_mode & GM_MULTI || ((Ranking.quickload == 1 && Current_level_num > 0) || (Ranking.secretQuickload == 1 && Current_level_num < 0)))) {
+	if (!(Game_mode & GM_MULTI || ((Ranking.modDisabled == 1 && Current_level_num > 0) || (Ranking.secretModDisabled == 1 && Current_level_num < 0)))) {
 		int prev_rankscore;
 		if (Current_level_num > 0) {
 			Ranking.secretExcludePoints += points;
@@ -2000,7 +2000,7 @@ void draw_numerical_display(int shield, int energy)
 #endif
 	// cockpit is not 100% geometric so we need to divide shield and energy X position by 1.951 which should be most accurate
 	// gr_get_string_size is used so we can get the numbers finally in the correct position with sw and ew
-	if ((Ranking.noDamage && Current_level_num > 0 && !Ranking.quickload) || (Ranking.secretNoDamage && Current_level_num < 0 && !Ranking.secretQuickload))
+	if ((Ranking.noDamage && Current_level_num > 0 && !Ranking.modDisabled) || (Ranking.secretNoDamage && Current_level_num < 0 && !Ranking.secretModDisabled))
 		gr_set_fontcolor(BM_XRGB(255,215,0),-1);
 	else
 		gr_set_fontcolor(BM_XRGB(14,14,23),-1);
@@ -2360,7 +2360,7 @@ void sb_draw_shield_num(int shield)
 	int sw, sh, saw;
 
 	gr_set_curfont( GAME_FONT );
-	if ((Ranking.noDamage && Current_level_num > 0 && !Ranking.quickload) || (Ranking.secretNoDamage && Current_level_num < 0 && !Ranking.secretQuickload))
+	if ((Ranking.noDamage && Current_level_num > 0 && !Ranking.modDisabled) || (Ranking.secretNoDamage && Current_level_num < 0 && !Ranking.secretModDisabled))
 		gr_set_fontcolor(BM_XRGB(255,215,0),-1);
 	else
 		gr_set_fontcolor(BM_XRGB(14,14,23),-1);
@@ -4729,7 +4729,7 @@ void draw_hud()
 			hud_show_score_added();
 	}
 
-	if (!((Game_mode & GM_MULTI) || (!(Newdemo_state == ND_STATE_NORMAL || Newdemo_state == ND_STATE_RECORDING)) || (Ranking.quickload == 1 && Current_level_num > 0) || (Ranking.secretQuickload == 1 && Current_level_num < 0))) {
+	if (!((Game_mode & GM_MULTI) || (!(Newdemo_state == ND_STATE_NORMAL || Newdemo_state == ND_STATE_RECORDING)) || (Ranking.modDisabled == 1 && Current_level_num > 0) || (Ranking.secretModDisabled == 1 && Current_level_num < 0))) {
 		hud_show_pointstonextlife();
 		if ((Current_level_num > 0 && Ranking.alreadyBeaten) || (Current_level_num < 0 && Ranking.secretAlreadyBeaten)) // Only show points remaining if the level's been beaten before, so we don't spoil what's in a new level.
 			hud_show_pointsleftinlevel();

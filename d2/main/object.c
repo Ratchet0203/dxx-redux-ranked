@@ -1739,10 +1739,10 @@ void dead_player_frame(void)
 //	------------------------------------------------------------------------------------------------------------------
 void start_player_death_sequence(object* player)
 {
-	Ranking.deathLoadCount++;
+	Ranking.deathCount++;
 	Ranking.noDamage = 0; // In case someone dies to something that doesn't remove no damage status.
 	if ((Ranking.secretLevelEnteredYet && !Control_center_destroyed) || Current_level_num < 0)
-		Ranking.secretDeathLoadCount++;
+		Ranking.secretDeathCount++;
 	if (Current_level_num < 0)
 		Ranking.secretNoDamage = 0;
 	int	objnum;

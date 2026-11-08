@@ -137,16 +137,17 @@ typedef struct player {
 } __pack__ player;
 
 typedef struct ranking { // This struct contains variables for the ranking system mod. Most of them don't have to be doubles. It's either for math compatibility or consistency.
-	double  deathLoadCount;				// Number of times the player died or loaded a save during the level.
-	double  rankScore;                  // The version of score used for this mod, as to not disturb the vanilla score system.
-	double  excludePoints;              // Number of points gotten from sources we want to not count toward rank calculation, but still contribute to vanilla score.
-	double  maxScore;			        // The current level's S-rank score. Won't include hostage points until the result screen, to make calculation of other bonuses easier.
-	double  level_time;                 // Time variable used in rank calculation. Updates to match Players[Player_num].time_level at specific points to protect players from being penalized for not skipping things.
-	int     quickload;			       	// Whether the player has quickloaded into the current level.
-	double  parTime;                    // The algorithmically-generated required time for the current level.
-	double  calculatedScore;	       	// Stores the score determined in calculateRank.
+	int     deathCount;				    // Number of times the player died or loaded a save during the level.
+	int     loadCount;                  // Number of times a supported save has been loaded during the level.
+	int     rankScore;                  // The version of score used for this mod, as to not disturb the vanilla score system.
+	int     excludePoints;              // Number of points gotten from sources we want to not count toward rank calculation, but still contribute to vanilla score.
+	int     maxScore;			        // The current level's S-rank score. Won't include hostage points until the result screen, to make calculation of other bonuses easier.
+	int     level_time;                 // Time variable used in rank calculation. Updates to match Players[Player_num].time_level at specific points to protect players from being penalized for not skipping things.
+	int     modDisabled;			    // Whether the mod is disabled. Happens when player loads an unsupported save to prevent unintended side effects of data loss.
+	int     parTime;                    // The algorithmically-generated required time for the current level.
+	int     calculatedScore;	       	// Stores the score determined in calculateRank.
 	int     rank;				        // Stores the rank determined in calculateRank.
-	double  missedRngSpawn;	            // Tracks the points from randomly-dropped robots that were ignored by the player, so they're subtracted at the end.
+	int     missedRngSpawn;	            // Tracks the points from randomly-dropped robots that were ignored by the player, so they're subtracted at the end.
 	int     alreadyBeaten;              // Tracks whether the current level has been beaten before, so points remaining and par time HUD elements are not shown on a new level.
 	int	    fromBestRanksButton;        // Tracks whether the mission list was accessed from the best ranks button for not, to know whether to show aggregate ranks and allow record deleting. 0 means no, 1 means yes.
 	int     startingLevel;              // I hate making a ranking variable for this, but endlevel_handler doesn't support a level_num parameter due to the way it's called, so I have to use this for when levels are started from the record details screen.
@@ -154,23 +155,23 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	int     missionRanks[MAX_MISSIONS]; // A struct for the aggregate ranks on the missions list because the userdata field for the list is already used by something.
 	int     warmStart;                  // If the player enters a level with anything non-default, this becomes 1. If this is 1 when a new record is set, the score will be marked as warm started, and won't be visible if their display is disabled.
 	int     cheated;                    // I went to level 3, turned on cheats, entered S1, then when I exited S1 the cheats disabled themselves and my score counted... alright, fixing that.
-	double  freezeTimer;                // Tells normal levels' in-game timer whether it should be frozen or not.
+	int     freezeTimer;                // Tells normal levels' in-game timer whether it should be frozen or not.
 	int     noDamage;                   // A new bonus I had to add. Thanks Marvin... 4/22/2025
 	int     num_hostages;               // The number of hostages that are actually reachable in the level.
 	int     secretLevelEnteredYet;      // If a secret level has been entered since the current base level started, both death counters will be incremented if the player dies, to prevent suiciding on the other side of a teleporter for an unpenalized shield reset.
 
 	// Below are the ranking mod variables used for secret levels. Since we can play them in the middle of a normal one, we have to distinguish between them so results don't overlap.
 	
-	double	secretRankScore;
-	double  secretExcludePoints;
-	double	secretMaxScore;
-	double	secretlevel_time;
-	double  secretlast_score;		    // Secret equivalent of Players[Player_num].last_score.
+	int 	secretRankScore;
+	int     secretExcludePoints;
+	int 	secretMaxScore;
+	int 	secretlevel_time;
+	int     secretlast_score;		    // Secret equivalent of Players[Player_num].last_score.
 	int		secret_hostages_on_board;   // Since Players[Player_num].hostages_on_board carries over, and we don't want base level hostages' points counting for secret levels and vice versa.
-	double  secretDeathLoadCount;       // We don't want starting a new base level to remove the secret level's death penalty, or vise versa, so increment this alongside deathLoadCount, but only reset it upon starting a new secret level.
-	int     secretQuickload;		    // Same thing as secretDeathLoadCount, but with quickloading.
-	double  secretParTime;
-	double  secretMissedRngSpawn;
+	int     secretDeathCount;			// We don't want starting a new base level to remove the secret level's death penalty, or vise versa, so increment this alongside deathCount, but only reset it upon starting a new secret level.
+	int     secretModDisabled;		    // Same thing as secretDeathCount, but with quickloading.
+	int     secretParTime;
+	int     secretMissedRngSpawn;
 	int     secretAlreadyBeaten;
 	int     secretNoDamage;
 	int     secret_num_hostages;
@@ -200,7 +201,7 @@ typedef struct restartLevel { // Recreate and store certain info from player to 
 	double	secretlevel_time;
 	double  secretlast_score;
 	int		secret_hostages_on_board;
-	double  secretDeathLoadCount;
+	double  secretDeathCount;
 	int     secretQuickload;
 	double  secretMissedRngSpawn;
 	int     secretNoDamage;

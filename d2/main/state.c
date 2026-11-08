@@ -1182,8 +1182,8 @@ int state_restore_all(int in_game, int secret_restore, char *filename_override)
 	//	If Nsecret.sgc (where N = filenum) exists, then copy it to secret.sgc.
 	//	If it doesn't exist, then delete secret.sgc
 	if (!secret_restore) {
-		Ranking.quickload = 1;
-		Ranking.secretQuickload = 1;
+		Ranking.modDisabled = 1;
+		Ranking.secretModDisabled = 1;
 		int	rval;
 		char	temp_fname[PATH_MAX], fc;
 
@@ -1750,7 +1750,7 @@ int state_restore_all_sub(char* filename, int secret_restore)
 		if (!window_is_visible(Game_wind))
 			window_set_visible(Game_wind, 1);
 	reset_time();
-	if (Ranking.quickload == 1) {
+	if (Ranking.modDisabled == 1) {
 		Ranking.fromBestRanksButton = 0; // So loading a save doesn't cause the next result screen to let you select difficulty.
 		HUD_init_message_literal(HM_DEFAULT, "You quickloaded! d2x-redux-ranked disabled for this level.");
 		digi_play_sample(SOUND_BAD_SELECTION, F1_0);

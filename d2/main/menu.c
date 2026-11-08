@@ -701,15 +701,15 @@ int do_best_ranks_menu()
 				if (Ranking.rank > 0) {
 					if (Ranking.warmStart) {
 						if (i < Current_mission->last_level)
-							snprintf(list[i], 64, "%i. %s\t* %.0f    ", i + 1, level_name, Ranking.calculatedScore);
+							snprintf(list[i], 64, "%i. %s\t* %i    ", i + 1, level_name, Ranking.calculatedScore);
 						else
-							snprintf(list[i], 64, "S%i. %s\t* %.0f    ", i - Current_mission->last_level + 1, level_name, Ranking.calculatedScore);
+							snprintf(list[i], 64, "S%i. %s\t* %i    ", i - Current_mission->last_level + 1, level_name, Ranking.calculatedScore);
 					}
 					else {
 						if (i < Current_mission->last_level)
-							snprintf(list[i], 64, "%i. %s\t%.0f    ", i + 1, level_name, Ranking.calculatedScore);
+							snprintf(list[i], 64, "%i. %s\t%i    ", i + 1, level_name, Ranking.calculatedScore);
 						else
-							snprintf(list[i], 64, "S%i. %s\t%.0f    ", i - Current_mission->last_level + 1, level_name, Ranking.calculatedScore);
+							snprintf(list[i], 64, "S%i. %s\t%i    ", i - Current_mission->last_level + 1, level_name, Ranking.calculatedScore);
 					}
 				}
 				else {
