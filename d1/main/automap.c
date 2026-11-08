@@ -233,20 +233,39 @@ void draw_player( object * obj )
 	automap_draw_line(&sphere_point, &arrow_point);
 }
 
-void name_frame(automap *am)
+void name_frame(automap* am)
 {
-	char		name_level[128];
-	
-	if (Current_level_num > 0)
-		sprintf(name_level, "%s %i: ",TXT_LEVEL, Current_level_num);
-	else
-		name_level[0] = 0;
+	char	name_level_left[128], name_level_right[128], xoutofy[128], complete[128];
+	int wr, h, aw;
 
-	strcat(name_level, Current_level_name);
+	if (Current_level_num > 0)
+		sprintf(name_level_left, "%s %i", TXT_LEVEL, Current_level_num);
+	else
+		sprintf(name_level_left, "Secret Level %i", -Current_level_num);
+
+	strcpy(name_level_right, " ");
+
+	strcat(name_level_right, Current_level_name);
 
 	gr_set_curfont(GAME_FONT);
-	gr_set_fontcolor(am->green_31,-1);
-	gr_printf((SWIDTH/64),(SHEIGHT/48),"%s", name_level);
+	gr_set_fontcolor(am->green_31, -1);
+	gr_printf((SWIDTH / 64), (SHEIGHT / 48), "%s", name_level_left);
+	gr_get_string_size(name_level_right, &wr, &h, &aw);
+	gr_printf(grd_curcanv->cv_bitmap.bm_w - wr - (SWIDTH / 64), (SHEIGHT / 48), "%s", name_level_right);
+
+	// Show how much of the level the player has done, if they've beaten it before.
+	if (Ranking.alreadyBeaten) {
+		int playerPoints = Ranking.rankScore + Ranking.missedRngSpawn;
+		int levelPoints = (Ranking.maxScore / 3) - Ranking.num_hostages * 5000;
+
+		sprintf(xoutofy, "%i/%i points", playerPoints, levelPoints);
+		gr_get_string_size(xoutofy, &wr, &h, &aw);
+		gr_printf(grd_curcanv->cv_bitmap.bm_w - wr - (SWIDTH / 64), (SHEIGHT / 24), "%s", xoutofy);
+
+		sprintf(complete, "%.2f%% complete", ((double)playerPoints / levelPoints) * 100);
+		gr_get_string_size(complete, &wr, &h, &aw);
+		gr_printf(grd_curcanv->cv_bitmap.bm_w - wr - (SWIDTH / 64), (SHEIGHT / 16), "%s", complete);
+	}
 }
 
 static void automap_apply_input(automap *am)

@@ -779,36 +779,6 @@ void hud_show_speedometer()
 	gr_printf(grd_curcanv->cv_bitmap.bm_w - grd_curcanv->cv_bitmap.bm_w / 2, grd_curcanv->cv_bitmap.bm_h - grd_curcanv->cv_bitmap.bm_h / 2 + (LINE_SPACING * 2.5), "%d", speed);
 }
 
-void hud_show_pointsleftinlevel()
-{
-	int pointsleftinlevel = 0;
-	for (int i = 0; i <= Highest_object_index; i++) {
-		if (Objects[i].type == OBJ_ROBOT && !Objects[i].matcen_creator && !(Objects[i].flags & OF_EXPLODING))
-			pointsleftinlevel += Robot_info[Objects[i].id].score_value;
-		if (Objects[i].type == OBJ_CNTRLCEN && !Control_center_destroyed)
-			pointsleftinlevel += CONTROL_CEN_SCORE;
-		if (Objects[i].type == OBJ_HOSTAGE)
-			pointsleftinlevel += HOSTAGE_SCORE;
-		if (Objects[i].type == OBJ_POWERUP && Objects[i].id == POW_EXTRA_LIFE)
-			pointsleftinlevel += 10000;
-	}
-	if (HUD_toolong)
-		return;	
-
-	gr_set_curfont(GAME_FONT);
-
-	if (Color_0_31_0 == -1)
-		Color_0_31_0 = BM_XRGB(0, 31, 0);
-	gr_set_fontcolor(Color_0_31_0, -1);
-
-	if (pointsleftinlevel)
-		gr_printf(SWIDTH - FSPACX(65), FSPACY(15), "%i remains", pointsleftinlevel);
-	else {
-		gr_set_fontcolor(BM_XRGB(255, 215, 0), -1);
-		gr_printf(SWIDTH - FSPACX(55), FSPACY(15), "FULL CLEAR!");
-	}
-}
-
 void hud_show_timer_count()
 {
 #ifdef NETWORK
@@ -4362,8 +4332,6 @@ void draw_hud()
 
 	if (!((Game_mode & GM_MULTI) || !(Newdemo_state == ND_STATE_NORMAL || Newdemo_state == ND_STATE_RECORDING) || Ranking.modDisabled == 1)) {
 		hud_show_pointstonextlife();
-		if (Ranking.alreadyBeaten) // Only show points remaining if the level's been beaten before, so we don't spoil what's in a new level.
-			hud_show_pointsleftinlevel();
 		show_time();
 	}
 

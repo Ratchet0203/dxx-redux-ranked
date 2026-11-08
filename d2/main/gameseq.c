@@ -3121,7 +3121,6 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 	ParTime.missingKeys = 0;	
 	ParTime.objectives = 0;
 	ParTime.energy_gained_per_pickup = 18 - Difficulty_level * 3;
-	Ranking.num_hostages = 0;
 	ParTime.objectiveEnergies[0] = 100;
 	ParTime.objectiveFuelcenTripTimes[0] = -1; // We will never refill at the start because our energy is 100. Don't even bother doing the pathfinds here.
 	ParTime.energyUsed = 0;
@@ -3133,10 +3132,14 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 		for (j = 0; j < MAX_OBJECTIVES; j++)
 			ParTime.objectiveDistances[i][j] = -1;
 	}
-	if (Current_level_num > 0)
+	if (Current_level_num > 0) {
 		Ranking.maxScore = 0;
-	else
+		Ranking.num_hostages = 0;
+	}
+	else {
 		Ranking.secretMaxScore = 0;
+		Ranking.secret_num_hostages = 0;
+	}
 	double totalPathLength = 0;
 	if (!Difficulty_level)
 		ParTime.energy_gained_per_pickup = 27;
