@@ -936,7 +936,7 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 {
 	int level_points, skill_points, shield_points, energy_points, hostage_points, all_hostage_points = 0, endgame_points = 0;
 #define N_GLITZITEMS 12
-	char				m_str[N_GLITZITEMS][31];
+	char				m_str[N_GLITZITEMS][256];
 	newmenu_item	m[N_GLITZITEMS + 1];
 	int				i, c = 0;
 	char				title[128];

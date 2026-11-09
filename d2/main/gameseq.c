@@ -1065,7 +1065,7 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 {
 	int level_points, skill_points, shield_points, energy_points, hostage_points, all_hostage_points = 0, endgame_points = 0;
 #define N_GLITZITEMS 12
-	char				m_str[N_GLITZITEMS][31];
+	char				m_str[N_GLITZITEMS][256];
 	newmenu_item	m[N_GLITZITEMS + 1];
 	int				i, c = 0;
 	char				title[128];
@@ -1199,7 +1199,7 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 		}
 		else if (level_num < 0) {
 			levelHostages = Ranking.secret_num_hostages;
-			levelPoints = (Ranking.secretMaxScore / 3) - Ranking.num_hostages * 5000;
+			levelPoints = (Ranking.secretMaxScore / 3) - Ranking.secret_num_hostages * 5000;
 			parTime = Ranking.parTime;
 			playerPoints = level_points - Ranking.secretExcludePoints;
 			playerTime = f2fl(Ranking.secretlevel_time);
@@ -2788,7 +2788,7 @@ void respond_to_objective_partime(partime_objective objective, int index)
 					if (robInfo->boss_flag > 0)
 						ParTime.combatTime += 6; // Like in D1, bosses always do a 6s deathroll regardless of the flag's value.
 					else
-						ParTime.combatTime += min(robInfo->death_roll / 2 + 1, 6) * F1_0; // Formula based on do_any_robot_dying_frame in ai2.c.
+						ParTime.combatTime += min(robInfo->death_roll / 2 + 1, 6); // Formula based on do_any_robot_dying_frame in ai2.c.
 				}
 				if (obj->contains_type == OBJ_ROBOT && obj->contains_count > 0) {
 					robInfo = &Robot_info[obj->contains_id];
