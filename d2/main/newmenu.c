@@ -882,35 +882,62 @@ int newmenu_mouse(window *wind, d_event *event, newmenu *menu, int button)
 
 void InitiateRestart()
 {
-	// Only change equipped weapon when restarting if it's one player didn't already have.
-	if (!(RestartLevel.primary_weapon_flags & HAS_FLAG(Players[Player_num].primary_weapon)))
-		Players[Player_num].primary_weapon = RestartLevel.primary_weapon;
-	if (!(RestartLevel.secondary_weapon_flags & HAS_FLAG(Players[Player_num].secondary_weapon)))
-		Players[Player_num].secondary_weapon = RestartLevel.secondary_weapon;
-	Players[Player_num].score = Players[Player_num].last_score;
-	Players[Player_num].flags = RestartLevel.flags;
-	Players[Player_num].energy = RestartLevel.energy;
-	Players[Player_num].shields = RestartLevel.shields;
-	Players[Player_num].lives = RestartLevel.lives;
-	Players[Player_num].laser_level = RestartLevel.laser_level;
-	Players[Player_num].primary_weapon_flags = RestartLevel.primary_weapon_flags;
-	Players[Player_num].secondary_weapon_flags = RestartLevel.secondary_weapon_flags;
-	for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-		Players[Player_num].primary_ammo[i] = RestartLevel.primary_ammo[i];
-	for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-		Players[Player_num].secondary_ammo[i] = RestartLevel.secondary_ammo[i];
-	Players[Player_num].afterburner_charge = RestartLevel.afterburner_charge;
-	Omega_charge = RestartLevel.omega_charge;
-	Missile_gun = RestartLevel.Missile_gun;
-	Ranking.secretRankScore = RestartLevel.secretRankScore;
-	Ranking.secretExcludePoints = RestartLevel.secretExcludePoints;
-	Ranking.secretlevel_time = RestartLevel.secretlevel_time;
-	Ranking.secretlast_score = RestartLevel.secretlast_score;
-	Ranking.secret_hostages_on_board = RestartLevel.secret_hostages_on_board;
-	Ranking.secretDeathCount = RestartLevel.secretDeathCount;
-	Ranking.secretModDisabled = RestartLevel.secretQuickload;
-	Ranking.secretMissedRngSpawn = RestartLevel.secretMissedRngSpawn;
-	Ranking.secretNoDamage = RestartLevel.secretNoDamage;
+	if (Current_level_num > 0) {
+		// Only change equipped weapon when restarting if it's one player didn't already have.
+		if (!(RestartLevel.primary_weapon_flags & HAS_FLAG(Players[Player_num].primary_weapon)))
+			Players[Player_num].primary_weapon = RestartLevel.primary_weapon;
+		if (!(RestartLevel.secondary_weapon_flags & HAS_FLAG(Players[Player_num].secondary_weapon)))
+			Players[Player_num].secondary_weapon = RestartLevel.secondary_weapon;
+		Players[Player_num].score = Players[Player_num].last_score;
+		Players[Player_num].flags = RestartLevel.flags;
+		Players[Player_num].energy = RestartLevel.energy;
+		Players[Player_num].shields = RestartLevel.shields;
+		Players[Player_num].lives = RestartLevel.lives;
+		Players[Player_num].laser_level = RestartLevel.laser_level;
+		Players[Player_num].primary_weapon_flags = RestartLevel.primary_weapon_flags;
+		Players[Player_num].secondary_weapon_flags = RestartLevel.secondary_weapon_flags;
+		for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
+			Players[Player_num].primary_ammo[i] = RestartLevel.primary_ammo[i];
+		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+			Players[Player_num].secondary_ammo[i] = RestartLevel.secondary_ammo[i];
+		Players[Player_num].afterburner_charge = RestartLevel.afterburner_charge;
+		Omega_charge = RestartLevel.omega_charge;
+		Missile_gun = RestartLevel.Missile_gun;
+		Ranking.secretRankScore = RestartLevel.secretRankScore;
+		Ranking.secretExcludePoints = RestartLevel.secretExcludePoints;
+		Ranking.secretlevel_time = RestartLevel.secretlevel_time;
+		Ranking.secretlast_score = RestartLevel.secretlast_score;
+		Ranking.secret_hostages_on_board = RestartLevel.secret_hostages_on_board;
+		Ranking.secretDeathCount = RestartLevel.secretDeathCount;
+		Ranking.secretModDisabled = RestartLevel.secretQuickload;
+		Ranking.secretMissedRngSpawn = RestartLevel.secretMissedRngSpawn;
+		Ranking.secretNoDamage = RestartLevel.secretNoDamage;
+		RestartLevel.restarts++;
+	}
+	else {
+		if (!(RestartLevel.secret_primary_weapon_flags & HAS_FLAG(Players[Player_num].primary_weapon)))
+			Players[Player_num].primary_weapon = RestartLevel.secret_primary_weapon;
+		if (!(RestartLevel.secret_secondary_weapon_flags & HAS_FLAG(Players[Player_num].secondary_weapon)))
+			Players[Player_num].secondary_weapon = RestartLevel.secret_secondary_weapon;
+		Players[Player_num].score = Ranking.secretlast_score;
+		Players[Player_num].flags = RestartLevel.secret_flags;
+		Players[Player_num].energy = RestartLevel.secret_energy;
+		Players[Player_num].shields = RestartLevel.secret_shields;
+		Players[Player_num].lives = RestartLevel.secret_lives;
+		Players[Player_num].laser_level = RestartLevel.secret_laser_level;
+		Players[Player_num].primary_weapon_flags = RestartLevel.secret_primary_weapon_flags;
+		Players[Player_num].secondary_weapon_flags = RestartLevel.secret_secondary_weapon_flags;
+		for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
+			Players[Player_num].primary_ammo[i] = RestartLevel.secret_primary_ammo[i];
+		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+			Players[Player_num].secondary_ammo[i] = RestartLevel.secret_secondary_ammo[i];
+		Players[Player_num].afterburner_charge = RestartLevel.secret_afterburner_charge;
+		Omega_charge = RestartLevel.secret_omega_charge;
+		Missile_gun = RestartLevel.secret_Missile_gun;
+		Ranking.excludePoints = RestartLevel.excludePoints;
+		Ranking.deathCount = RestartLevel.deathCount;
+		RestartLevel.secretRestarts++;
+	}
 }
 
 int newmenu_key_command(window *wind, d_event *event, newmenu *menu)
@@ -942,6 +969,7 @@ int newmenu_key_command(window *wind, d_event *event, newmenu *menu)
 
 	old_choice = menu->citem;
 
+	int modDisabled = Current_level_num > 0 ? Ranking.modDisabled : Ranking.secretModDisabled;
 	switch( k )	{
 		case KEY_HOME:
 		case KEY_PAD7:
@@ -1076,21 +1104,28 @@ int newmenu_key_command(window *wind, d_event *event, newmenu *menu)
 			break;
 
 		case KEY_R: // Allow restarting level from result screen with R.
-			if (RestartLevel.isResults && !Ranking.modDisabled && Current_level_num > 0) {
+			if (RestartLevel.isResults && !modDisabled) {
 				if (item->type == NM_TYPE_INPUT_MENU)
 					item->group = 0;	// go out of editing mode
-					// Tell callback, allow staying in menu
+				// Tell callback, allow staying in menu
 				event->type = EVENT_NEWMENU_SELECTED;
 				if (menu->subfunction && (*menu->subfunction)(menu, event, menu->userdata))
 					return 1;
-					if (menu->rval)
-						*menu->rval = menu->citem;
+				if (menu->rval)
+					*menu->rval = menu->citem;
 				window_close(menu->wind);
-				InitiateRestart();
-				RestartLevel.restarts = RestartLevel.restartsCache;
-				RestartLevel.restarts++;
 				RestartLevel.isResults = 2;
 				RestartLevel.updateRestartStuff = 0;
+				if (Current_level_num > 0) {
+					RestartLevel.restarts = RestartLevel.restartsCache;
+					InitiateRestart();
+				}
+				else if (!RestartLevel.secretLevelExitedYet) {
+					RestartLevel.secretRestarts = RestartLevel.secretRestartsCache;
+					InitiateRestart();
+					resetSecretRankedStuff();
+					StartNewLevelSecret(Current_level_num, 0);
+				}
 				return 1;
 			}
 			break;

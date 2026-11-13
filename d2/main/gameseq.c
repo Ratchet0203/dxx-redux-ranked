@@ -1140,6 +1140,10 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 			RestartLevel.restartsCache = RestartLevel.restarts;
 			RestartLevel.restarts = 0;
 		}
+		else {
+			RestartLevel.secretRestartsCache = RestartLevel.secretRestarts;
+			RestartLevel.secretRestarts = 0;
+		}
 		// Now, do the mod scoring.
 		int levelHostages = Ranking.num_hostages;
 		int levelPoints = (Ranking.maxScore / 3) - Ranking.num_hostages * 5000;
@@ -1372,8 +1376,12 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 			if (modDisabled)
 				sprintf(title, "%s %i %s\n%s %s \n", TXT_LEVEL, level_num, TXT_COMPLETE, levelName, TXT_DESTROYED);
 			else {
-				if (Current_level_num < 0)
-					sprintf(title, "%s %i %s\n%s %s \n", TXT_SECRET_LEVEL, -level_num, TXT_COMPLETE, levelName, TXT_DESTROYED);
+				if (Current_level_num < 0) {
+					if (RestartLevel.secretLevelExitedYet)
+						sprintf(title, "%s %i %s\n%s %s \n", TXT_SECRET_LEVEL, -level_num, TXT_COMPLETE, levelName, TXT_DESTROYED);
+					else
+						sprintf(title, "%s %i %s\n%s %s \nR restarts level", TXT_SECRET_LEVEL, -level_num, TXT_COMPLETE, levelName, TXT_DESTROYED);
+				}
 				else
 					sprintf(title, "%s %i %s\n%s %s \nR restarts level", TXT_LEVEL, level_num, TXT_COMPLETE, levelName, TXT_DESTROYED);
 			}
@@ -3611,6 +3619,71 @@ void initRankFile(int level_num)
 	PHYSFS_close(fp);
 }
 
+void resetSecretRankedStuff()
+{
+	Ranking.secretDeathCount = 0;
+	Ranking.secretlevel_time = 0;
+	Ranking.secretExcludePoints = 0;
+	Ranking.secretRankScore = 0;
+	Ranking.secretMissedRngSpawn = 0;
+	Ranking.secret_hostages_on_board = 0;
+	Ranking.secretNoDamage = 1;
+	First_secret_visit = 1;
+}
+
+void UpdateRestartStuff(int is_secret)
+{
+	// This function needs a flag for secret levels instead of using Current_level_num.
+	// This is because the secret level's call happens before Current_level_num becomes negative.
+	if (is_secret) {
+		RestartLevel.secret_primary_weapon = Players[Player_num].primary_weapon;
+		RestartLevel.secret_secondary_weapon = Players[Player_num].secondary_weapon;
+		RestartLevel.secret_flags = Players[Player_num].flags;
+		RestartLevel.secret_energy = Players[Player_num].energy;
+		RestartLevel.secret_shields = Players[Player_num].shields;
+		RestartLevel.secret_lives = Players[Player_num].lives;
+		RestartLevel.secret_laser_level = Players[Player_num].laser_level;
+		RestartLevel.secret_primary_weapon_flags = Players[Player_num].primary_weapon_flags;
+		RestartLevel.secret_secondary_weapon_flags = Players[Player_num].secondary_weapon_flags;
+		for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
+			RestartLevel.secret_primary_ammo[i] = Players[Player_num].primary_ammo[i];
+		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+			RestartLevel.secret_secondary_ammo[i] = Players[Player_num].secondary_ammo[i];
+		RestartLevel.secret_afterburner_charge = Players[Player_num].afterburner_charge;
+		RestartLevel.secret_omega_charge = Omega_charge;
+		RestartLevel.secret_Missile_gun = Missile_gun;
+		RestartLevel.excludePoints = Ranking.excludePoints;
+		RestartLevel.deathCount = Ranking.deathCount;
+	}
+	else {
+		RestartLevel.primary_weapon = Players[Player_num].primary_weapon;
+		RestartLevel.secondary_weapon = Players[Player_num].secondary_weapon;
+		RestartLevel.flags = Players[Player_num].flags;
+		RestartLevel.energy = Players[Player_num].energy;
+		RestartLevel.shields = Players[Player_num].shields;
+		RestartLevel.lives = Players[Player_num].lives;
+		RestartLevel.laser_level = Players[Player_num].laser_level;
+		RestartLevel.primary_weapon_flags = Players[Player_num].primary_weapon_flags;
+		RestartLevel.secondary_weapon_flags = Players[Player_num].secondary_weapon_flags;
+		for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
+			RestartLevel.primary_ammo[i] = Players[Player_num].primary_ammo[i];
+		for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+			RestartLevel.secondary_ammo[i] = Players[Player_num].secondary_ammo[i];
+		RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
+		RestartLevel.omega_charge = Omega_charge;
+		RestartLevel.Missile_gun = Missile_gun;
+		RestartLevel.secretRankScore = Ranking.secretRankScore;
+		RestartLevel.secretExcludePoints = Ranking.secretExcludePoints;
+		RestartLevel.secretlevel_time = Ranking.secretlevel_time;
+		RestartLevel.secretlast_score = Ranking.secretlast_score;
+		RestartLevel.secret_hostages_on_board = Ranking.secret_hostages_on_board;
+		RestartLevel.secretDeathCount = Ranking.secretDeathCount;
+		RestartLevel.secretQuickload = Ranking.secretModDisabled;
+		RestartLevel.secretMissedRngSpawn = Ranking.secretMissedRngSpawn;
+		RestartLevel.secretNoDamage = Ranking.secretNoDamage;
+	}
+}
+
 // called when the player is starting a new level for normal game mode and restore state
 //	Need to deal with whether this is the first time coming to this level or not.  If not the
 //	first time, instead of initializing various things, need to do a game restore for all the
@@ -3634,18 +3707,8 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 
 		set_screen_mode(SCREEN_MENU);
 
-		if (First_secret_visit) {
-			do_screen_message(TXT_SECRET_EXIT);
-		}
-		else {
-			if (PHYSFSX_exists(SECRETC_FILENAME, 0))
-			{
-				do_screen_message(TXT_SECRET_EXIT);
-			}
-			else {
-				do_screen_message("Secret level already destroyed.\nAdvancing to level %i.", Current_level_num + 1);
-			}
-		}
+		if (!First_secret_visit && !PHYSFSX_exists(SECRETC_FILENAME, 0) && RestartLevel.secretLevelExitedYet)
+			do_screen_message("Secret level already destroyed.\nAdvancing to level %i.", Current_level_num + 1);
 	}
 
 	LoadLevel(level_num, page_in_textures);
@@ -3681,7 +3744,7 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 		StartSecretLevel();
 	}
 	else {
-		if (PHYSFSX_exists(SECRETC_FILENAME, 0))
+		if (PHYSFSX_exists(SECRETC_FILENAME, 0) || !RestartLevel.secretLevelExitedYet)
 		{
 			int	pw_save, sw_save;
 
@@ -3712,24 +3775,18 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 	
 	initRankFile(level_num);
 	
-	if (First_secret_visit) {
-		Ranking.secretDeathCount = 0;
-		Ranking.secretlevel_time = 0;
-		Ranking.secretExcludePoints = 0;
-		Ranking.secretRankScore = 0;
-		Ranking.secretMissedRngSpawn = 0;
-		Ranking.secretlast_score = Players[Player_num].score;
-		Ranking.secret_hostages_on_board = 0;
-		Ranking.secretModDisabled = 0;
-		if (Ranking.modDisabled)
-			RestartLevel.updateRestartStuff = 1; // If we quickload into a normal level, then go into a secret level and back out to the next level, restarting will give default loadout without this.
-		Ranking.secret_num_hostages = 0;
-		Ranking.fromBestRanksButton = 2; // We need this for starting secret levels too, since the normal start can be bypassed with a save.
-		Ranking.secretNoDamage = 1;
-
-		Ranking.secretAlreadyBeaten = 0;
+	if (RestartLevel.secretRestarts && !RestartLevel.secretLevelExitedYet) {
+		const char message[256];
+		if (RestartLevel.secretRestarts == 1)
+			sprintf(message, "1 restart and counting...");
+		else
+			sprintf(message, "%i restarts and counting...", RestartLevel.secretRestarts);
+		powerup_basic(-10, -10, -10, 0, message);
+	}
+	else if (!RestartLevel.secretLevelExitedYet) {
 		calculateParTime();
-		if (calculateRank(Current_mission->last_level - level_num, 0) > 0)
+		Ranking.secretAlreadyBeaten = 0;
+		if (calculateRank(Current_mission->last_level - Next_level_num, 0) > 0)
 			Ranking.secretAlreadyBeaten = 1;
 	}
 	First_secret_visit = 0;
@@ -3752,30 +3809,36 @@ void ExitSecretLevel(void)
 	else if (Ranking.secretModDisabled == 0) // Don't show quickloaders a result screen for secret levels, as that's not in the vanilla game, and quickloaded levels have this mod disabled.
 		DoEndLevelScoreGlitz(0, 0, Current_level_num);
 
-	if (PHYSFSX_exists(SECRETB_FILENAME,0))
-	{
-		int	pw_save, sw_save;
+	if (RestartLevel.isResults < 2) { // If the player wants to restart the secret level, don't trigger the code that takes them back to the base one.
+		RestartLevel.secretLevelExitedYet = 1;
 
-		do_screen_message(TXT_SECRET_RETURN);
-		pw_save = Players[Player_num].primary_weapon;
-		sw_save = Players[Player_num].secondary_weapon;
-		state_restore_all(1, 1, SECRETB_FILENAME);
-		Players[Player_num].primary_weapon = pw_save;
-		Players[Player_num].secondary_weapon = sw_save;
-	} else {
-		// File doesn't exist, so can't return to base level.  Advance to next one.
-		if (Entered_from_level == Last_level)
-			DoEndGame();
-		else {
-			do_screen_message(TXT_SECRET_ADVANCE);
-			StartNewLevel(Entered_from_level+1);
+		if (PHYSFSX_exists(SECRETB_FILENAME, 0))
+		{
+			int	pw_save, sw_save;
+
+			do_screen_message(TXT_SECRET_RETURN);
+			pw_save = Players[Player_num].primary_weapon;
+			sw_save = Players[Player_num].secondary_weapon;
+			state_restore_all(1, 1, SECRETB_FILENAME);
+			Players[Player_num].primary_weapon = pw_save;
+			Players[Player_num].secondary_weapon = sw_save;
 		}
+		else {
+			// File doesn't exist, so can't return to base level.  Advance to next one.
+			if (Entered_from_level == Last_level)
+				DoEndGame();
+			else {
+				do_screen_message(TXT_SECRET_ADVANCE);
+				StartNewLevel(Entered_from_level + 1);
+			}
+		}
+
+		reset_time();
+		Ranking.rankScore = Players[Player_num].score - Players[Player_num].last_score - Ranking.excludePoints;
 	}
 
 	if (Game_wind)
 		window_set_visible(Game_wind, 1);
-	reset_time();
-	Ranking.rankScore = Players[Player_num].score - Players[Player_num].last_score - Ranking.excludePoints;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -3846,8 +3909,22 @@ void EnterSecretLevel(void)
 	} else {
 		if (RestartLevel.isResults == 2) // We need restart stuff here to make it work on result screens going into a secret level, so the player doesn't get spat out there anyway.
 			StartNewLevel(Current_level_num);
-		else
-		   	StartNewLevelSecret(Next_level_num, 1);
+		else {
+			if (First_secret_visit) {
+				do_screen_message(TXT_SECRET_EXIT);
+				RestartLevel.secretLevelExitedYet = 0;
+				RestartLevel.secretRestarts = 0;
+				resetSecretRankedStuff();
+				Ranking.secretlast_score = Players[Player_num].score;
+				Ranking.secretModDisabled = 0;
+				if (Ranking.modDisabled)
+					RestartLevel.updateRestartStuff = 1; // If we quickload into a normal level, then go into a secret level and back out to the next level, restarting will give default loadout without this.
+				Ranking.fromBestRanksButton = 2; // We need this for starting secret levels too, since the normal start can be bypassed with a save.
+				if (RestartLevel.updateRestartStuff)
+					UpdateRestartStuff(1);
+			}
+			StartNewLevelSecret(Next_level_num, 1);
+		}
 	}
 	// END NMN
 
@@ -4495,35 +4572,6 @@ void OverwriteSecretFiles(const char *fname, const char *fname2)
 	return;
 }
 
-void UpdateRestartStuff()
-{
-	RestartLevel.primary_weapon = Players[Player_num].primary_weapon;
-	RestartLevel.secondary_weapon = Players[Player_num].secondary_weapon;
-	RestartLevel.flags = Players[Player_num].flags;
-	RestartLevel.energy = Players[Player_num].energy;
-	RestartLevel.shields = Players[Player_num].shields;
-	RestartLevel.lives = Players[Player_num].lives;
-	RestartLevel.laser_level = Players[Player_num].laser_level;
-	RestartLevel.primary_weapon_flags = Players[Player_num].primary_weapon_flags;
-	RestartLevel.secondary_weapon_flags = Players[Player_num].secondary_weapon_flags;
-	for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-		RestartLevel.primary_ammo[i] = Players[Player_num].primary_ammo[i];
-	for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-		RestartLevel.secondary_ammo[i] = Players[Player_num].secondary_ammo[i];
-	RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
-	RestartLevel.omega_charge = Omega_charge;
-	RestartLevel.Missile_gun = Missile_gun;
-	RestartLevel.secretRankScore = Ranking.secretRankScore;
-	RestartLevel.secretExcludePoints = Ranking.secretExcludePoints;
-	RestartLevel.secretlevel_time = Ranking.secretlevel_time;
-	RestartLevel.secretlast_score = Ranking.secretlast_score;
-	RestartLevel.secret_hostages_on_board = Ranking.secret_hostages_on_board;
-	RestartLevel.secretDeathCount = Ranking.secretDeathCount;
-	RestartLevel.secretQuickload = Ranking.secretModDisabled;
-	RestartLevel.secretMissedRngSpawn = Ranking.secretMissedRngSpawn;
-	RestartLevel.secretNoDamage = Ranking.secretNoDamage;
-}
-
 //called when the player is starting a new level for normal game model
 //	secret_flag if came from a secret level
 void StartNewLevel(int level_num)
@@ -4550,7 +4598,7 @@ void StartNewLevel(int level_num)
 		Players[Player_num].score = 0; // Make sure players always start 50k points from next life.
 	}
 	if (RestartLevel.updateRestartStuff)
-		UpdateRestartStuff();
+		UpdateRestartStuff(0);
 	Ranking.warmStart = checkForWarmStart();
 	Ranking.secretLevelEnteredYet = 0;
 
@@ -4591,10 +4639,10 @@ void StartNewLevel(int level_num)
 	}
 	else {
 		calculateParTime();
+		Ranking.alreadyBeaten = 0;
+		if (calculateRank(level_num, 0) > 0)
+			Ranking.alreadyBeaten = 1;
 	}
-	Ranking.alreadyBeaten = 0;
-	if (calculateRank(level_num, 0) > 0)
-		Ranking.alreadyBeaten = 1;
 }
 
 int previewed_spawn_point = 0;

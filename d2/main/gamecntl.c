@@ -778,8 +778,9 @@ int HandleSystemKey(int key)
 			{
 				int choice;
 				int allow_loadsave = !(Game_mode & GM_MULTI) || (Game_mode & GM_MULTI_COOP);
-				// If the level was reached via quickload, don't show the restart level button, as that's supposed to be part of the ranking mod, which is disabled in this case. Also can't restart on secret levels so don't give the option there.
-				if (Ranking.modDisabled || Current_level_num < 0) {
+				// If the level was reached via quickload, don't show the restart level button, as that's supposed to be part of the ranking mod, which is disabled in this case. 
+				int modDisabled = Current_level_num > 0 ? Ranking.modDisabled : Ranking.secretModDisabled;
+				if (modDisabled) {
 					choice = allow_loadsave ?
 						nm_messagebox(NULL, 4, "Abort Game", TXT_OPTIONS_, "Save Game...", TXT_LOAD_GAME, "Game menu") :
 						nm_messagebox(NULL, 2, "Abort Game", TXT_OPTIONS_, "Game menu");
@@ -966,14 +967,20 @@ int HandleSystemKey(int key)
 			}
 				break;
 		case KEY_ALTED+KEY_F5:
-			if (Current_level_num > 0) {
+			if (Current_level_num > 0 || !RestartLevel.secretLevelExitedYet) {
 				InitiateRestart();
-				RestartLevel.restarts++;
-				// Note: time abuse with restarts is possible due to player speed not resetting properly and idk how to fix it.
-				StartNewLevel(Current_level_num);
+				if (Current_level_num > 0) {
+					// Note: time abuse with restarts is possible due to player speed not resetting properly and idk how to fix it.
+					StartNewLevel(Current_level_num);
+				}
+				else {
+					resetSecretRankedStuff();
+					PHYSFS_delete(SECRETC_FILENAME); // So the level doesn't use this to load the wrong data.
+					StartNewLevelSecret(Current_level_num, 0);
+				}
 			}
 			else {
-				HUD_init_message_literal(HM_DEFAULT, "Can't restart in secret level!");
+				HUD_init_message_literal(HM_DEFAULT, "Can't restart secret level after leaving and returning.");
 			}
 			break;
 

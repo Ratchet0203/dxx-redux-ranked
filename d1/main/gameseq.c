@@ -3620,10 +3620,7 @@ void StartNewLevel(int level_num)
 	initRankFile(level_num);
 
 	RestartLevel.isResults = 0;
-	if (!RestartLevel.restarts) { // Don't calculate par time if we're restarting. We already have that information and it's not changing. This will reduce restart load times slightly.
-		calculateParTime();
-	}
-	else {
+	if (RestartLevel.restarts) { // Don't calculate par time if we're restarting. We already have that information and it's not changing. This will reduce restart load times slightly.
 		char message[256];
 		if (RestartLevel.restarts == 1)
 			sprintf(message, "1 restart and counting...");
@@ -3631,14 +3628,17 @@ void StartNewLevel(int level_num)
 			sprintf(message, "%i restarts and counting...", RestartLevel.restarts);
 		powerup_basic(-10, -10, -10, 0, message);
 	}
-	Ranking.alreadyBeaten = 0;
-	if (level_num > 0) {
-		if (calculateRank(level_num, 0) > 0)
-			Ranking.alreadyBeaten = 1;
-	}
 	else {
-		if (calculateRank(Current_mission->last_level - level_num, 0) > 0)
-			Ranking.alreadyBeaten = 1;
+		calculateParTime();
+		Ranking.alreadyBeaten = 0;
+		if (level_num > 0) {
+			if (calculateRank(level_num, 0) > 0)
+				Ranking.alreadyBeaten = 1;
+		}
+		else {
+			if (calculateRank(Current_mission->last_level - level_num, 0) > 0)
+				Ranking.alreadyBeaten = 1;
+		}
 	}
 }
 

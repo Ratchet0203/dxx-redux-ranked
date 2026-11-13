@@ -192,19 +192,40 @@ typedef struct restartLevel { // Recreate and store certain info from player to 
 	ushort  primary_ammo[MAX_PRIMARY_WEAPONS];
 	ushort  secondary_ammo[MAX_PRIMARY_WEAPONS];
 	int		Missile_gun;
-	int     restarts; // Used for whether to skip briefings or not.
-	int     restartsCache; // Just one of the many hoops needed to keep the restart counter accurate when restarting at result screen.
-	int     isResults; // So pressing R on a wide array of menus doesn't try to restart a level you aren't on.
-	int     updateRestartStuff; // Self explanatory.
-	double	secretRankScore;
-	double  secretExcludePoints;
-	double	secretlevel_time;
-	double  secretlast_score;
+	int     restarts;					// Used for whether to skip briefings or not.
+	int     restartsCache;				// Just one of the many hoops needed to keep the restart counter accurate when restarting at result screen.
+	int     isResults;					// So pressing R on a wide array of menus doesn't try to restart a level you aren't on.
+	int     updateRestartStuff;			// Self explanatory.
+	int 	secretRankScore;
+	int     secretExcludePoints;
+	int 	secretlevel_time;
+	int     secretlast_score;
 	int		secret_hostages_on_board;
-	double  secretDeathCount;
+	int     secretDeathCount;
 	int     secretQuickload;
-	double  secretMissedRngSpawn;
+	int     secretMissedRngSpawn;
 	int     secretNoDamage;
+	int		secretLevelExitedYet;       // Restarting secret levels isn't allowed once they've been left, to maintain continuity with base levels.
+
+	// Below is the data for restarting secret levels.
+	uint    secret_flags;
+	fix     secret_energy;
+	fix     secret_shields;
+	fix     secret_afterburner_charge;
+	fix     secret_omega_charge;
+	ubyte   secret_lives;
+	ubyte   secret_laser_level;
+	sbyte   secret_primary_weapon;
+	sbyte   secret_secondary_weapon;
+	ushort  secret_primary_weapon_flags;
+	ushort  secret_secondary_weapon_flags;
+	ushort  secret_primary_ammo[MAX_PRIMARY_WEAPONS];
+	ushort  secret_secondary_ammo[MAX_PRIMARY_WEAPONS];
+	int		secret_Missile_gun;
+	int     secretRestarts;
+	int     secretRestartsCache;
+	int     excludePoints;				// Save the base level's excludePoints` value, since that increments when scoring in secret levels and needs reset.
+	int     deathCount;					// Save the base level's death count as well, so deaths added to it from the secret level are undone by restarting.
 } __pack__ restartLevel;
 
 // Same as above but structure how Savegames expect
