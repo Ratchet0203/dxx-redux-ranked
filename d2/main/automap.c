@@ -435,8 +435,8 @@ void name_frame(automap *am)
 	
 	// Show how much of the level the player has done, if they've beaten it before.
 	if (Current_level_num > 0 ? Ranking.alreadyBeaten : Ranking.secretAlreadyBeaten) {
-		int playerPoints = Current_level_num > 0 ? Ranking.rankScore + Ranking.missedRngSpawn : Ranking.secretRankScore + Ranking.secretMissedRngSpawn;
-		int levelPoints = Current_level_num > 0 ? (Ranking.maxScore / 3) - Ranking.num_hostages * 5000 : (Ranking.secretMaxScore / 3) - Ranking.secret_num_hostages * 5000;
+		int playerPoints = Current_level_num > 0 ? Ranking.rankScore + Ranking.missedRngSpawn : Ranking.secretRankScore;
+		int levelPoints = Current_level_num > 0 ? ((Ranking.maxScore / 3) - Ranking.num_hostages * 5000) - Ranking.missedRngSpawn : ((Ranking.secretMaxScore / 3) - Ranking.secret_num_hostages * 5000) - Ranking.secretMissedRngSpawn;
 
 		sprintf(xoutofy, "%i/%i points", playerPoints, levelPoints);
 		gr_get_string_size(xoutofy, &wr, &h, &aw);
