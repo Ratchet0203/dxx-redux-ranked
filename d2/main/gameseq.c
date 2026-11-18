@@ -1106,14 +1106,14 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 		level_points = Players[Player_num].score - Ranking.secretlast_score;
 
 	if (fromBestRanksMenu) {
-		Ranking.modDisabled = 0; // Set this to 0 so the rank image loads if the player quickloaded on their last played level.
+		Ranking.modDisabled = 0; // Set this to 0 so the rank image loads if the player loaded an unsupported save on their last played level.
 		Ranking.secretModDisabled = 0; // Same thing but secret level.
 	}
 	else
 		RestartLevel.isResults = 1;
 
 	int modDisabled = level_num > 0 ? Ranking.modDisabled : Ranking.secretModDisabled;
-	if (modDisabled) { // Only print the modded result screen if the player didn't quickload. Print the vanilla one otherwise, because loading unsupported saves causes missing crucial mod info.
+	if (modDisabled) { // Only print the modded result screen if the mod is enabled. Print the vanilla one otherwise, because loading unsupported saves causes missing crucial mod info.
 		if (cheats.enabled) { // Zero out all the bonuses when cheating while the mod's off.
 			shield_points = 0;
 			energy_points = 0;
@@ -3806,7 +3806,7 @@ void ExitSecretLevel(void)
 
 	if (!Control_center_destroyed)
 		state_save_all(2, SECRETC_FILENAME, 0);
-	else if (Ranking.secretModDisabled == 0) // Don't show quickloaders a result screen for secret levels, as that's not in the vanilla game, and quickloaded levels have this mod disabled.
+	else if (Ranking.secretModDisabled == 0) // Don't show people with mod disabled a result screen for secret levels, as that's not in the vanilla game.
 		DoEndLevelScoreGlitz(0, 0, Current_level_num);
 
 	if (RestartLevel.isResults < 2) { // If the player wants to restart the secret level, don't trigger the code that takes them back to the base one.
@@ -3917,7 +3917,7 @@ void EnterSecretLevel(void)
 				resetSecretRankedStuff();
 				Ranking.secretlast_score = Players[Player_num].score;
 				Ranking.secretModDisabled = 0;
-				RestartLevel.updateRestartStuff = 1; // If we quickload into a normal level, then go into a secret level and back out to the next level, restarting will give default loadout without this.
+				RestartLevel.updateRestartStuff = 1; // If we load a normal level with an unsupported save, then go into a secret level and back out to the next level, restarting will give default loadout without this.
 				Ranking.fromBestRanksButton = 2; // We need this for starting secret levels too, since the normal start can be bypassed with a save.
 				UpdateRestartStuff(1);
 			}
@@ -3931,7 +3931,7 @@ void EnterSecretLevel(void)
 		window_set_visible(Game_wind, 1);
 	Ranking.fromBestRanksButton = 0; // So loading a save doesn't cause the next result screen to let you select difficulty.
 	if (Ranking.secretModDisabled == 1) {
-		HUD_init_message_literal(HM_DEFAULT, "You quickloaded! d2x-redux-ranked disabled for this level.");
+		HUD_init_message_literal(HM_DEFAULT, "Save file not supported! d2x-redux-ranked disabled for this level.");
 		digi_play_sample(SOUND_BAD_SELECTION, F1_0);
 	}
 	reset_time();
@@ -4210,7 +4210,7 @@ void DoPlayerDead()
 		do_screen_message(TXT_DIED_IN_MINE); // Give them some indication of what happened
 
 		if (Current_level_num < 0) {
-			if (!Ranking.secretModDisabled) // Don't show quickloaders a result screen for secret levels, as that's not in the vanilla game, and quickloaded levels have this mod disabled.
+			if (!Ranking.secretModDisabled) // Don't show the result screen for secret levels if the mod is disabed, as that's not in the vanilla game.
 				DoEndLevelScoreGlitz(0, 0, Current_level_num);
 			if (PHYSFSX_exists(SECRETB_FILENAME,0))
 			{

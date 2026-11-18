@@ -615,10 +615,10 @@ int state_get_savegame_filename(char * fname, char * dsc, char * caption, int bl
 	m[0].type = NM_TYPE_TEXT; m[0].text = "\n\n\n\n";
 	for (i=0;i<NUM_SAVES; i++ )	{
 		sc_bmp[i] = NULL;
-		if (i == 10)
+		if (i == 0)
 			snprintf(filename[i], PATH_MAX, GameArg.SysUsePlayersDir ? "Players/%s.%sg%x" : "%s.sgr", Players[Player_num].callsign);
 		else
-			snprintf(filename[i], PATH_MAX, GameArg.SysUsePlayersDir ? "Players/%s.%sg%x" : "%s.%sg%x", Players[Player_num].callsign, (Game_mode & GM_MULTI_COOP) ? "m" : "s", i);
+			snprintf(filename[i], PATH_MAX, GameArg.SysUsePlayersDir ? "Players/%s.%sg%x" : "%s.%sg%x", Players[Player_num].callsign, (Game_mode & GM_MULTI_COOP) ? "m" : "s", i - 1);
 		valid = 0;
 		fp = PHYSFSX_openReadBuffered(filename[i]);
 		if ( fp ) {
@@ -653,12 +653,12 @@ int state_get_savegame_filename(char * fname, char * dsc, char * caption, int bl
 			PHYSFS_close(fp);
 		} 
 		if (!valid) {
-			strcpy( desc[i], i < 10 ? TXT_EMPTY: "-ranked save-");
+			strcpy(desc[i], i == 0 ? "-ranked save-" : TXT_EMPTY);
 			//rpad_string( desc[i], DESC_LENGTH-1 );
 			if (dsc == NULL) m[i+1].type = NM_TYPE_TEXT;
 		}
 		if (dsc != NULL) {
-			if (i == 10)
+			if (i == 0)
 				m[i+1].type = NM_TYPE_MENU;
 			else
 				m[i+1].type = NM_TYPE_INPUT_MENU;
@@ -1469,7 +1469,7 @@ int state_restore_all_sub(char* filename, int secret_restore)
 	// Restore the cheats enabled flag
 	game_disable_cheats(); // disable cheats first
 	cheats.enabled = PHYSFSX_readSXE32(fp, swap);
-	Ranking.cheated = cheats.enabled; // So the player's next score will count if they quickloaded into a level after cheating, or vice versa.
+	Ranking.cheated = cheats.enabled; // So the player's next score will count if they disabled the mod after cheating, or vice versa.
 	Do_appearance_effect = 0;			// Don't do this for middle o' game stuff.
 
 	//Clear out all the objects from the lvl file
@@ -1863,10 +1863,18 @@ int state_restore_all_sub(char* filename, int secret_restore)
 		Players[Player_num].time_level = levelTime;
 		Ranking.rankScore = Players[Player_num].score - Players[Player_num].last_score - Ranking.excludePoints;
 		Ranking.secretRankScore = Players[Player_num].score - Ranking.secretlast_score - Ranking.secretExcludePoints;
+		char message[256];
+		if (Ranking.loadCount == 1)
+			sprintf(message, "1 load and counting...");
+		else
+			sprintf(message, "%i loads and counting...", Ranking.loadCount);
+		powerup_basic(-10, -10, -10, 0, message);
 	}
 	else if (!secret_restore) {
 		Ranking.modDisabled = 1;
 		Ranking.secretModDisabled = 1;
+		// Delete ranked save so player can't experience data loss.
+		deleteRankedSave();
 	}
 
 	if (Game_wind)
@@ -1877,7 +1885,7 @@ int state_restore_all_sub(char* filename, int secret_restore)
 	
 	if (Ranking.modDisabled == 1) {
 		Ranking.fromBestRanksButton = 0; // So loading a save doesn't cause the next result screen to let you select difficulty.
-		HUD_init_message_literal(HM_DEFAULT, "You quickloaded! d2x-redux-ranked disabled for this level.");
+		HUD_init_message_literal(HM_DEFAULT, "Save file not supported! d2x-redux-ranked disabled for this level.");
 		digi_play_sample(SOUND_BAD_SELECTION, F1_0);
 	}
 	

@@ -169,7 +169,7 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	int     secretlast_score;		    // Secret equivalent of Players[Player_num].last_score.
 	int		secret_hostages_on_board;   // Since Players[Player_num].hostages_on_board carries over, and we don't want base level hostages' points counting for secret levels and vice versa.
 	int     secretDeathCount;			// We don't want starting a new base level to remove the secret level's death penalty, or vise versa, so increment this alongside deathCount, but only reset it upon starting a new secret level.
-	int     secretModDisabled;		    // Same thing as secretDeathCount, but with quickloading.
+	int     secretModDisabled;		    // Same thing as secretDeathCount, but with loading unsupported saves.
 	int     secretParTime;
 	int     secretMissedRngSpawn;
 	int     secretAlreadyBeaten;

@@ -778,7 +778,7 @@ int HandleSystemKey(int key)
 			{
 				int choice;
 				int allow_loadsave = !(Game_mode & GM_MULTI) || (Game_mode & GM_MULTI_COOP);
-				// If the level was reached via quickload, don't show the restart level button, as that's supposed to be part of the ranking mod, which is disabled in this case. 
+				// If the mod is disabled, don't show the restart level button. 
 				int modDisabled = Current_level_num > 0 ? Ranking.modDisabled : Ranking.secretModDisabled;
 				if (modDisabled) {
 					choice = allow_loadsave ?

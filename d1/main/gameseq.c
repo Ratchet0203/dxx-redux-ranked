@@ -948,7 +948,7 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 	level_points = Players[Player_num].score - Players[Player_num].last_score;
 	// First, do vanilla bonus calculations.
 	if (fromBestRanksMenu)
-		Ranking.modDisabled = 0; // Set this to 0 so the rank image loads if the player quickloaded on their last played level.
+		Ranking.modDisabled = 0; // Set this to 0 so the rank image loads if the mod was disabled on their last played level.
 	else {
 		RestartLevel.isResults = 1;
 		//	Compute level player is on, deal with secret levels (negative numbers)
@@ -977,7 +977,7 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 			add_bonus_points_to_score(shield_points + energy_points + skill_points + hostage_points + all_hostage_points + endgame_points);
 	}
 
-	if (Ranking.modDisabled) { // Only print the modded result screen if the player didn't quickload. Print the vanilla one otherwise, because loading unsupported saves causes missing crucial mod info.
+	if (Ranking.modDisabled) { // Only print the modded result screen if the mod is enabled. Print the vanilla one otherwise, because loading unsupported saves causes missing crucial mod info.
 		if (cheats.enabled) { // Zero out all the bonuses when cheating while the mod's off.
 			shield_points = 0;
 			energy_points = 0;
