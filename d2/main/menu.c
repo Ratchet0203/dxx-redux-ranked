@@ -226,8 +226,8 @@ int ranks_menu_keycommand(listbox* lb, d_event* event)
 	switch (event_key_get(event))
 	{
 	case KEY_CTRLED + KEY_D:
-		delete = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, "Delete record for this level?");
-		if (delete == 0)
+		delete = nm_messagebox(NULL, 2, TXT_NO, TXT_YES, "Delete record for this level?");
+		if (delete > 0)
 		{
 			sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, citem + 1);
 			if (citem >= Current_mission->last_level)
