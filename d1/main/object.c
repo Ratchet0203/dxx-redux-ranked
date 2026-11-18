@@ -1519,12 +1519,23 @@ void dead_player_frame(void)
 
 		if (time_dead > DEATH_SEQUENCE_EXPLODE_TIME) {
 			if (!Player_exploded) {
-				if (Players[Player_num].hostages_on_board > 1)
-					HUD_init_message(HM_DEFAULT, TXT_SHIP_DESTROYED_2, Players[Player_num].hostages_on_board);
-				else if (Players[Player_num].hostages_on_board == 1)
-					HUD_init_message_literal(HM_DEFAULT, TXT_SHIP_DESTROYED_1);
-				else
-					HUD_init_message_literal(HM_DEFAULT, TXT_SHIP_DESTROYED_0);
+				if (Ranking.modDisabled) {
+					if (Players[Player_num].hostages_on_board > 1)
+						HUD_init_message(HM_DEFAULT, TXT_SHIP_DESTROYED_2, Players[Player_num].hostages_on_board);
+					else if (Players[Player_num].hostages_on_board == 1)
+						HUD_init_message_literal(HM_DEFAULT, TXT_SHIP_DESTROYED_1);
+					else
+						HUD_init_message_literal(HM_DEFAULT, TXT_SHIP_DESTROYED_0);
+				}
+				else {
+					// Y'know, I really don't understand why all these TXT macros exist.
+					if (Players[Player_num].hostages_on_board > 1)
+						HUD_init_message(HM_DEFAULT, "Ship destroyed, %i hostages lost! Deaths: %i", Players[Player_num].hostages_on_board, Ranking.deathCount);
+					else if (Players[Player_num].hostages_on_board == 1)
+						HUD_init_message(HM_DEFAULT, "Ship destroyed, 1 hostage lost! Deaths: %i", Ranking.deathCount);
+					else
+						HUD_init_message(HM_DEFAULT, "Ship destroyed! Deaths: %i", Ranking.deathCount);
+				}
 				Players[Player_num].hostages_on_board = 0;
 
 				Player_exploded = 1;
