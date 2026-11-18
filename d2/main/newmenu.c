@@ -903,13 +903,12 @@ void InitiateRestart()
 		Players[Player_num].afterburner_charge = RestartLevel.afterburner_charge;
 		Omega_charge = RestartLevel.omega_charge;
 		Missile_gun = RestartLevel.Missile_gun;
-		Ranking.secretRankScore = RestartLevel.secretRankScore;
 		Ranking.secretExcludePoints = RestartLevel.secretExcludePoints;
 		Ranking.secretlevel_time = RestartLevel.secretlevel_time;
 		Ranking.secretlast_score = RestartLevel.secretlast_score;
 		Ranking.secret_hostages_on_board = RestartLevel.secret_hostages_on_board;
 		Ranking.secretDeathCount = RestartLevel.secretDeathCount;
-		Ranking.secretModDisabled = RestartLevel.secretQuickload;
+		Ranking.secretModDisabled = RestartLevel.secretModDisabled;
 		Ranking.secretMissedRngSpawn = RestartLevel.secretMissedRngSpawn;
 		Ranking.secretNoDamage = RestartLevel.secretNoDamage;
 		RestartLevel.restarts++;

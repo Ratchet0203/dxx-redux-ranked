@@ -1175,7 +1175,8 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 						PHYSFSX_printf(temp, "%i\n", missedRngSpawn);
 						PHYSFSX_printf(temp, "%s\n", levelName);
 						PHYSFSX_printf(temp, "%s", ctime(&timeOfScore));
-						PHYSFSX_printf(temp, "%i", warmStart);
+						PHYSFSX_printf(temp, "%i\n", warmStart);
+						PHYSFSX_printf(temp, "%i", loadCount);
 						PHYSFS_close(temp);
 						PHYSFS_close(fp);
 						PHYSFS_delete(filename);
@@ -3584,6 +3585,13 @@ void initRankFile(int level_num)
 	PHYSFS_close(fp);
 }
 
+void deleteRankedSave()
+{
+	char filename[PATH_MAX];
+	sprintf(filename, GameArg.SysUsePlayersDir ? "Players/%s.sgr" : "%s.sgr", Players[Player_num].callsign);
+	PHYSFS_delete(filename);
+}
+
 //called when the player is starting a new level for normal game model
 void StartNewLevel(int level_num)
 {
@@ -3594,6 +3602,8 @@ void StartNewLevel(int level_num)
 
 	if (!RestartLevel.restarts)
 		do_briefing_screens(Briefing_text_filename, level_num);
+	
+	deleteRankedSave();
 	
 	Ranking.deathCount = 0;
 	Ranking.loadCount = 0;

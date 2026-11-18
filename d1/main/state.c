@@ -77,12 +77,14 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 // 6 - Added buggin' cheat save
 // 7 - Added other cheat saves and game_id.
 
-#define NUM_SAVES 10
+#define NUM_SAVES 11
 #define THUMBNAIL_W 100
 #define THUMBNAIL_H 50
 #define DESC_LENGTH 20
 
 extern int Do_appearance_effect;
+
+restartLevel RestartLevel;
 
 int state_save_all_sub(char *filename, char *desc);
 int state_restore_all_sub(char *filename);
@@ -582,7 +584,10 @@ int state_get_savegame_filename(char * fname, char * dsc, char * caption, int bl
 	m[0].type = NM_TYPE_TEXT; m[0].text = "\n\n\n\n";
 	for (i=0;i<NUM_SAVES; i++ )	{
 		sc_bmp[i] = NULL;
-		snprintf( filename[i], PATH_MAX, GameArg.SysUsePlayersDir? "Players/%s.%sg%x" : "%s.%sg%x", Players[Player_num].callsign, (Game_mode & GM_MULTI_COOP)?"m":"s", i );
+		if (i == 10)
+			snprintf(filename[i], PATH_MAX, GameArg.SysUsePlayersDir ? "Players/%s.%sg%x" : "%s.sgr", Players[Player_num].callsign);
+		else
+			snprintf(filename[i], PATH_MAX, GameArg.SysUsePlayersDir ? "Players/%s.%sg%x" : "%s.%sg%x", Players[Player_num].callsign, (Game_mode & GM_MULTI_COOP) ? "m" : "s", i);
 		valid = 0;
 		fp = PHYSFSX_openReadBuffered(filename[i]);
 		if ( fp ) {
@@ -612,12 +617,15 @@ int state_get_savegame_filename(char * fname, char * dsc, char * caption, int bl
 			PHYSFS_close(fp);
 		} 
 		if (!valid) {
-			strcpy( desc[i], TXT_EMPTY );
+			strcpy(desc[i], i < 10 ? TXT_EMPTY : "-ranked save-");
 			//rpad_string( desc[i], DESC_LENGTH-1 );
 			if (dsc == NULL) m[i+1].type = NM_TYPE_TEXT;
 		}
 		if (dsc != NULL) {
-			m[i+1].type = NM_TYPE_INPUT_MENU;
+			if (i == 10)
+				m[i + 1].type = NM_TYPE_MENU;
+			else
+				m[i + 1].type = NM_TYPE_INPUT_MENU;
 		}
 		m[i+1].text_len = DESC_LENGTH-1;
 		m[i+1].text = desc[i];
@@ -1066,6 +1074,34 @@ int state_save_all_sub(char *filename, char *desc)
 		PHYSFS_write(fp, &Netgame.level_time, sizeof(int), 1);
 	}
 
+// Save ranked data if player is saving to the mod exclusive slot.
+	if (strstr(filename, ".sgr") != NULL)
+	{
+		PHYSFS_write(fp, &Ranking.deathCount, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.excludePoints, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.maxScore, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.parTime, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.missedRngSpawn, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.alreadyBeaten, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.warmStart, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.noDamage, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.num_hostages, sizeof(int), 1);
+
+		PHYSFS_write(fp, &RestartLevel.flags, sizeof(uint), 1);
+		PHYSFS_write(fp, &RestartLevel.energy, sizeof(fix), 1);
+		PHYSFS_write(fp, &RestartLevel.shields, sizeof(fix), 1);
+		PHYSFS_write(fp, &RestartLevel.lives, sizeof(ubyte), 1);
+		PHYSFS_write(fp, &RestartLevel.laser_level, sizeof(ubyte), 1);
+		PHYSFS_write(fp, &RestartLevel.primary_weapon, sizeof(sbyte), 1);
+		PHYSFS_write(fp, &RestartLevel.secondary_weapon, sizeof(sbyte), 1);
+		PHYSFS_write(fp, &RestartLevel.primary_weapon_flags, sizeof(ushort), 1);
+		PHYSFS_write(fp, &RestartLevel.secondary_weapon_flags, sizeof(ushort), 1);
+		PHYSFS_write(fp, &RestartLevel.primary_ammo, sizeof(ushort), MAX_PRIMARY_WEAPONS);
+		PHYSFS_write(fp, &RestartLevel.secondary_ammo, sizeof(ushort), MAX_SECONDARY_WEAPONS);
+		PHYSFS_write(fp, &RestartLevel.Missile_gun, sizeof(int), 1);
+		PHYSFS_write(fp, &RestartLevel.restarts, sizeof(int), 1);
+	}
+
 	PHYSFS_close(fp);
 
 	start_time();
@@ -1127,7 +1163,8 @@ int state_restore_all_sub(char* filename)
 	fix tmptime32 = 0;
 	player_rw* pl_rw;
 	int rebirth = 0;
-	//Ranking.modDisabled = 1;
+	
+	fix levelTime = Players[Player_num].time_level;
 
 #ifndef NDEBUG
 	if (GameArg.SysUsePlayersDir && strncmp(filename, "Players/", 8))
@@ -1513,21 +1550,57 @@ RetryObjectLoading:
 		con_printf(CON_URGENT, "savegame not completely read, might be corrupt! (cur %d, size %d)",
 			(int)PHYSFS_tell(fp), (int)PHYSFS_fileLength(fp));
 
-	//if (!eof(fp)) {
-		PHYSFS_read(fp, &Ranking.parTime, sizeof(ubyte), 1);
-	//}
-	//else {
-		//HUD_init_message_literal(HM_DEFAULT, "Save file has no d1x-redux-ranked data! Mod disabled for this level.");
-		Ranking.modDisabled = 1;
-	//}
+// Load ranked data if player is loading the mod exclusive slot.
+	if (strstr(filename, ".sgr") != NULL)
+	{
+		PHYSFS_read(fp, &Ranking.deathCount, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.excludePoints, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.maxScore, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.parTime, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.missedRngSpawn, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.alreadyBeaten, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.warmStart, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.noDamage, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.num_hostages, sizeof(int), 1);
+
+		PHYSFS_read(fp, &RestartLevel.flags, sizeof(uint), 1);
+		PHYSFS_read(fp, &RestartLevel.energy, sizeof(fix), 1);
+		PHYSFS_read(fp, &RestartLevel.shields, sizeof(fix), 1);
+		PHYSFS_read(fp, &RestartLevel.lives, sizeof(ubyte), 1);
+		PHYSFS_read(fp, &RestartLevel.laser_level, sizeof(ubyte), 1);
+		PHYSFS_read(fp, &RestartLevel.primary_weapon, sizeof(sbyte), 1);
+		PHYSFS_read(fp, &RestartLevel.secondary_weapon, sizeof(sbyte), 1);
+		PHYSFS_read(fp, &RestartLevel.primary_weapon_flags, sizeof(ushort), 1);
+		PHYSFS_read(fp, &RestartLevel.secondary_weapon_flags, sizeof(ushort), 1);
+		PHYSFS_read(fp, &RestartLevel.primary_ammo, sizeof(ushort), MAX_PRIMARY_WEAPONS);
+		PHYSFS_read(fp, &RestartLevel.secondary_ammo, sizeof(ushort), MAX_SECONDARY_WEAPONS);
+		PHYSFS_read(fp, &RestartLevel.Missile_gun, sizeof(int), 1);
+		PHYSFS_read(fp, &RestartLevel.restarts, sizeof(int), 1);
+	}
+	
 	PHYSFS_close(fp);
+
+	// Don't disable the mod if the save we're loading is the ranked one.
+	if (strstr(filename, ".sgr") != NULL) {
+		Ranking.loadCount++;
+		Players[Player_num].time_level = levelTime;
+		Ranking.rankScore = Players[Player_num].score - Players[Player_num].last_score - Ranking.excludePoints;
+	}
+	else
+		Ranking.modDisabled = 1;
 
 	if (Game_wind)
 		if (!window_is_visible(Game_wind))
 			window_set_visible(Game_wind, 1);
+	
 	reset_time();
-	Ranking.fromBestRanksButton = 0; // So loading a save doesn't cause the next result screen to let you select difficulty.
-	digi_play_sample(SOUND_BAD_SELECTION, F1_0);
+	
+	if (Ranking.modDisabled == 1) {
+		Ranking.fromBestRanksButton = 0; // So loading a save doesn't cause the next result screen to let you select difficulty.
+		HUD_init_message_literal(HM_DEFAULT, "You quickloaded! d2x-redux-ranked disabled for this level.");
+		digi_play_sample(SOUND_BAD_SELECTION, F1_0);
+	}
+	
 	return 1;
 }
 

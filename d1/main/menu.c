@@ -771,6 +771,7 @@ int do_option(int select)
 #ifdef EDITOR
 		if (!SafetyCheck()) break;
 #endif
+		deleteRankedSave();
 		return 0;
 
 	case MENU_NEW_PLAYER:

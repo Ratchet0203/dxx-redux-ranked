@@ -190,19 +190,18 @@ typedef struct restartLevel { // Recreate and store certain info from player to 
 	ushort  primary_weapon_flags;
 	ushort  secondary_weapon_flags;
 	ushort  primary_ammo[MAX_PRIMARY_WEAPONS];
-	ushort  secondary_ammo[MAX_PRIMARY_WEAPONS];
+	ushort  secondary_ammo[MAX_SECONDARY_WEAPONS];
 	int		Missile_gun;
 	int     restarts;					// Used for whether to skip briefings or not.
 	int     restartsCache;				// Just one of the many hoops needed to keep the restart counter accurate when restarting at result screen.
 	int     isResults;					// So pressing R on a wide array of menus doesn't try to restart a level you aren't on.
 	int     updateRestartStuff;			// Self explanatory.
-	int 	secretRankScore;
 	int     secretExcludePoints;
 	int 	secretlevel_time;
 	int     secretlast_score;
 	int		secret_hostages_on_board;
 	int     secretDeathCount;
-	int     secretQuickload;
+	int     secretModDisabled;
 	int     secretMissedRngSpawn;
 	int     secretNoDamage;
 	int		secretLevelExitedYet;       // Restarting secret levels isn't allowed once they've been left, to maintain continuity with base levels.
@@ -220,7 +219,7 @@ typedef struct restartLevel { // Recreate and store certain info from player to 
 	ushort  secret_primary_weapon_flags;
 	ushort  secret_secondary_weapon_flags;
 	ushort  secret_primary_ammo[MAX_PRIMARY_WEAPONS];
-	ushort  secret_secondary_ammo[MAX_PRIMARY_WEAPONS];
+	ushort  secret_secondary_ammo[MAX_SECONDARY_WEAPONS];
 	int		secret_Missile_gun;
 	int     secretRestarts;
 	int     secretRestartsCache;

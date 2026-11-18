@@ -254,7 +254,7 @@ void name_frame(automap* am)
 	gr_printf(grd_curcanv->cv_bitmap.bm_w - wr - (SWIDTH / 64), (SHEIGHT / 48), "%s", name_level_right);
 
 	// Show how much of the level the player has done, if they've beaten it before.
-	if (Ranking.alreadyBeaten) {
+	if (Ranking.alreadyBeaten && !Ranking.modDisabled) {
 		int playerPoints = Ranking.rankScore;
 		int levelPoints = ((Ranking.maxScore / 3) - Ranking.num_hostages * 5000) - Ranking.missedRngSpawn;
 

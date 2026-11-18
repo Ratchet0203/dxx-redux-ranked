@@ -178,6 +178,8 @@ extern int calculateRank(int level_num, int update_warm_start_status);
 extern int truncateRanks(int rank);
 
 extern void getLevelNameFromRankFile(int level_num, char* buffer);
+
+extern void deleteRankedSave();
  
 extern int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck, int index);
 extern int check_gap_size(int seg, int side);

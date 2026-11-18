@@ -175,6 +175,8 @@ void editor_reset_stuff_on_level();
 // Show endlevel bonus scores
 extern void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num);
 
+extern void deleteRankedSave();
+
 extern int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck, int index);
 extern int check_gap_size(int seg, int side);
 

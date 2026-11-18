@@ -91,7 +91,7 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 // 20- First_secret_visit
 // 22- Omega_charge
 
-#define NUM_SAVES 10
+#define NUM_SAVES 11
 #define THUMBNAIL_W 100
 #define THUMBNAIL_H 50
 #define DESC_LENGTH 20
@@ -99,6 +99,8 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 extern void apply_all_changed_light(void);
 
 extern int Do_appearance_effect;
+
+restartLevel RestartLevel;
 
 extern int Physics_cheat_flag;
 
@@ -613,7 +615,10 @@ int state_get_savegame_filename(char * fname, char * dsc, char * caption, int bl
 	m[0].type = NM_TYPE_TEXT; m[0].text = "\n\n\n\n";
 	for (i=0;i<NUM_SAVES; i++ )	{
 		sc_bmp[i] = NULL;
-		snprintf( filename[i], PATH_MAX, GameArg.SysUsePlayersDir? "Players/%s.%sg%x" : "%s.%sg%x", Players[Player_num].callsign, (Game_mode & GM_MULTI_COOP)?"m":"s", i );
+		if (i == 10)
+			snprintf(filename[i], PATH_MAX, GameArg.SysUsePlayersDir ? "Players/%s.%sg%x" : "%s.sgr", Players[Player_num].callsign);
+		else
+			snprintf(filename[i], PATH_MAX, GameArg.SysUsePlayersDir ? "Players/%s.%sg%x" : "%s.%sg%x", Players[Player_num].callsign, (Game_mode & GM_MULTI_COOP) ? "m" : "s", i);
 		valid = 0;
 		fp = PHYSFSX_openReadBuffered(filename[i]);
 		if ( fp ) {
@@ -648,12 +653,15 @@ int state_get_savegame_filename(char * fname, char * dsc, char * caption, int bl
 			PHYSFS_close(fp);
 		} 
 		if (!valid) {
-			strcpy( desc[i], TXT_EMPTY );
+			strcpy( desc[i], i < 10 ? TXT_EMPTY: "-ranked save-");
 			//rpad_string( desc[i], DESC_LENGTH-1 );
 			if (dsc == NULL) m[i+1].type = NM_TYPE_TEXT;
 		}
 		if (dsc != NULL) {
-			m[i+1].type = NM_TYPE_INPUT_MENU;
+			if (i == 10)
+				m[i+1].type = NM_TYPE_MENU;
+			else
+				m[i+1].type = NM_TYPE_INPUT_MENU;
 		}
 		m[i+1].text_len = DESC_LENGTH-1;
 		m[i+1].text = desc[i];
@@ -1124,6 +1132,58 @@ int state_save_all_sub(char *filename, char *desc)
 		PHYSFS_write(fp, &Netgame.level_time, sizeof(int), 1);
 	}
 
+// Save ranked data if player is saving to the mod exclusive slot.
+	if (strstr(filename, ".sgr") != NULL)
+	{
+		PHYSFS_write(fp, &Ranking.deathCount, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.excludePoints, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.maxScore, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.parTime, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.missedRngSpawn, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.alreadyBeaten, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.warmStart, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.cheated, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.noDamage, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.num_hostages, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.secretLevelEnteredYet, sizeof(int), 1);
+
+		PHYSFS_write(fp, &Ranking.secretDeathCount, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.secretExcludePoints, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.secretMaxScore, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.secretlast_score, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.secret_hostages_on_board, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.secretParTime, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.secretMissedRngSpawn, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.secretAlreadyBeaten, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.secretNoDamage, sizeof(int), 1);
+		PHYSFS_write(fp, &Ranking.secret_num_hostages, sizeof(int), 1);
+
+		PHYSFS_write(fp, &RestartLevel.flags, sizeof(uint), 1);
+		PHYSFS_write(fp, &RestartLevel.energy, sizeof(fix), 1);
+		PHYSFS_write(fp, &RestartLevel.shields, sizeof(fix), 1);
+		PHYSFS_write(fp, &RestartLevel.afterburner_charge, sizeof(fix), 1);
+		PHYSFS_write(fp, &RestartLevel.omega_charge, sizeof(fix), 1);
+		PHYSFS_write(fp, &RestartLevel.lives, sizeof(ubyte), 1);
+		PHYSFS_write(fp, &RestartLevel.laser_level, sizeof(ubyte), 1);
+		PHYSFS_write(fp, &RestartLevel.primary_weapon, sizeof(sbyte), 1);
+		PHYSFS_write(fp, &RestartLevel.secondary_weapon, sizeof(sbyte), 1);
+		PHYSFS_write(fp, &RestartLevel.primary_weapon_flags, sizeof(ushort), 1);
+		PHYSFS_write(fp, &RestartLevel.secondary_weapon_flags, sizeof(ushort), 1);
+		PHYSFS_write(fp, &RestartLevel.primary_ammo, sizeof(ushort), MAX_PRIMARY_WEAPONS);
+		PHYSFS_write(fp, &RestartLevel.secondary_ammo, sizeof(ushort), MAX_SECONDARY_WEAPONS);
+		PHYSFS_write(fp, &RestartLevel.Missile_gun, sizeof(int), 1);
+		PHYSFS_write(fp, &RestartLevel.restarts, sizeof(int), 1);
+
+		PHYSFS_write(fp, &RestartLevel.secretExcludePoints, sizeof(int), 1);
+		PHYSFS_write(fp, &RestartLevel.secretlevel_time, sizeof(int), 1);
+		PHYSFS_write(fp, &RestartLevel.secretlast_score, sizeof(int), 1);
+		PHYSFS_write(fp, &RestartLevel.secret_hostages_on_board, sizeof(int), 1);
+		PHYSFS_write(fp, &RestartLevel.secretDeathCount, sizeof(int), 1);
+		PHYSFS_write(fp, &RestartLevel.secretMissedRngSpawn, sizeof(int), 1);
+		PHYSFS_write(fp, &RestartLevel.secretNoDamage, sizeof(int), 1);
+		PHYSFS_write(fp, &RestartLevel.secretLevelExitedYet, sizeof(int), 1);
+	}
+	
 	PHYSFS_close(fp);
 	
 	start_time();
@@ -1182,8 +1242,6 @@ int state_restore_all(int in_game, int secret_restore, char *filename_override)
 	//	If Nsecret.sgc (where N = filenum) exists, then copy it to secret.sgc.
 	//	If it doesn't exist, then delete secret.sgc
 	if (!secret_restore) {
-		Ranking.modDisabled = 1;
-		Ranking.secretModDisabled = 1;
 		int	rval;
 		char	temp_fname[PATH_MAX], fc;
 
@@ -1241,6 +1299,8 @@ int state_restore_all_sub(char* filename, int secret_restore)
 	fix64	old_gametime = GameTime64;
 	short TempTmapNum[MAX_SEGMENTS][MAX_SIDES_PER_SEGMENT];
 	short TempTmapNum2[MAX_SEGMENTS][MAX_SIDES_PER_SEGMENT];
+
+	fix levelTime = Players[Player_num].time_level;
 
 #ifndef NDEBUG
 	if (GameArg.SysUsePlayersDir && strncmp(filename, "Players/", 8))
@@ -1744,17 +1804,83 @@ int state_restore_all_sub(char* filename, int secret_restore)
 		con_printf(CON_URGENT, "savegame not completely read, might be corrupt! (cur %d, size %d)",
 			(int)PHYSFS_tell(fp), (int)PHYSFS_fileLength(fp));
 
+// Load ranked data if player is loading the mod exclusive slot.
+	if (strstr(filename, ".sgr") != NULL)
+	{
+		PHYSFS_read(fp, &Ranking.deathCount, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.excludePoints, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.maxScore, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.parTime, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.missedRngSpawn, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.alreadyBeaten, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.warmStart, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.cheated, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.noDamage, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.num_hostages, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.secretLevelEnteredYet, sizeof(int), 1);
+
+		PHYSFS_read(fp, &Ranking.secretDeathCount, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.secretExcludePoints, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.secretMaxScore, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.secretlast_score, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.secret_hostages_on_board, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.secretParTime, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.secretMissedRngSpawn, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.secretAlreadyBeaten, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.secretNoDamage, sizeof(int), 1);
+		PHYSFS_read(fp, &Ranking.secret_num_hostages, sizeof(int), 1);
+
+		PHYSFS_read(fp, &RestartLevel.flags, sizeof(uint), 1);
+		PHYSFS_read(fp, &RestartLevel.energy, sizeof(fix), 1);
+		PHYSFS_read(fp, &RestartLevel.shields, sizeof(fix), 1);
+		PHYSFS_read(fp, &RestartLevel.afterburner_charge, sizeof(fix), 1);
+		PHYSFS_read(fp, &RestartLevel.omega_charge, sizeof(fix), 1);
+		PHYSFS_read(fp, &RestartLevel.lives, sizeof(ubyte), 1);
+		PHYSFS_read(fp, &RestartLevel.laser_level, sizeof(ubyte), 1);
+		PHYSFS_read(fp, &RestartLevel.primary_weapon, sizeof(sbyte), 1);
+		PHYSFS_read(fp, &RestartLevel.secondary_weapon, sizeof(sbyte), 1);
+		PHYSFS_read(fp, &RestartLevel.primary_weapon_flags, sizeof(ushort), 1);
+		PHYSFS_read(fp, &RestartLevel.secondary_weapon_flags, sizeof(ushort), 1);
+		PHYSFS_read(fp, &RestartLevel.primary_ammo, sizeof(ushort), MAX_PRIMARY_WEAPONS);
+		PHYSFS_read(fp, &RestartLevel.secondary_ammo, sizeof(ushort), MAX_SECONDARY_WEAPONS);
+		PHYSFS_read(fp, &RestartLevel.Missile_gun, sizeof(int), 1);
+		PHYSFS_read(fp, &RestartLevel.restarts, sizeof(int), 1);
+
+		PHYSFS_read(fp, &RestartLevel.secretExcludePoints, sizeof(int), 1);
+		PHYSFS_read(fp, &RestartLevel.secretlast_score, sizeof(int), 1);
+		PHYSFS_read(fp, &RestartLevel.secret_hostages_on_board, sizeof(int), 1);
+		PHYSFS_read(fp, &RestartLevel.secretDeathCount, sizeof(int), 1);
+		PHYSFS_read(fp, &RestartLevel.secretMissedRngSpawn, sizeof(int), 1);
+		PHYSFS_read(fp, &RestartLevel.secretNoDamage, sizeof(int), 1);
+		PHYSFS_read(fp, &RestartLevel.secretLevelExitedYet, sizeof(int), 1);
+	}
+
 	PHYSFS_close(fp);
+
+	// Don't disable the mod if the save we're loading is the ranked one.
+	if (strstr(filename, ".sgr") != NULL) {
+		Ranking.loadCount++;
+		Players[Player_num].time_level = levelTime;
+		Ranking.rankScore = Players[Player_num].score - Players[Player_num].last_score - Ranking.excludePoints;
+		Ranking.secretRankScore = Players[Player_num].score - Ranking.secretlast_score - Ranking.secretExcludePoints;
+	}
+	else if (!secret_restore) {
+		Ranking.modDisabled = 1;
+		Ranking.secretModDisabled = 1;
+	}
 
 	if (Game_wind)
 		if (!window_is_visible(Game_wind))
 			window_set_visible(Game_wind, 1);
+	
 	reset_time();
+	
 	if (Ranking.modDisabled == 1) {
 		Ranking.fromBestRanksButton = 0; // So loading a save doesn't cause the next result screen to let you select difficulty.
 		HUD_init_message_literal(HM_DEFAULT, "You quickloaded! d2x-redux-ranked disabled for this level.");
 		digi_play_sample(SOUND_BAD_SELECTION, F1_0);
 	}
+	
 	return 1;
 }
 
@@ -1802,6 +1928,6 @@ int state_get_game_id(char *filename)
 	PHYSFS_read(fp, &saved_callsign, sizeof(char)*CALLSIGN_LEN+1, 1);
 	if (strcmp(saved_callsign, Players[Player_num].callsign)) // check the callsign of the palyer who saved this state. It MUST match. If we transferred this savegame from pilot A to pilot B, others won't be able to restore us. So bail out here if this is the case.
 		return 0;
-
+	
 	return state_game_id;
 }

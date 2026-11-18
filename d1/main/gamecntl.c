@@ -539,6 +539,8 @@ int HandleSystemKey(int key)
 			}
 		}
 
+	int restart;
+	char filename[PATH_MAX];
 	switch (key)
 	{
 		KEY_MAC( case KEY_COMMAND+KEY_P: )
@@ -681,10 +683,17 @@ int HandleSystemKey(int key)
 				state_restore_all(1);
 			break;
 		case KEY_ALTED + KEY_F5:
-			InitiateRestart();
-			RestartLevel.restarts++;
-			// Note: time abuse with restarts is possible due to player speed not resetting properly and idk how to fix it.
-			StartNewLevel(Current_level_num);
+			// If a ranked save file exists, request extra confirmation from the player for restarting.
+			// This is because restarting deletes the file. Default option is no for extra safety.
+			sprintf(filename, GameArg.SysUsePlayersDir ? "Players/%s.sgr" : "%s.sgr", Players[Player_num].callsign);
+			restart = PHYSFSX_exists(filename, 1) ? nm_messagebox(NULL, 2, TXT_NO, TXT_YES, "You will lose your ranked save.\nAre you sure?") : 1;
+			if (restart > 0)
+			{
+				InitiateRestart();
+				RestartLevel.restarts++;
+				// Note: time abuse with restarts is possible due to player speed not resetting properly and idk how to fix it.
+				StartNewLevel(Current_level_num);
+			}
 			break;
 
 			/*

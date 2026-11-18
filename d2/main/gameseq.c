@@ -1204,7 +1204,7 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 		else if (level_num < 0) {
 			levelHostages = Ranking.secret_num_hostages;
 			levelPoints = (Ranking.secretMaxScore / 3) - Ranking.secret_num_hostages * 5000;
-			parTime = Ranking.parTime;
+			parTime = Ranking.secretParTime;
 			playerPoints = level_points - Ranking.secretExcludePoints;
 			playerTime = f2fl(Ranking.secretlevel_time);
 			playerHostages = Ranking.secret_hostages_on_board;
@@ -1328,7 +1328,8 @@ void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num)
 						PHYSFSX_printf(temp, "%i\n", missedRngSpawn);
 						PHYSFSX_printf(temp, "%s\n", levelName);
 						PHYSFSX_printf(temp, "%s", ctime(&timeOfScore));
-						PHYSFSX_printf(temp, "%i", warmStart);
+						PHYSFSX_printf(temp, "%i\n", warmStart);
+						PHYSFSX_printf(temp, "%i", loadCount);
 						PHYSFS_close(temp);
 						PHYSFS_close(fp);
 						PHYSFS_delete(filename);
@@ -3672,13 +3673,12 @@ void UpdateRestartStuff(int is_secret)
 		RestartLevel.afterburner_charge = Players[Player_num].afterburner_charge;
 		RestartLevel.omega_charge = Omega_charge;
 		RestartLevel.Missile_gun = Missile_gun;
-		RestartLevel.secretRankScore = Ranking.secretRankScore;
 		RestartLevel.secretExcludePoints = Ranking.secretExcludePoints;
 		RestartLevel.secretlevel_time = Ranking.secretlevel_time;
 		RestartLevel.secretlast_score = Ranking.secretlast_score;
 		RestartLevel.secret_hostages_on_board = Ranking.secret_hostages_on_board;
 		RestartLevel.secretDeathCount = Ranking.secretDeathCount;
-		RestartLevel.secretQuickload = Ranking.secretModDisabled;
+		RestartLevel.secretModDisabled = Ranking.secretModDisabled;
 		RestartLevel.secretMissedRngSpawn = Ranking.secretMissedRngSpawn;
 		RestartLevel.secretNoDamage = Ranking.secretNoDamage;
 	}
@@ -3917,11 +3917,9 @@ void EnterSecretLevel(void)
 				resetSecretRankedStuff();
 				Ranking.secretlast_score = Players[Player_num].score;
 				Ranking.secretModDisabled = 0;
-				if (Ranking.modDisabled)
-					RestartLevel.updateRestartStuff = 1; // If we quickload into a normal level, then go into a secret level and back out to the next level, restarting will give default loadout without this.
+				RestartLevel.updateRestartStuff = 1; // If we quickload into a normal level, then go into a secret level and back out to the next level, restarting will give default loadout without this.
 				Ranking.fromBestRanksButton = 2; // We need this for starting secret levels too, since the normal start can be bypassed with a save.
-				if (RestartLevel.updateRestartStuff)
-					UpdateRestartStuff(1);
+				UpdateRestartStuff(1);
 			}
 			StartNewLevelSecret(Next_level_num, 1);
 		}
@@ -4572,6 +4570,13 @@ void OverwriteSecretFiles(const char *fname, const char *fname2)
 	return;
 }
 
+void deleteRankedSave()
+{
+	char filename[PATH_MAX];
+	sprintf(filename, GameArg.SysUsePlayersDir ? "Players/%s.sgr" : "%s.sgr", Players[Player_num].callsign);
+	PHYSFS_delete(filename);
+}
+
 //called when the player is starting a new level for normal game model
 //	secret_flag if came from a secret level
 void StartNewLevel(int level_num)
@@ -4580,6 +4585,8 @@ void StartNewLevel(int level_num)
 
 	GameTime64 = 0;
 	ThisLevelTime = 0;
+
+	deleteRankedSave();
 
 	Ranking.deathCount = 0;
 	Ranking.loadCount = 0;

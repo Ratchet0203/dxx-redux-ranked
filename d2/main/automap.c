@@ -434,7 +434,7 @@ void name_frame(automap *am)
 	gr_printf(grd_curcanv->cv_bitmap.bm_w-wr-(SWIDTH/64),(SHEIGHT/48),"%s", name_level_right);
 	
 	// Show how much of the level the player has done, if they've beaten it before.
-	if (Current_level_num > 0 ? Ranking.alreadyBeaten : Ranking.secretAlreadyBeaten) {
+	if (Current_level_num > 0 ? Ranking.alreadyBeaten && !Ranking.modDisabled : Ranking.secretAlreadyBeaten && !Ranking.secretModDisabled) {
 		int playerPoints = Current_level_num > 0 ? Ranking.rankScore + Ranking.missedRngSpawn : Ranking.secretRankScore;
 		int levelPoints = Current_level_num > 0 ? ((Ranking.maxScore / 3) - Ranking.num_hostages * 5000) - Ranking.missedRngSpawn : ((Ranking.secretMaxScore / 3) - Ranking.secret_num_hostages * 5000) - Ranking.secretMissedRngSpawn;
 

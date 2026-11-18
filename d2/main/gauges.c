@@ -845,8 +845,18 @@ void sb_show_score()
 	gr_set_curfont( GAME_FONT );
 	if ( (Game_mode & GM_MULTI) && !( (Game_mode & GM_MULTI_COOP) || (Game_mode & GM_MULTI_ROBOTS) ) )
 		sprintf(score_str, "%5d", Players[pnum].net_kills_total);
-	else
-		sprintf(score_str, "%5d", Players[pnum].score);
+	else {
+		int modDisabled = Current_level_num > 0 ? Ranking.modDisabled : Ranking.secretModDisabled;
+		if (modDisabled) {
+			sprintf(score_str, "%5d", Players[pnum].score);
+		}
+		else {
+			if (Current_level_num > 0)
+				sprintf(score_str, "%5d", Ranking.rankScore);
+			else
+				sprintf(score_str, "%5d", Ranking.secretRankScore);
+		}
+	}
 	gr_get_string_size(score_str, &w, &h, &aw );
 
 	x = HUD_SCALE_X(SB_SCORE_RIGHT)-w-FSPACX(1);
