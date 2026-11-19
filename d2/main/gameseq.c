@@ -1044,7 +1044,7 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 		sprintf(m_str[c++], "%s%i", TXT_TOTAL_SCORE, Players[Player_num].score);
 	}
 	else {
-		if (level_num > 0) {
+		if (level_num > 0 && level_num < Last_level) { // Last_level check is to ensure secret levels don't trigger this block in some cases.
 			if (Ranking.level_time == 0)
 				Ranking.level_time = Players[Player_num].hours_level * 3600 + f2fl(Players[Player_num].time_level); // Failsafe for if this isn't updated.
 			RestartLevel.restartsCache = RestartLevel.restarts;
