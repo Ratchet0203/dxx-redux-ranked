@@ -1124,7 +1124,7 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 			playerTime = f2fl(Ranking.secretlevel_time);
 			playerHostages = Ranking.secret_hostages_on_board;
 			deathCount = Ranking.secretNoDamage ? -1 : Ranking.secretDeathCount;
-			loadCount = 0; // Loads pertaining to secret levels are... complicated. Set to 0 for now.
+			loadCount = Ranking.secretLoadCount;
 			missedRngSpawn = Ranking.secretMissedRngSpawn;
 			maxScore = Ranking.secretMaxScore;
 			warmStart = 0;
@@ -3173,10 +3173,12 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 			}
 		}
 		if (ParTime.loops == 3) { // Put the exit on the list.
-			for (i = 0; i <= Num_triggers; i++)
-				if (Triggers[i].type == TT_EXIT || Triggers[i].type == TT_SECRET_EXIT)
-					for (j = 0; j < Num_walls; j++)
+			for (i = 0; i <= Num_triggers; i++) {
+				if (Triggers[i].type == TT_EXIT || Triggers[i].type == TT_SECRET_EXIT) {
+					for (j = 0; j < Num_walls; j++) {
 						if (Walls[j].trigger == i && !(Walls[j].type == WALL_CLOSED || Walls[j].type == WALL_CLOAKED)) { // Ignore exit triggers attached to walls we can't pass through.
+							if (Triggers[i].type == TT_SECRET_EXIT)
+								Ranking.secretLevelPresent = 1;
 							partime_objective objective;
 							if (findConnectedWallNum(j) != -1) {
 								objective.type = OBJECTIVE_TYPE_TRIGGER;
@@ -3188,6 +3190,9 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 							}
 							addObjectiveToList(objective, 0, 0);
 						}
+					}
+				}
+			}
 		}
 		
 		int foundValidObjective;
@@ -3538,6 +3543,7 @@ void initRankFile(int level_num)
 void resetSecretRankedStuff()
 {
 	Ranking.secretDeathCount = 0;
+	Ranking.secretLoadCount = 0;
 	Ranking.secretlevel_time = 0;
 	Ranking.secretExcludePoints = 0;
 	Ranking.secretRankScore = 0;
@@ -4523,6 +4529,7 @@ void StartNewLevel(int level_num)
 		UpdateRestartStuff(0);
 	Ranking.warmStart = checkForWarmStart();
 	Ranking.secretLevelEnteredYet = 0;
+	Ranking.secretLevelPresent = 0;
 
 	if (level_num > 0) {
 		maybe_set_first_secret_visit(level_num);

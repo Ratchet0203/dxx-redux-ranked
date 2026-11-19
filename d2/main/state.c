@@ -1860,6 +1860,8 @@ int state_restore_all_sub(char* filename, int secret_restore)
 	// Don't disable the mod if the save we're loading is the ranked one.
 	if (strstr(filename, ".sgr") != NULL) {
 		Ranking.loadCount++;
+		if (Ranking.secretLevelPresent)
+			Ranking.secretLoadCount++;
 		Players[Player_num].time_level = levelTime;
 		Ranking.rankScore = Players[Player_num].score - Players[Player_num].last_score - Ranking.excludePoints;
 		Ranking.secretRankScore = Players[Player_num].score - Ranking.secretlast_score - Ranking.secretExcludePoints;

@@ -159,6 +159,7 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	int     noDamage;                   // A new bonus I had to add. Thanks Marvin... 4/22/2025
 	int     num_hostages;               // The number of hostages that are actually reachable in the level.
 	int     secretLevelEnteredYet;      // If a secret level has been entered since the current base level started, both death counters will be incremented if the player dies, to prevent suiciding on the other side of a teleporter for an unpenalized shield reset.
+	int     secretLevelPresent;         // If a secret level is present. Loading won't count against the secret level's score if not. Par time also uses this.
 
 	// Below are the Ranking variables used for secret levels. Since we can play them in the middle of a normal one, we have to distinguish between them so results don't overlap.
 	
@@ -169,6 +170,7 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	int     secretlast_score;		    // Secret equivalent of Players[Player_num].last_score.
 	int		secret_hostages_on_board;   // Since Players[Player_num].hostages_on_board carries over, and we don't want base level hostages' points counting for secret levels and vice versa.
 	int     secretDeathCount;			// We don't want starting a new base level to remove the secret level's death penalty, or vise versa, so increment this alongside deathCount, but only reset it upon starting a new secret level.
+	int     secretLoadCount;            // Same thing, but for loading.
 	int     secretModDisabled;		    // Same thing as secretDeathCount, but with loading unsupported saves.
 	int     secretParTime;
 	int     secretMissedRngSpawn;
