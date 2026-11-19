@@ -174,7 +174,10 @@ static void draw_solarmap(struct solarmap *sm)
 			lvlinfo[idx].name);
 		doScoreResult(1, 1, lvlinfo[idx].level);
 		if (Ranking.rank) {
-			sprintf(buffer, "High score: %i", Ranking.calculatedScore);
+			if (Ranking.warmStart)
+				sprintf(buffer, "High score: * %i", Ranking.calculatedScore);
+			else
+				sprintf(buffer, "High score: %i", Ranking.calculatedScore);
 			drawSolarmapRankImage(Ranking.rank);
 		}
 		else
