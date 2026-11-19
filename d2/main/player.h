@@ -145,8 +145,8 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	double  level_time;                 // Time variable used in rank calculation. Updates to match Players[Player_num].time_level at specific points to protect players from being penalized for not skipping things.
 	int     modDisabled;			    // Whether the mod is disabled. Happens when player loads an unsupported save to prevent unintended side effects of data loss.
 	int     parTime;                    // The algorithmically-generated required time for the current level.
-	int     calculatedScore;	       	// Stores the score determined in calculateRank.
-	int     rank;				        // Stores the rank determined in calculateRank.
+	int     calculatedScore;	       	// Stores the score determined in doScoreResult.
+	int     rank;				        // Stores the rank determined in doScoreResult.
 	int     missedRngSpawn;	            // Tracks the points from randomly-dropped robots that were ignored by the player, so they're subtracted at the end.
 	int     alreadyBeaten;              // Tracks whether the current level has been beaten before, so points remaining and par time HUD elements are not shown on a new level.
 	int	    fromBestRanksButton;        // Tracks whether the mission list was accessed from the best ranks button for not, to know whether to show aggregate ranks and allow record deleting. 0 means no, 1 means yes.
@@ -160,7 +160,7 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	int     num_hostages;               // The number of hostages that are actually reachable in the level.
 	int     secretLevelEnteredYet;      // If a secret level has been entered since the current base level started, both death counters will be incremented if the player dies, to prevent suiciding on the other side of a teleporter for an unpenalized shield reset.
 
-	// Below are the ranking mod variables used for secret levels. Since we can play them in the middle of a normal one, we have to distinguish between them so results don't overlap.
+	// Below are the Ranking variables used for secret levels. Since we can play them in the middle of a normal one, we have to distinguish between them so results don't overlap.
 	
 	int 	secretRankScore;
 	int     secretExcludePoints;

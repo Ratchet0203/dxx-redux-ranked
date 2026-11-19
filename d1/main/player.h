@@ -134,8 +134,8 @@ typedef struct ranking { // This struct contains variables for the ranking syste
 	double     level_time;                 // Time variable used in rank calculation. Updates to match Players[Player_num].time_level at specific points to protect players from being penalized for not skipping things.
 	int		   modDisabled;				   // Whether the mod is disabled. Happens when player loads an unsupported save to prevent unintended side effects of data loss.
 	int        parTime;                    // The algorithmically-generated required time for the current level.
-	int        calculatedScore;            // Stores the score determined in calculateRank.
-	int        rank;                       // Stores the rank determined in calculateRank.
+	int        calculatedScore;            // Stores the score determined in doScoreResult.
+	int        rank;                       // Stores the rank determined in doScoreResult.
 	int        missedRngSpawn;             // Tracks the points from randomly-dropped robots that were ignored by the player, so they're subtracted at the end.
 	int        alreadyBeaten;              // Tracks whether the current level has been beaten before, so points remaining and par time HUD elements are not shown on a new level.
 	int		   fromBestRanksButton;        // Tracks whether the mission list was accessed from the best ranks button for not, to know whether to show aggregate ranks and allow record deleting. 0 means no, 1 means yes.

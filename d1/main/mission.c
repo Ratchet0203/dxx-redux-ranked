@@ -742,7 +742,7 @@ void load_mission_by_name_aggregate(mle* mission_list) // Version of load_missio
 			playerRankPoints = 0;
 			totalRankPoints = 0;
 			for (int c = 1; c <= Current_mission->last_level - Current_mission->last_secret_level; c++) {
-				currentRank = calculateRank(c, 1);
+				currentRank = doScoreResult(1, 1, c);
 				if (currentRank) {
 					playerRankPoints += currentRank;
 					totalRankPoints++;
@@ -754,10 +754,7 @@ void load_mission_by_name_aggregate(mle* mission_list) // Version of load_missio
 				}
 			}
 			// If all levels in the current mission are completed, an aggregate rank set here will show next to it.
-			if (PlayerCfg.RankShowPlusMinus)
-				Ranking.missionRanks[i] = playerRankPoints / totalRankPoints;
-			else
-				Ranking.missionRanks[i] = truncateRanks(playerRankPoints / totalRankPoints);
+			Ranking.missionRanks[i] = truncateRanks(playerRankPoints / totalRankPoints);
 		}
 	}
 }

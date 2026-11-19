@@ -625,8 +625,8 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 		Players[Player_num].lives = 3;
 		Difficulty_level = PlayerCfg.DefaultDifficulty;
 		if (citem < Current_mission->last_level) {
-			if (calculateRank(citem + 1, 1)) {
-				DoEndLevelScoreGlitz(0, 1, citem + 1);
+			if (doScoreResult(1, 1, citem + 1)) {
+				doScoreResult(2, 1, citem + 1);
 			} else {
 				if (!do_difficulty_menu())
 					return 1;
@@ -634,8 +634,8 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 			}
 		}
 		else {
-			if (calculateRank(citem + 1, 1)) {
-				DoEndLevelScoreGlitz(0, 1, citem + 1);
+			if (doScoreResult(1, 1, citem + 1)) {
+				doScoreResult(2, 1, citem + 1);
 			} else {
 				nm_messagebox(NULL, 1, "Ok", "Find and clear the secret level first!");
 				return 1;
@@ -682,7 +682,7 @@ int do_best_ranks_menu()
 				ranks[i] = 0;
 			}
 			else {
-				calculateRank(i + 1, 1);
+				doScoreResult(1, 1, i + 1);
 				ranks[i] = Ranking.rank;
 				char level_name[36];
 				char buffer[LEVEL_NAME_LEN];

@@ -156,10 +156,6 @@ extern void input_name (int place);
 extern int reset_high_scores();
 extern void init_player_stats_level(int secret_flag);
 
-extern int calculateRank(int level_num, int update_warm_start_status);
-extern int truncateRanks(int rank);
-extern void getLevelNameFromRankFile(int level_num, char* buffer);
-
 void open_message_window(void);
 void close_message_window(void);
 
@@ -172,9 +168,12 @@ extern void goto_secret_level();
 // reset stuff so game is semi-normal when playing from editor
 void editor_reset_stuff_on_level();
 
-// Show endlevel bonus scores
-extern void DoEndLevelScoreGlitz(int network, int fromBestRanksMenu, int level_num);
+// Calculate scores and ranks.
+extern int doScoreResult(int mode, int update_warm_start_status, int level_num);
+extern int truncateRanks(int rank);
 
+// Do stuff with ranked records.
+extern void getLevelNameFromRankFile(int level_num, char* buffer);
 extern void deleteRankedSave();
 
 extern int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck, int index);
