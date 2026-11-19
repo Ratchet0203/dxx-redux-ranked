@@ -1409,15 +1409,6 @@ int load_level(const char * filename_passed)
 		editor_status_fmt("Loaded NEW mine %s, \"%s\"",filename,Current_level_name);
 	#endif
 
-	#if !defined(NDEBUG) && !defined(COMPACT_SEGS)
-	if (!RestartLevel.restarts)
-	if (check_segment_connections())
-		nm_messagebox( "ERROR", 1, "Ok", 
-				"Connectivity errors detected in\n"
-				"mine.  See monochrome screen for\n"
-				"details, and contact Matt or Mike." );
-	#endif
-
 	return 0;
 }
 

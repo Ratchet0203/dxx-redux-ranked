@@ -443,9 +443,6 @@ void wall_open_door(segment *seg, int side)
 		w2		= &Walls[w->linked_wall];
 		seg2	= &Segments[w2->segnum];
 
-		//Assert(w2->linked_wall == seg->sides[side].wall_num); // Uncomment this before releasing ranking mod.
-		//Assert(!(w2->flags & WALL_DOOR_OPENING  ||  w2->flags & WALL_DOOR_OPENED));
-
 		w2->state = WALL_DOOR_OPENING;
 
 		csegp = &Segments[seg2->children[w2->sidenum]];

@@ -635,8 +635,6 @@ void polyobj_find_min_max(polymodel *pm)
 	
 		type = *data++;
 	
-		Assert(type == 7 || type == 1);
-	
 		nverts = *data++;
 	
 		if (type==7)

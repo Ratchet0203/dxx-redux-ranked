@@ -233,9 +233,7 @@ void trigger_matcen(int segnum)
 	FuelCenter	*robotcen;
 	int			objnum;
 
-	//Assert(seg2p->special == SEGMENT_IS_ROBOTMAKER); // Uncomment this before releasing ranking mod.
 	Assert(seg2p->matcen_num < Num_fuelcenters);
-	//Assert((seg2p->matcen_num >= 0) && (seg2p->matcen_num <= Highest_segment_index)); // Uncomment this before releasing ranking mod.
 
 	robotcen = &Station[RobotCenters[seg2p->matcen_num].fuelcen_num];
 

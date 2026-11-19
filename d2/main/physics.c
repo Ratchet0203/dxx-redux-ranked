@@ -388,7 +388,6 @@ void do_physics_sim(object *obj)
 	Assert(obj->mtype.phys_info.brakes==0);		//brakes not used anymore?
 
 		//if uses thrust, cannot have zero drag
-	//Assert(!(obj->mtype.phys_info.flags&PF_USES_THRUST) || obj->mtype.phys_info.drag!=0); // Uncomment this before releasing ranking mod.
 
 	//do thrust & drag
 	// NOTE: this always must be dependent on FrameTime, if sim_time differs!

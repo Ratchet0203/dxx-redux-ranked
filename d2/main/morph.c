@@ -67,8 +67,6 @@ void find_min_max(polymodel *pm,int submodel_num,vms_vector *minv,vms_vector *ma
 
 	type = *data++;
 
-	Assert(type == 7 || type == 1);
-
 	nverts = *data++;
 
 	if (type==7)
@@ -106,8 +104,6 @@ void init_points(polymodel *pm,vms_vector *box_size,int submodel_num,morph_data 
 	data = (ushort *) &pm->model_data[pm->submodel_ptrs[submodel_num]];
 
 	type = *data++;
-
-	Assert(type == 7 || type == 1);
 
 	nverts = *data++;
 
@@ -171,8 +167,6 @@ void update_points(polymodel *pm,int submodel_num,morph_data *md)
 	data = (ushort *) &pm->model_data[pm->submodel_ptrs[submodel_num]];
 
 	type = *data++;
-
-	Assert(type == 7 || type == 1);
 
 	nverts = *data++;
 

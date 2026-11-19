@@ -953,10 +953,7 @@ int find_seg_side(segment *seg,int *verts,int notside)
 	side0 = eptr[0];
 	side1 = eptr[1];
 
-	//Assert(side0!=-1 && side1!=-1); // Uncomment this before releasing ranking mod.
-
 	if (side0 != notside) {
-		//Assert(side1==notside); // Uncomment this before releasing ranking mod.
 		return side0;
 	}
 	else {
@@ -985,9 +982,7 @@ int find_joining_side_norms(vms_vector *norm0_0,vms_vector *norm0_1,vms_vector *
 	Assert(edge_verts[0]!=-1 && edge_verts[1]!=-1);
 
 	notside0 = find_connect_side(seg,seg0);
-	Assert(notside0 != -1);
 	notside1 = find_connect_side(seg,seg1);
-	Assert(notside1 != -1);
 
 	edgeside0 = find_seg_side(seg0,edge_verts,notside0);
 	if (edgeside0 == -1) return 0;

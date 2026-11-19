@@ -6318,7 +6318,6 @@ int get_observer_game_mode()
 	else {
 		// This function should only be called in multiplayer.
 		// Return 0 (1v1) in single-player to avoid a crash, but this indicates a bug.
-		//Assert(Game_mode & GM_MULTI); // Uncomment this before releasing ranking mod.
 		return 0;
 	}
 }
