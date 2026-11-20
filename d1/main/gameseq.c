@@ -935,6 +935,7 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 			PHYSFS_file* fp = PHYSFS_openRead(filename);
 			if (fp == NULL) {
 				Ranking.rank = 0;
+				PHYSFS_close(fp);
 				return 0;
 			}
 			else {
@@ -942,6 +943,7 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 				levelHostages = atoi(buffer);
 				if (levelHostages < 0) { // If level is unplayed, we know because the first (and only) value in the file will be -1, which is impossible for the hostage count.
 					Ranking.rank = 0;
+					PHYSFS_close(fp);
 					return 0;
 				}
 				else {
@@ -1077,7 +1079,7 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 						sprintf(filename, "ranks/%s/%s/levelS%i.hi", Players[Player_num].callsign, Current_mission->filename, Current_level_num * -1);
 					sprintf(temp_filename, "ranks/%s/%s/temp.hi", Players[Player_num].callsign, Current_mission->filename);
 					fp = PHYSFS_openRead(filename);
-					if (fp != NULL) {
+					if (fp != NULL) {	
 						if (Current_level_num > 0)
 							doScoreResult(1, 0, Current_level_num);
 						else
