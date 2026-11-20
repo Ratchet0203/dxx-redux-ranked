@@ -1134,14 +1134,16 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 
 		Assert(c <= N_GLITZITEMS);
 
-		gr_init_bitmap_alloc(&transparent, BM_LINEAR, 0, 0, 1, 1, 1);
-		transparent.bm_data[0] = 255;
-		transparent.bm_flags |= BM_FLAG_TRANSPARENT;
+		if (mode != 1) {
+			gr_init_bitmap_alloc(&transparent, BM_LINEAR, 0, 0, 1, 1, 1);
+			transparent.bm_data[0] = 255;
+			transparent.bm_flags |= BM_FLAG_TRANSPARENT;
 
-		newmenu_do2(NULL, title, c, m, endlevel_handler, NULL, 0, STARS_BACKGROUND);
-		newmenu_free_background();
+			newmenu_do2(NULL, title, c, m, endlevel_handler, NULL, 0, STARS_BACKGROUND);
+			newmenu_free_background();
 
-		gr_free_bitmap_data(&transparent);
+			gr_free_bitmap_data(&transparent);
+		}
 	}
 
 	return Ranking.rank;
