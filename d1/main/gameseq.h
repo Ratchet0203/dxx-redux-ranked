@@ -177,6 +177,7 @@ extern int truncateRanks(int rank);
 // Do stuff with ranked records.
 extern void getLevelNameFromRankFile(int level_num, char* buffer);
 extern void deleteRankedSave();
+extern void initRankFiles();
  
 extern int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck, int index);
 extern int check_gap_size(int seg, int side);

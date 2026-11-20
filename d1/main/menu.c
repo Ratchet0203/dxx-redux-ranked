@@ -636,9 +636,19 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 		else {
 			if (doScoreResult(1, 1, citem + 1)) {
 				doScoreResult(2, 1, citem + 1);
-			} else {
-				nm_messagebox(NULL, 1, "Ok", "Find and clear the secret level first!");
-				return 1;
+			}
+			else {
+				char buffer[LEVEL_NAME_LEN];
+				getLevelNameFromRankFile(citem + 1, buffer);
+				if (stricmp(buffer, "???")) { // Let's hope nobody names a level ??? lol.
+					if (!do_difficulty_menu())
+						return 1;
+					StartNewGame(Current_mission->last_level - (citem + 1));
+				}
+				else {
+					nm_messagebox(NULL, 1, "Ok", "Find the secret level first!");
+					return 1;
+				}
 			}
 		}
 		break;

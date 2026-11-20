@@ -873,28 +873,7 @@ void StartNewGame(int start_level)
 	Ranking.warmStart = 0;
 	Ranking.cheated = 0;
 	Ranking.secret_hostages_on_board = 0; // If we don't set this to zero here, then getting hostages in a secret level, quitting out and starting a new game will cause the next level to never give full rescue bonus.
-	PHYSFS_file* fp;
-	char filename[256];
-	int i = 1;
-	char buffer[256];
-	sprintf(buffer, "ranks/%s/%s", Players[Player_num].callsign, Current_mission->filename);
-	PHYSFS_mkdir(buffer);
-	while (i <= Current_mission->last_level - Current_mission->last_secret_level) {
-		sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, i);
-		if (i > Current_mission->last_level)
-			sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, i - Current_mission->last_level);
-		fp = PHYSFS_openRead(filename);
-		if (fp == NULL) { // If this level's rank data file doesn't exist, create it now so it can be written to on the rank screen.
-			fp = PHYSFS_openWrite(filename);
-			PHYSFSX_printf(fp, "-1\n");
-			for (int n = 0; n < 9; n++)
-				PHYSFSX_printf(fp, "\n");
-			PHYSFSX_printf(fp, "???");
-		}
-		PHYSFS_close(fp);
-		i++;
-	}
-	
+
 	state_quick_item = -1;	// for first blind save, pick slot to save in
 
 	Game_mode = GM_NORMAL;
@@ -3519,27 +3498,49 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 
 // - - - - - - - - - -  END OF PAR TIME ALGORITHM STUFF  - - - - - - - - - - \\
 
-// If this level's rank data file doesn't exist, create it now so it can be written to on the rank screen.
-void initRankFile(int level_num)
+// Populate any missing record files in the current mission, and populate the current level's name.
+void initRankFiles()
 {
 	PHYSFS_file* fp;
 	char filename[256];
 	char buffer[256];
+	int i = Current_mission->last_secret_level;
 	sprintf(buffer, "ranks/%s/%s", Players[Player_num].callsign, Current_mission->filename);
 	PHYSFS_mkdir(buffer);
-	if (level_num > 0)
-		sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num);
-	else
-		sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, -level_num);
-	fp = PHYSFS_openRead(filename);
-	if (fp == NULL) {
-		fp = PHYSFS_openWrite(filename);
-		PHYSFSX_printf(fp, "-1\n");
-		for (int n = 0; n < 9; n++)
-			PHYSFSX_printf(fp, "\n");
-		PHYSFSX_printf(fp, "???");
+	while (i <= Current_mission->last_level) {
+		if (!i) { // There is no level 0.
+			i++;
+			continue;
+		}
+		if (i > 0) // Positive becomes levelx, negative becomes levelSx. We want this since secret levels are negative.
+			sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, i);
+		else
+			sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, -i);
+		fp = PHYSFS_openRead(filename);
+		if (fp == NULL) {
+			fp = PHYSFS_openWrite(filename);
+			PHYSFSX_printf(fp, "-1\n");
+			for (int n = 0; n < 8; n++)
+				PHYSFSX_printf(fp, "\n");
+			if (i == Current_level_num)
+				PHYSFSX_printf(fp, Current_level_name);
+			else
+				PHYSFSX_printf(fp, "???");
+		}
+		else if (i == Current_level_num) {
+			PHYSFSX_fgets(buffer, 256, fp);
+			PHYSFS_close(fp);
+			if (!stricmp(buffer, "-1")) {
+				fp = PHYSFS_openWrite(filename);
+				PHYSFSX_printf(fp, "-1\n");
+				for (int n = 0; n < 8; n++)
+					PHYSFSX_printf(fp, "\n");
+				PHYSFSX_printf(fp, Current_level_name);
+			}
+		}
+		PHYSFS_close(fp);
+		i++;
 	}
-	PHYSFS_close(fp);
 }
 
 void resetSecretRankedStuff()
@@ -3696,8 +3697,8 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 	// Say player can use FLASH cheat to mark path to exit.
 	Last_level_path_created = -1;
 	
-	initRankFile(level_num);
-	
+	initRankFiles();
+
 	if (RestartLevel.secretRestarts && !RestartLevel.secretLevelExitedYet) {
 		const char message[256];
 		if (RestartLevel.secretRestarts == 1)
@@ -4557,7 +4558,7 @@ void StartNewLevel(int level_num)
 
 	StartNewLevelSub(level_num, 1, 0);
 
-	initRankFile(level_num);
+	initRankFiles(); // This MUST be here, because StartNewLevelSub updates the Current_level_name field, and doScoreResult uses the files this edits.
 	
 	RestartLevel.isResults = 0;
 	if (RestartLevel.restarts) {
