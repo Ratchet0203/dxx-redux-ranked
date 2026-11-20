@@ -234,7 +234,9 @@ int ranks_menu_keycommand(listbox* lb, d_event* event)
 				sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, citem - Current_mission->last_level + 1);
 			if (PHYSFS_exists(filename)) {
 				PHYSFS_delete(filename);
-				nm_messagebox(NULL, 1, "Ok", "Record deleted, refresh levels list");
+				window* wind = window_get_front();
+				window_close(wind);
+				do_best_ranks_menu();
 			}
 		}
 	}
