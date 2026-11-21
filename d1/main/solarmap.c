@@ -172,7 +172,7 @@ static void draw_solarmap(struct solarmap *sm)
 		gr_set_curfont(MEDIUM1_FONT);
 		gr_string(0x8000, (4 + 2) * scale + FNTScaleY * grd_curcanv->cv_font->ft_h,
 			lvlinfo[idx].name);
-		doScoreResult(1, 1, lvlinfo[idx].level);
+		doScoreResult(1, 1, lvlinfo[idx].level, Current_mission->filename);
 		if (Ranking.rank) {
 			if (Ranking.warmStart)
 				sprintf(buffer, "High score: * %i", Ranking.calculatedScore);

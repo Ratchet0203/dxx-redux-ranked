@@ -828,24 +828,6 @@ void InitPlayerObject()
 
 extern void init_seismic_disturbances(void);
 
-int truncateRanks(int rank)
-{
-	if (PlayerCfg.RankShowPlusMinus)
-		return rank;
-	else {
-		int newRank = rank;
-		if (rank == 2 || rank == 4)
-			newRank = 3;
-		if (rank == 5 || rank == 7)
-			newRank = 6;
-		if (rank == 8 || rank == 10)
-			newRank = 9;
-		if (rank == 11 || rank == 13)
-			newRank = 12;
-		return newRank;
-	}
-}
-
 // The penalty for dying/loading should scale with the level's par time, so longer levels are more forgiving and vice versa.
 // This is the average of all official levels' par times across all difficulties, rounded up to the nearest five seconds.
 #define DEATH_PENALTY_LENGTH_FACTOR 360 // This value is out of date, and will be changed right before 1.1.2's release.
@@ -854,6 +836,7 @@ void getLevelNameFromRankFile(int level_num, char* buffer)
 {
 	char filename[256];
 	sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num); // Find file for the requested level.
+	// Secret levels are detected and handled differently for this function, to make the code in do_best_ranks_menu() neater.
 	if (level_num > Current_mission->last_level)
 		sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num - Current_mission->last_level);
 	PHYSFS_file* fp = PHYSFS_openRead(filename);
@@ -946,11 +929,43 @@ int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 	return 0;
 }
 
+// Mode = 1: Removes the +/- off ranks if the setting to have them is off.
+// Mode = 2: Converts ranks to values that are suitable for aggregate calculation, rather than the icon array.
+// Mode = 3: Undoes mode 2's conversion so they can be represented with an icon again.
+int adjustRanks(int value, int mode)
+{
+	switch (mode)
+	{
+	case 1:
+		if (!PlayerCfg.RankShowPlusMinus && value > 1 && value < 14)
+			return ((value + 1) / 3) * 3;
+		return value;
+	case 2:
+		if (value == 1)
+			return 1;
+		if (value == 14)
+			return 16;
+		if (value == 15)
+			return 19;
+		return PlayerCfg.RankShowPlusMinus ? value + 2 : ((value + 1) / 3) * 3 + 1;
+	case 3:
+		if (!value)
+			return 0;
+		if (value < 4)
+			return 1;
+		if (value < 16)
+			return PlayerCfg.RankShowPlusMinus ? value - 2 : ((value - 1) / 3) * 3;
+		if (value < 19)
+			return 14;
+		return 15;
+	}
+}
+
 // This function, previously called doEndLevelScoreGlitz, is in charge of calculating the score and rank of a run or record.
 // mode = 0: Shows the result screen at the end of levels, using Ranking struct data that was being tracked throughout the level.
 // mode = 1: Reads a record file to determine whether a score is a new record, whether a level is already beaten, or the numbers/icons to show on the best ranks menu.
 // mode = 2: For viewing records in detail on the best ranks menu. Shows a result screen like mode 0, but reads from a file like mode 1.
-int doScoreResult(int mode, int update_warm_start_status, int level_num)
+int doScoreResult(int mode, int update_warm_start_status, int level_num, char* mission_filename)
 {
 	int level_points, skill_points, shield_points, energy_points, hostage_points, all_hostage_points = 0, endgame_points = 0;
 #define N_GLITZITEMS 12
@@ -1023,7 +1038,7 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 		sprintf(m_str[c++], "%s%i", TXT_TOTAL_SCORE, Players[Player_num].score);
 	}
 	else {
-		if (level_num > 0 && level_num < Last_level) { // Last_level check is to ensure secret levels don't trigger this block in some cases.
+		if (level_num > 0) {
 			if (Ranking.level_time == 0)
 				Ranking.level_time = Players[Player_num].hours_level * 3600 + f2fl(Players[Player_num].time_level); // Failsafe for if this isn't updated.
 			RestartLevel.restartsCache = RestartLevel.restarts;
@@ -1048,14 +1063,14 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 		int difficulty = Difficulty_level;
 		char buffer[256];
 		if (mode) {
-			sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num); // Find file for the requested level.
-			if (level_num > Current_mission->last_level)
-				sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num - Current_mission->last_level);
+			sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, mission_filename, level_num); // Find file for the requested level.
+			if (level_num < 0)
+				sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, mission_filename, -level_num);
 			PHYSFS_file* fp = PHYSFS_openRead(filename);
 			if (fp == NULL) {
-				Ranking.rank = 0;
+				Ranking.rank = -1;
 				PHYSFS_close(fp);
-				return 0;
+				return -1;
 			}
 			else {
 				PHYSFSX_fgets(buffer, 256, fp); // Fetch level data starting here. If a parameter isn't present in the file, it'll default to 0 in calculation.
@@ -1143,14 +1158,13 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 			rank = 14;
 		if (rankPoints > 14 || maxScore == 0)
 			rank = 15;
-		rank = truncateRanks(rank);
 
 		if (mode == 1) {
 			Ranking.calculatedScore = score;
 			Ranking.rank = rank;
 		}
 		else {
-			endlevel_current_rank = rank - 1;
+			endlevel_current_rank = adjustRanks(rank, 1) - 1;
 
 			int minutes = playerTime / 60;
 			double seconds = playerTime - minutes * 60;
@@ -1206,17 +1220,17 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 					PHYSFS_File* fp;
 					PHYSFS_File* temp;
 					char temp_filename[256];
-					sprintf(filename, "ranks/%s/%s/level%i.hi", Players[Player_num].callsign, Current_mission->filename, Current_level_num);
+					sprintf(filename, "ranks/%s/%s/level%i.hi", Players[Player_num].callsign, mission_filename, Current_level_num);
 					if (Current_level_num < 0)
-						sprintf(filename, "ranks/%s/%s/levelS%i.hi", Players[Player_num].callsign, Current_mission->filename, Current_level_num * -1);
-					sprintf(temp_filename, "ranks/%s/%s/temp.hi", Players[Player_num].callsign, Current_mission->filename);
+						sprintf(filename, "ranks/%s/%s/levelS%i.hi", Players[Player_num].callsign, mission_filename, Current_level_num * -1);
+					sprintf(temp_filename, "ranks/%s/%s/temp.hi", Players[Player_num].callsign, mission_filename);
 					fp = PHYSFS_openRead(filename);
 					if (fp != NULL) {
 						if (Current_level_num > 0)
-							doScoreResult(1, 0, Current_level_num);
+							doScoreResult(1, 0, Current_level_num, mission_filename);
 						else
-							doScoreResult(1, 0, Current_mission->last_level - Current_level_num);
-						if (score > Ranking.calculatedScore || Ranking.rank == 0) {
+							doScoreResult(1, 0, Current_level_num, mission_filename);
+						if (score > Ranking.calculatedScore || Ranking.rank < 1) {
 							time_t timeOfScore = time(NULL);
 							temp = PHYSFS_openWrite(temp_filename);
 							PHYSFSX_printf(temp, "%i\n", levelHostages);
@@ -1267,10 +1281,11 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 		}
 		else {
 			if (mode == 2) {
-				if (level_num > Current_mission->last_level)
-					sprintf(title, "%s on %s\nlevel S%i: %s\nEnter plays, esc returns", Players[Player_num].callsign, Current_mission->mission_name, (Current_mission->last_level - level_num) * -1, levelName);
-				else
+				if (level_num > 0)
 					sprintf(title, "%s on %s\nlevel %i: %s\nEnter plays, esc returns", Players[Player_num].callsign, Current_mission->mission_name, level_num, levelName);
+				else
+					sprintf(title, "%s on %s\nlevel S%i: %s\nEnter plays, esc returns", Players[Player_num].callsign, Current_mission->mission_name, -level_num, levelName);
+			
 				Ranking.startingLevel = level_num;
 			}
 			else {
@@ -3712,7 +3727,7 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 	else if (!RestartLevel.secretLevelExitedYet) {
 		calculateParTime();
 		Ranking.secretAlreadyBeaten = 0;
-		if (doScoreResult(1, 0, Current_mission->last_level - Next_level_num) > 0)
+		if (doScoreResult(1, 0, Current_level_num, Current_mission->filename) > 0)
 			Ranking.secretAlreadyBeaten = 1;
 	}
 	First_secret_visit = 0;
@@ -3733,7 +3748,7 @@ void ExitSecretLevel(void)
 	if (!Control_center_destroyed)
 		state_save_all(2, SECRETC_FILENAME, 0);
 	else if (Ranking.secretModDisabled == 0) // Don't show people with mod disabled a result screen for secret levels, as that's not in the vanilla game.
-		doScoreResult(0, 0, Current_level_num);
+		doScoreResult(0, 0, Current_level_num, Current_mission->filename);
 
 	if (RestartLevel.isResults < 2) { // If the player wants to restart the secret level, don't trigger the code that takes them back to the base one.
 		RestartLevel.secretLevelExitedYet = 1;
@@ -3806,7 +3821,7 @@ void EnterSecretLevel(void)
 
 	if (Control_center_destroyed) {
 		Ranking.level_time = Players[Player_num].hours_level * 3600 + f2fl(Players[Player_num].time_level);
-		doScoreResult(0, 0, Current_level_num);
+		doScoreResult(0, 0, Current_level_num, Current_mission->filename);
 	}
 
 	if (Newdemo_state != ND_STATE_PLAYBACK)
@@ -3945,7 +3960,7 @@ void DoEndGame(void)
 	else if (Current_level_num != Last_level && Current_level_num > 0)
 #endif
 		// NOTE LINK TO ABOVE
-		doScoreResult(0, 0, Current_level_num);
+		doScoreResult(0, 0, Current_level_num, Current_mission->filename);
 
 	if (PLAYING_BUILTIN_MISSION && !((Game_mode & GM_MULTI) && !(Game_mode & GM_MULTI_COOP))) {
 		gr_set_current_canvas( NULL );
@@ -3999,7 +4014,7 @@ void AdvanceLevel(int secret_flag)
 	}
 	if (!(Game_mode & GM_MULTI))
 		// NOTE LINK TO ABOVE!!!
-		doScoreResult(0, 0, Current_level_num);		//give bonuses
+		doScoreResult(0, 0, Current_level_num, Current_mission->filename);		//give bonuses
 
 	Control_center_destroyed = 0;
 	Ranking.freezeTimer = 0;
@@ -4137,7 +4152,7 @@ void DoPlayerDead()
 
 		if (Current_level_num < 0) {
 			if (!Ranking.secretModDisabled) // Don't show the result screen for secret levels if the mod is disabed, as that's not in the vanilla game.
-				doScoreResult(0, 0, Current_level_num);
+				doScoreResult(0, 0, Current_level_num, Current_mission->filename);
 			if (PHYSFSX_exists(SECRETB_FILENAME,0))
 			{
 				do_screen_message(TXT_SECRET_RETURN);
@@ -4574,7 +4589,7 @@ void StartNewLevel(int level_num)
 	else {
 		calculateParTime();
 		Ranking.alreadyBeaten = 0;
-		if (doScoreResult(1, 0, level_num) > 0)
+		if (doScoreResult(1, 0, level_num, Current_mission->filename) > 0)
 			Ranking.alreadyBeaten = 1;
 	}
 }

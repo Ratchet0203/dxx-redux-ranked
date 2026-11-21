@@ -606,7 +606,7 @@ int drawSmallRankImages(int* ranksList, listbox* lb)
 	int rval = listbox_draw(lb->wind, lb);
 
 	for (int i = lb->first_item; i < lb->first_item + LB_ITEMS_ON_SCREEN && i < lb->nitems; i++) {
-		int rank = ranksList[i];
+		int rank = adjustRanks(ranksList[i], 1);
 		if (rank == 0)
 			continue;
 		grs_bitmap* bm = RankBitmaps[rank - 1];
@@ -637,8 +637,8 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 		Players[Player_num].lives = 3;
 		Difficulty_level = PlayerCfg.DefaultDifficulty;
 		if (citem < Current_mission->last_level) {
-			if (doScoreResult(1, 1, citem + 1)) {
-				doScoreResult(2, 1, citem + 1);
+			if (doScoreResult(1, 1, citem + 1, Current_mission->filename) > 0) {
+				doScoreResult(2, 1, citem + 1, Current_mission->filename);
 			} else {
 				if (!do_difficulty_menu())
 					return 1;
@@ -646,10 +646,10 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 			}
 		}
 		else {
-			if (doScoreResult(1, 1, citem + 1)) {
-				doScoreResult(2, 1, citem + 1);
+			if (doScoreResult(1, 1, Current_mission->last_level - (citem + 1), Current_mission->filename) > 0) {
+				doScoreResult(2, 1, Current_mission->last_level - (citem + 1), Current_mission->filename);
 			} else {
-				nm_messagebox(NULL, 1, "Ok", "Can't start on secret level!\nTry saving right before teleporter.");
+				nm_messagebox(NULL, 1, "Ok", "Can't start on secret level!\nTry saving in front of teleporter.");
 				return 1;
 			}
 		}
@@ -676,53 +676,50 @@ int do_best_ranks_menu()
 	int i;
 	for (i = 0; i < numlines; i++)
 	{
-		if (Current_mission->anarchy_only_flag == 1) {
-			list[i] = (char*)malloc(sizeof(char) * 64);
-			snprintf(list[i], 64, "Not a single player mission.");
+		sprintf(filename, "ranks/%s/%s/level%i.hi", Players[Player_num].callsign, Current_mission->filename, i + 1);
+		if (i >= Current_mission->last_level)
+			sprintf(filename, "ranks/%s/%s/levelS%i.hi", Players[Player_num].callsign, Current_mission->filename, i - Current_mission->last_level + 1);
+		PHYSFS_file* fp = PHYSFS_openRead(filename);
+		list[i] = (char*)malloc(sizeof(char) * 64);
+		if (fp == NULL) {
+			if (i < Current_mission->last_level)
+				snprintf(list[i], 64, "%i. ???\tN/A    ", i + 1);
+			else
+				snprintf(list[i], 64, "S%i. ???\tN/A    ", i - Current_mission->last_level + 1);
+			ranks[i] = 0;
 		}
 		else {
-			sprintf(filename, "ranks/%s/%s/level%i.hi", Players[Player_num].callsign, Current_mission->filename, i + 1);
-			if (i >= Current_mission->last_level)
-				sprintf(filename, "ranks/%s/%s/levelS%i.hi", Players[Player_num].callsign, Current_mission->filename, i - Current_mission->last_level + 1);
-			PHYSFS_file* fp = PHYSFS_openRead(filename);
-			list[i] = (char*)malloc(sizeof(char) * 64);
-			if (fp == NULL) {
-				if (i < Current_mission->last_level)
-					snprintf(list[i], 64, "%i. ???\tN/A    ", i + 1);
-				else
-					snprintf(list[i], 64, "S%i. ???\tN/A    ", i - Current_mission->last_level + 1);
-				ranks[i] = 0;
-			}
-			else {
-				doScoreResult(1, 1, i + 1);
-				ranks[i] = Ranking.rank;
-				char level_name[36];
-				char buffer[LEVEL_NAME_LEN];
-				getLevelNameFromRankFile(i + 1, buffer);
-				snprintf(level_name, LEVEL_NAME_LEN, buffer);
-				if (Ranking.rank > 0) {
-					if (Ranking.warmStart) {
-						if (i < Current_mission->last_level)
-							snprintf(list[i], 64, "%i. %s\t* %i    ", i + 1, level_name, Ranking.calculatedScore);
-						else
-							snprintf(list[i], 64, "S%i. %s\t* %i    ", i - Current_mission->last_level + 1, level_name, Ranking.calculatedScore);
-					}
-					else {
-						if (i < Current_mission->last_level)
-							snprintf(list[i], 64, "%i. %s\t%i    ", i + 1, level_name, Ranking.calculatedScore);
-						else
-							snprintf(list[i], 64, "S%i. %s\t%i    ", i - Current_mission->last_level + 1, level_name, Ranking.calculatedScore);
-					}
+			if (i < Current_mission->last_level)
+				doScoreResult(1, 1, i + 1, Current_mission->filename);
+			else
+				doScoreResult(1, 1, Current_mission->last_level - (i + 1), Current_mission->filename);
+			ranks[i] = Ranking.rank;
+			char level_name[36];
+			char buffer[LEVEL_NAME_LEN];
+			getLevelNameFromRankFile(i + 1, buffer);
+			snprintf(level_name, LEVEL_NAME_LEN, buffer);
+			if (Ranking.rank > 0) {
+				if (Ranking.warmStart) {
+					if (i < Current_mission->last_level)
+						snprintf(list[i], 64, "%i. %s\t* %i    ", i + 1, level_name, Ranking.calculatedScore);
+					else
+						snprintf(list[i], 64, "S%i. %s\t* %i    ", i - Current_mission->last_level + 1, level_name, Ranking.calculatedScore);
 				}
 				else {
 					if (i < Current_mission->last_level)
-						snprintf(list[i], 64, "%i. %s\tN/A    ", i + 1, level_name);
+						snprintf(list[i], 64, "%i. %s\t%i    ", i + 1, level_name, Ranking.calculatedScore);
 					else
-						snprintf(list[i], 64, "S%i. %s\tN/A    ", i - Current_mission->last_level + 1, level_name);
+						snprintf(list[i], 64, "S%i. %s\t%i    ", i - Current_mission->last_level + 1, level_name, Ranking.calculatedScore);
 				}
 			}
-			PHYSFS_close(fp);
+			else {
+				if (i < Current_mission->last_level)
+					snprintf(list[i], 64, "%i. %s\tN/A    ", i + 1, level_name);
+				else
+					snprintf(list[i], 64, "S%i. %s\tN/A    ", i - Current_mission->last_level + 1, level_name);
+			}
 		}
+		PHYSFS_close(fp);
 	}
 	if (Ranking.lastSelectedItem > numlines - 1)
 		Ranking.lastSelectedItem = 0; // Reset this if the levels list is too short so the player can't be placed past the end of the listbox.

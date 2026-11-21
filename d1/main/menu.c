@@ -236,6 +236,7 @@ int ranks_menu_keycommand(listbox* lb, d_event* event)
 				PHYSFS_delete(filename);
 				window* wind = window_get_front();
 				window_close(wind);
+				Ranking.lastSelectedItem = citem;
 				do_best_ranks_menu();
 			}
 		}
@@ -596,7 +597,7 @@ int drawSmallRankImages(int* ranksList, listbox* lb)
 	int rval = listbox_draw(lb->wind, lb);
 
 	for (int i = lb->first_item; i < lb->first_item + LB_ITEMS_ON_SCREEN && i < lb->nitems; i++) {
-		int rank = ranksList[i];
+		int rank = adjustRanks(ranksList[i], 1);
 		if (rank == 0)
 			continue;
 		grs_bitmap* bm = RankBitmaps[rank - 1];
@@ -627,8 +628,8 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 		Players[Player_num].lives = 3;
 		Difficulty_level = PlayerCfg.DefaultDifficulty;
 		if (citem < Current_mission->last_level) {
-			if (doScoreResult(1, 1, citem + 1)) {
-				doScoreResult(2, 1, citem + 1);
+			if (doScoreResult(1, 1, citem + 1, Current_mission->filename) > 0) {
+				doScoreResult(2, 1, citem + 1, Current_mission->filename);
 			} else {
 				if (!do_difficulty_menu())
 					return 1;
@@ -636,8 +637,8 @@ int ranks_menu_handler(listbox* lb, d_event* event, void* userdata)
 			}
 		}
 		else {
-			if (doScoreResult(1, 1, citem + 1)) {
-				doScoreResult(2, 1, citem + 1);
+			if (doScoreResult(1, 1, Current_mission->last_level - (citem + 1), Current_mission->filename) > 0) {
+				doScoreResult(2, 1, Current_mission->last_level - (citem + 1), Current_mission->filename);
 			}
 			else {
 				char buffer[LEVEL_NAME_LEN];
@@ -694,7 +695,10 @@ int do_best_ranks_menu()
 				ranks[i] = 0;
 			}
 			else {
-				doScoreResult(1, 1, i + 1);
+				if (i < Current_mission->last_level)
+					doScoreResult(1, 1, i + 1, Current_mission->filename);
+				else
+					doScoreResult(1, 1, Current_mission->last_level - (i + 1), Current_mission->filename);
 				ranks[i] = Ranking.rank;
 				char level_name[36];
 				char buffer[LEVEL_NAME_LEN];

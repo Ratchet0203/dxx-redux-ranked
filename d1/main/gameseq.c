@@ -711,24 +711,6 @@ void InitPlayerObject()
 	ConsoleObject->movement_type	= MT_PHYSICS;
 }
 
-int truncateRanks(int rank)
-{
-	if (PlayerCfg.RankShowPlusMinus)
-		return rank;
-	else {
-		int newRank = rank;
-		if (rank == 2 || rank == 4)
-			newRank = 3;
-		if (rank == 5 || rank == 7)
-			newRank = 6;
-		if (rank == 8 || rank == 10)
-			newRank = 9;
-		if (rank == 11 || rank == 13)
-			newRank = 12;
-		return newRank;
-	}
-}
-
 // The penalty for dying/loading should scale with the level's par time, so longer levels are more forgiving and vice versa.
 // This is the average of all official levels' par times across all difficulties, rounded up to the nearest five seconds.
 #define DEATH_PENALTY_LENGTH_FACTOR 360 // This value is out of date, and will be changed right before 1.1.2's release.
@@ -737,6 +719,7 @@ void getLevelNameFromRankFile(int level_num, char* buffer)
 {
 	char filename[256];
 	sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num); // Find file for the requested level.
+	// Secret levels' files are detected and handled differently for this function, to make the code in do_best_ranks_menu() neater.
 	if (level_num > Current_mission->last_level)
 		sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num - Current_mission->last_level);
 	PHYSFS_file* fp = PHYSFS_openRead(filename);
@@ -809,21 +792,50 @@ int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 		case EVENT_NEWMENU_SELECTED:
 			if (!do_difficulty_menu())
 				return 1;
-			if (Ranking.startingLevel > Current_mission->last_level)
-				StartNewGame(Current_mission->last_level - Ranking.startingLevel);
-			else
-				StartNewGame(Ranking.startingLevel);
+			StartNewGame(Ranking.startingLevel);
 			break;
 		}
 	}
 	return 0;
 }
 
+// Mode = 1: Removes the +/- off ranks if the setting to have them is off.
+// Mode = 2: Converts ranks to values that are suitable for aggregate calculation, rather than the icon array.
+// Mode = 3: Undoes mode 2's conversion so they can be represented with an icon again.
+int adjustRanks(int value, int mode)
+{
+	switch (mode)
+	{
+	case 1:
+		if (!PlayerCfg.RankShowPlusMinus && value > 1 && value < 14)
+			return ((value + 1) / 3) * 3;
+		return value;
+	case 2:
+		if (value == 1)
+			return 1;
+		if (value == 14)
+			return 16;
+		if (value == 15)
+			return 19;
+		return PlayerCfg.RankShowPlusMinus ? value + 2 : ((value + 1) / 3) * 3 + 1;
+	case 3:
+		if (!value)
+			return 0;
+		if (value < 4)
+			return 1;
+		if (value < 16)
+			return PlayerCfg.RankShowPlusMinus ? value - 2 : ((value - 1) / 3) * 3;
+		if (value < 19)
+			return 14;
+		return 15;
+	}
+}
+
 // This function, previously called doEndLevelScoreGlitz, is in charge of calculating the score and rank of a run or record.
 // mode = 0: Shows the result screen at the end of levels, using Ranking struct data that was being tracked throughout the level.
 // mode = 1: Reads a record file to determine whether a score is a new record, whether a level is already beaten, or the numbers/icons to show on the best ranks menu.
 // mode = 2: For viewing records in detail on the best ranks menu. Shows a result screen like mode 0, but reads from a file like mode 1.
-int doScoreResult(int mode, int update_warm_start_status, int level_num)
+int doScoreResult(int mode, int update_warm_start_status, int level_num, char* mission_filename)
 {
 	int level_points, skill_points, shield_points, energy_points, hostage_points, all_hostage_points = 0, endgame_points = 0;
 #define N_GLITZITEMS 12
@@ -908,14 +920,14 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 		int difficulty = Difficulty_level;
 		char buffer[256];
 		if (mode) {
-			sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num); // Find file for the requested level.
-			if (level_num > Current_mission->last_level)
-				sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, Current_mission->filename, level_num - Current_mission->last_level);
+			sprintf(filename, "ranks/%s/%s/level%d.hi", Players[Player_num].callsign, mission_filename, level_num); // Find file for the requested level.
+			if (level_num < 0)
+				sprintf(filename, "ranks/%s/%s/levelS%d.hi", Players[Player_num].callsign, mission_filename, -level_num);
 			PHYSFS_file* fp = PHYSFS_openRead(filename);
 			if (fp == NULL) {
-				Ranking.rank = 0;
+				Ranking.rank = -1;
 				PHYSFS_close(fp);
-				return 0;
+				return -1;
 			}
 			else {
 				PHYSFSX_fgets(buffer, 256, fp); // Fetch level data starting here. If a parameter isn't present in the file, it'll default to 0 in calculation.
@@ -990,14 +1002,13 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 			rank = 14;
 		if (rankPoints > 14 || maxScore == 0)
 			rank = 15;
-		rank = truncateRanks(rank);
 
 		if (mode == 1) {
 			Ranking.calculatedScore = score;
 			Ranking.rank = rank;
 		}
 		else {
-			endlevel_current_rank = rank - 1;
+			endlevel_current_rank = adjustRanks(rank, 1) - 1;
 
 			int minutes = playerTime / 60;
 			double seconds = playerTime - minutes * 60;
@@ -1053,17 +1064,17 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 					PHYSFS_File* fp;
 					PHYSFS_File* temp;
 					char temp_filename[256];
-					sprintf(filename, "ranks/%s/%s/level%i.hi", Players[Player_num].callsign, Current_mission->filename, Current_level_num);
+					sprintf(filename, "ranks/%s/%s/level%i.hi", Players[Player_num].callsign, mission_filename, Current_level_num);
 					if (Current_level_num < 0)
-						sprintf(filename, "ranks/%s/%s/levelS%i.hi", Players[Player_num].callsign, Current_mission->filename, Current_level_num * -1);
-					sprintf(temp_filename, "ranks/%s/%s/temp.hi", Players[Player_num].callsign, Current_mission->filename);
+						sprintf(filename, "ranks/%s/%s/levelS%i.hi", Players[Player_num].callsign, mission_filename, Current_level_num * -1);
+					sprintf(temp_filename, "ranks/%s/%s/temp.hi", Players[Player_num].callsign, mission_filename);
 					fp = PHYSFS_openRead(filename);
 					if (fp != NULL) {	
 						if (Current_level_num > 0)
-							doScoreResult(1, 0, Current_level_num);
+							doScoreResult(1, 0, Current_level_num, mission_filename);
 						else
-							doScoreResult(1, 0, Current_mission->last_level - Current_level_num);
-						if (score > Ranking.calculatedScore || Ranking.rank == 0) {
+							doScoreResult(1, 0, Current_level_num, mission_filename);
+						if (score > Ranking.calculatedScore || Ranking.rank < 1) {
 							time_t timeOfScore = time(NULL);
 							temp = PHYSFS_openWrite(temp_filename);
 							PHYSFSX_printf(temp, "%i\n", levelHostages);
@@ -1114,10 +1125,10 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num)
 		}
 		else {
 			if (mode == 2) {
-				if (level_num > Current_mission->last_level)
-					sprintf(title, "%s on %s\nlevel S%i: %s\nEnter plays, esc returns", Players[Player_num].callsign, Current_mission->mission_name, (Current_mission->last_level - level_num) * -1, levelName);
-				else
+				if (level_num > 0)
 					sprintf(title, "%s on %s\nlevel %i: %s\nEnter plays, esc returns", Players[Player_num].callsign, Current_mission->mission_name, level_num, levelName);
+				else
+					sprintf(title, "%s on %s\nlevel S%i: %s\nEnter plays, esc returns", Players[Player_num].callsign, Current_mission->mission_name, -level_num, levelName);
 				Ranking.startingLevel = level_num;
 			}
 			else {
@@ -1238,7 +1249,7 @@ void PlayerFinishedLevel(int secret_flag)
 		else
 #endif
 		{	// Note link to above else!
-			doScoreResult(0, 0, Current_level_num);		//give bonuses
+			doScoreResult(0, 0, Current_level_num, Current_mission->filename);		//give bonuses
 			rval = AdvanceLevel(secret_flag);				//now go on to the next one (if one)
 		}
 	} else {
@@ -1247,7 +1258,7 @@ void PlayerFinishedLevel(int secret_flag)
 			multi_endlevel_score();
 		else
 #endif	// Note link!!
-			doScoreResult(0, 0, Current_level_num);		//give bonuses
+			doScoreResult(0, 0, Current_level_num, Current_mission->filename);		//give bonuses
 		rval = AdvanceLevel(secret_flag);				//now go on to the next one (if one)
 	}
 
@@ -1465,7 +1476,7 @@ void DoPlayerDead()
 #endif
 			{			// Note link to above else!
 				rval = AdvanceLevel(0);			//if finished, go on to next level
-				doScoreResult(0, 0, Current_level_num);
+				doScoreResult(0, 0, Current_level_num, Current_mission->filename);
 			}
 			init_player_stats_new_ship(Player_num);
 			last_drawn_cockpit = -1;
@@ -1475,7 +1486,7 @@ void DoPlayerDead()
 				multi_endlevel_score();
 			else
 #endif
-				doScoreResult(0, 0, Current_level_num);		// Note above link!
+				doScoreResult(0, 0, Current_level_num, Current_mission->filename);		// Note above link!
 			rval = AdvanceLevel(0);			//if finished, go on to next level
 			if (RestartLevel.updateRestartStuff) {
 				MakeRestartStuffCold();
@@ -3563,11 +3574,7 @@ void StartNewLevel(int level_num)
 		calculateParTime();
 		Ranking.alreadyBeaten = 0;
 		if (level_num > 0) {
-			if (doScoreResult(1, 0, level_num) > 0)
-				Ranking.alreadyBeaten = 1;
-		}
-		else {
-			if (doScoreResult(1, 0, Current_mission->last_level - level_num) > 0)
+			if (doScoreResult(1, 0, level_num, Current_mission->filename) > 0)
 				Ranking.alreadyBeaten = 1;
 		}
 	}

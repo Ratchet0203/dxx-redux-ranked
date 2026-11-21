@@ -169,8 +169,8 @@ extern void goto_secret_level();
 void editor_reset_stuff_on_level();
 
 // Calculate scores and ranks.
-extern int doScoreResult(int mode, int update_warm_start_status, int level_num);
-extern int truncateRanks(int rank);
+extern int doScoreResult(int mode, int update_warm_start_status, int level_num, char* mission_filename);
+extern int adjustRanks(int value, int mode);
 
 // Do stuff with ranked records.
 extern void getLevelNameFromRankFile(int level_num, char* buffer);

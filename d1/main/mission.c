@@ -731,34 +731,6 @@ int load_mission_by_name(char* mission_name)
 	return found;
 }
 
-void load_mission_by_name_aggregate(mle* mission_list) // Version of load_mission_by_name used to generate aggregate ranks for missions. The original function works, but loads missions^2 MSN files, causing massive load times.
-{
-	int i;
-	int playerRankPoints;
-	int totalRankPoints;
-	int currentRank;
-	for (i = 0; i < num_missions; i++) {
-		if (load_mission(mission_list + i)) {
-			playerRankPoints = 0;
-			totalRankPoints = 0;
-			for (int c = 1; c <= Current_mission->last_level - Current_mission->last_secret_level; c++) {
-				currentRank = doScoreResult(1, 1, c);
-				if (currentRank) {
-					playerRankPoints += currentRank;
-					totalRankPoints++;
-				}
-				else if (c <= Current_mission->last_level) { // N/As on secret levels are allowed as they're not guaranteed to be beatable.
-					playerRankPoints = 0; // We found an N/A somewhere, don't return an aggregate rank.
-					totalRankPoints = 1; // To avoid div 0 error.
-					break;
-				}
-			}
-			// If all levels in the current mission are completed, an aggregate rank set here will show next to it.
-			Ranking.missionRanks[i] = truncateRanks(playerRankPoints / totalRankPoints);
-		}
-	}
-}
-
 typedef struct mission_menu
 {
 	mle* mission_list;
@@ -863,12 +835,43 @@ int select_mission(int anarchy_mode, char* message, int (*when_selected)(void))
 		mm->paddedNames = paddedNames;
 		default_mission = 0;
 		for (i = 0; i < num_missions; i++) {
-			m[i] = mission_list[i].mission_name;
 			if (Ranking.fromBestRanksButton) {
 				paddedNames[i] = malloc(strlen(mission_list[i].mission_name) + 5);
 				strcpy(paddedNames[i], mission_list[i].mission_name);
 				strcat(paddedNames[i], "    ");
 				m[i] = paddedNames[i];
+
+				// Generate the aggregate ranks on the mission list.
+				int playerRankPoints = 0;
+				int totalRankPoints = 0;
+				int currentRank;
+				int c;
+				// Look at level files until we find one that doesn't exist, then stop.
+				for (c = 1; c <= MAX_LEVELS_PER_MISSION; c++) {
+					currentRank = doScoreResult(1, 1, c, mission_list[i].filename);
+					if (currentRank == -1)
+						break; // No more levels found.
+					if (currentRank) {
+						playerRankPoints += adjustRanks(currentRank, 2);
+						totalRankPoints++;
+					}
+					else {
+						break; // We found an N/A somewhere, don't return an aggregate rank.
+					}
+				}
+				// Repeat for secret levels.
+				for (c = -1; c <= MAX_SECRET_LEVELS_PER_MISSION; c--) {
+					currentRank = doScoreResult(1, 1, c, mission_list[i].filename);
+					if (currentRank == -1)
+						break; // No more levels found.
+					if (currentRank) {
+						playerRankPoints += adjustRanks(currentRank, 2);
+						totalRankPoints++;
+					}
+					// N/As on secret levels are allowed as they're not guaranteed to be beatable.
+				}
+				// If all levels in the current mission are completed, an aggregate rank set here will show next to it.
+				Ranking.missionRanks[i] = totalRankPoints ? adjustRanks(playerRankPoints / totalRankPoints, 3) : 0;
 			}
 			else
 				m[i] = mission_list[i].mission_name;
@@ -877,8 +880,6 @@ int select_mission(int anarchy_mode, char* message, int (*when_selected)(void))
 		}
 		newmenu_listbox1(message, num_missions, m, 1, default_mission, (int (*)(listbox*, d_event*, void*))mission_menu_handler, mm);
 	}
-	if (Ranking.fromBestRanksButton)
-		load_mission_by_name_aggregate(mission_list); // Load the mission list so we can access how many levels they all have.
 
 	return 1;	// presume success
 }
