@@ -786,10 +786,8 @@ int mission_menu_handler(listbox* lb, d_event* event, mission_menu* mm)
 		break;
 
 	case EVENT_WINDOW_DRAW:
-		if (Ranking.fromBestRanksButton) {
-			nm_draw_background1("menuh.pcx");
+		if (Ranking.fromBestRanksButton)
 			return drawSmallRankImages(Ranking.missionRanks, lb);
-		}
 	default:
 		break;
 	}

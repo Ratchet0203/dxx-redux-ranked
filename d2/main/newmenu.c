@@ -77,31 +77,7 @@ extern int Missile_gun;
 
 extern fix Omega_charge;
 
-struct newmenu
-{
-	window			*wind;
-	int				x,y,w,h;
-	short			swidth, sheight; float fntscalex, fntscaley; // with these we check if resolution or fonts have changed so menu structure can be recreated
-	char			*title;
-	char			*subtitle;
-	int				nitems;
-	newmenu_item	*items;
-	int				(*subfunction)(newmenu *menu, d_event *event, void *userdata);
-	int				citem;
-	char			*filename;
-	int				tiny_mode;
-	int			tabs_flag;
-	int			reorderitems;
-	int				scroll_offset, last_scroll_check, max_displayable;
-	int				all_text;		//set true if all text items
-	int				is_scroll_box;   // Is this a scrolling box? Set to false at init
-	int				max_on_menu;
-	int				mouse_state, dblclick_flag;
-	int				*rval;			// Pointer to return value (for polling newmenus)
-	void			*userdata;		// For whatever - like with window system
-};
-
-grs_bitmap nm_background, nm_background1;
+grs_bitmap nm_background;
 grs_bitmap *nm_background_sub = NULL;
 
 newmenu *newmenu_do4( char * title, char * subtitle, int nitems, newmenu_item * item, int (*subfunction)(newmenu *menu, d_event *event, void *userdata), void *userdata, int citem, char * filename, int TinyMode, int TabsFlag );
@@ -114,28 +90,26 @@ void newmenu_free_background()	{
 			gr_free_sub_bitmap(nm_background_sub);
 			nm_background_sub = NULL;
 		}
-		gr_free_bitmap_data (&nm_background);
+		gr_free_bitmap_data(&nm_background);
 	}
-	if (nm_background1.bm_data)
-		gr_free_bitmap_data (&nm_background1);
 }
 
 // Draws the custom menu background pcx, if available
-void nm_draw_background1(char * filename)
+void nm_draw_background1(char * filename, grs_bitmap* background)
 {
 	int pcx_error;
 
 	if (filename != NULL)
 	{
-		if (nm_background1.bm_data == NULL)
+		if (background->bm_data == NULL)
 		{
-			gr_init_bitmap_data (&nm_background1);
-			pcx_error = pcx_read_bitmap( filename, &nm_background1, BM_LINEAR, gr_palette );
+			gr_init_bitmap_data (background);
+			pcx_error = pcx_read_bitmap( filename, background, BM_LINEAR, gr_palette );
 			Assert(pcx_error == PCX_ERROR_NONE);
 			(void)pcx_error;
 		}
 		gr_palette_load( gr_palette );
-		show_fullscr(&nm_background1);
+		show_fullscr(background);
 	}
 
 	strcpy(last_palette_loaded,"");		//force palette load next time
@@ -1437,7 +1411,9 @@ void newmenu_create_structure( newmenu *menu )
 	if ( menu->x < 0 ) menu->x = 0;
 	if ( menu->y < 0 ) menu->y = 0;
 
-	nm_draw_background1( menu->filename );
+	menu->background.bm_data = NULL;
+	
+	nm_draw_background1( menu->filename , &menu->background);
 
 	// Update all item's x & y values.
 	for (i=0; i<menu->nitems; i++ )	{
@@ -1508,7 +1484,7 @@ int newmenu_draw(window *wind, newmenu *menu)
 	}
 
 	gr_set_current_canvas( NULL );
-	nm_draw_background1(menu->filename);
+	nm_draw_background1(menu->filename, &menu->background);
 	if (menu->filename == NULL)
 		nm_draw_background(menu->x-(menu->is_scroll_box?FSPACX(5):0),menu->y,menu->x+menu->w,menu->y+menu->h);
 
@@ -1638,6 +1614,7 @@ int newmenu_handler(window *wind, d_event *event, newmenu *menu)
 			break;
 
 		case EVENT_WINDOW_CLOSE:
+			gr_free_bitmap_data(&menu->background);
 			d_free(menu);
 			break;
 

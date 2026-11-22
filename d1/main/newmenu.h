@@ -22,8 +22,9 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define _NEWMENU_H
 
 #include "event.h"
+#include "window.h"
+#include "gr.h"
 
-typedef struct newmenu newmenu;
 typedef struct listbox listbox;
 
 #define NM_TYPE_MENU        0   // A menu item... when enter is hit on this, newmenu_do returns this item number
@@ -51,6 +52,31 @@ typedef struct newmenu_item {
 	char    saved_text[NM_MAX_TEXT_LEN+1];
 } newmenu_item;
 
+typedef struct newmenu
+{
+	window* wind;
+	int				x, y, w, h;
+	short			swidth, sheight; float fntscalex, fntscaley; // with these we check if resolution or fonts have changed so menu structure can be recreated
+	char* title;
+	char* subtitle;
+	int				nitems;
+	newmenu_item* items;
+	int             (*subfunction)(struct newmenu* menu, d_event* event, void* userdata);
+	int				citem;
+	char* filename;
+	int				tiny_mode;
+	int			tabs_flag;
+	int			reorderitems;
+	int				scroll_offset, last_scroll_check, max_displayable;
+	int				all_text;		//set true if all text items
+	int				is_scroll_box;   // Is this a scrolling box? Set to false at init
+	int				max_on_menu;
+	int				mouse_state, dblclick_flag;
+	int* rval;			// Pointer to return value (for polling newmenus)
+	void* userdata;		// For whatever - like with window system
+	grs_bitmap background; // Part of a newmenu refactor to make backgrounds show properly. Huge shoutout to SaladBadger for guiding me through it.
+} newmenu;
+
 // Pass an array of newmenu_items and it processes the menu. It will
 // return a -1 if Esc is pressed, otherwise, it returns the index of
 // the item that was current when Enter was was selected.
@@ -77,7 +103,7 @@ extern newmenu *newmenu_dotiny(char * title, char * subtitle, int nitems, newmen
 extern int newmenu_doreorder(char * title, char * subtitle, int nitems, newmenu_item *item, int (*subfunction)(newmenu *menu, d_event *event, void *userdata), void *userdata);
 
 // So the correct background is drawn when swapping between title/ranks menu stuff.
-extern void nm_draw_background1(char* filename);
+extern void nm_draw_background1(char* filename, grs_bitmap* background);
 
 // Sample Code:
 /*

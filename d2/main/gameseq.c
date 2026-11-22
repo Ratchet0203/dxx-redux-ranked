@@ -884,14 +884,13 @@ void StartNewGame(int start_level)
 
 // Arne's code, except for the image pos/size and fromBestRanksButton stuff.
 int endlevel_current_rank;
-extern grs_bitmap nm_background1;
 grs_bitmap transparent;
 int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 	if (!((Current_level_num > 0 && Ranking.modDisabled) || (Current_level_num < 0 && Ranking.secretModDisabled))) {
 		switch (event->type) {
 		case EVENT_WINDOW_DRAW:
 			gr_palette_load(gr_palette);
-			show_fullscr(&nm_background1);
+			show_fullscr(&menu->background);
 			grs_bitmap* bm = RankBitmaps[endlevel_current_rank];
 			int x = grd_curscreen->sc_w * 0.4;
 			int y = grd_curscreen->sc_h * 0.725;
@@ -902,12 +901,12 @@ int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 			if (!endlevel_current_rank || endlevel_current_rank == 2 || endlevel_current_rank == 5 || endlevel_current_rank == 8 || endlevel_current_rank == 11 || endlevel_current_rank == 13 || endlevel_current_rank == 14)
 				x += w * 0.138888889; // Push the image right if it doesn't have a plus or minus, otherwise it won't be centered.
 			ogl_ubitmapm_cs(x, y, w, h, bm, -1, F1_0);
-			grs_bitmap oldbackground = nm_background1;
-			nm_background1 = transparent;
+			grs_bitmap oldbackground = menu->background;
+			menu->background = transparent;
 			int newmenu_draw(window *wind, newmenu *menu);
 			int ret = newmenu_draw(newmenu_get_window(menu), menu);
-			transparent = nm_background1;
-			nm_background1 = oldbackground;
+			transparent = menu->background;
+			menu->background = oldbackground;
 			return ret;
 		}
 	}
