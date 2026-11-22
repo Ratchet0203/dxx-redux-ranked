@@ -740,7 +740,7 @@ int do_best_ranks_menu()
 	}
 	free(list);
 	free(ranks);
-	return 0;
+	return 1;	// exit mission listbox
 }
 
 //returns flag, true means quit menu
