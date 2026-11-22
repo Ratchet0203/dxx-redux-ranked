@@ -897,12 +897,7 @@ void wall_toggle(int segnum, int side)
 	int wall_num; 
 
 	if (segnum < 0 || segnum > Highest_segment_index || side < 0 || side >= MAX_SIDES_PER_SEGMENT)
-	{
-#ifndef NDEBUG
-		Warning("Can't toggle side %d (%i) of\nsegment %d (%i)!\n", side, MAX_SIDES_PER_SEGMENT, segnum, Highest_segment_index);
-#endif
 		return;
-	}
 
 	wall_num = Segments[segnum].sides[side].wall_num;
 
