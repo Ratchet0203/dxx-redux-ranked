@@ -893,7 +893,7 @@ int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 			show_fullscr(&menu->background);
 			grs_bitmap* bm = RankBitmaps[endlevel_current_rank];
 			int x = grd_curscreen->sc_w * 0.4;
-			int y = grd_curscreen->sc_h * 0.725;
+			int y = grd_curscreen->sc_h * 0.675;
 			int h = grd_curscreen->sc_h * 0.1125;
 			if (!endlevel_current_rank || endlevel_current_rank == 14)
 				h *= 1.0806; // Make E-rank bigger to compensate for the tilt, and X too because it's just small lol.
@@ -1205,14 +1205,26 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num, char* m
 			else
 				sprintf(m_str[c++], "Total score\t%i", score);
 
+			int toNext = 0;
+			if (rank == 1)
+				toNext = -score;
+			else if (rank < 15)
+			{
+				int rankDivisor = 4;
+				if (rank < 14 && PlayerCfg.RankShowPlusMinus)
+					rankDivisor = 12;
+				toNext = (maxScore / rankDivisor) - (score % (maxScore / rankDivisor));
+			}
 			if (mode == 2) {
 				Ranking.fromBestRanksButton = 1; // So exiting a level and immediately going back into one via best ranks menu doesn't cause a loop.
 				strcpy(m_str[c++], "\n\n\n");
+				sprintf(m_str[c++], "To next rank:\t%i", toNext);
 				sprintf(m_str[c++], "Set on %s", timeOfScore);
 			}
 			else {
 				if (Ranking.cheated) {
 					strcpy(m_str[c++], "\n\n\n");
+					sprintf(m_str[c++], "To next rank:\t%i", toNext);
 					sprintf(m_str[c++], "   Cheated, score not saved!   "); // Don't show vanilla score when cheating, as players already know it'll always be zero.
 				}
 				else {
@@ -1251,10 +1263,8 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num, char* m
 							PHYSFSX_rename(temp_filename, filename);
 						}
 						PHYSFS_close(fp);
-						if (score > Ranking.calculatedScore && Ranking.rank > 0) {
-							sprintf(m_str[c++], "New record!");
-							strcpy(m_str[c++], "\n\n");
-						}
+						if (score > Ranking.calculatedScore && Ranking.rank > 0)
+							sprintf(m_str[c++], "New record!\n\n\n");
 						else
 							strcpy(m_str[c++], "\n\n\n");
 					}
@@ -1262,6 +1272,7 @@ int doScoreResult(int mode, int update_warm_start_status, int level_num, char* m
 						sprintf(m_str[c++], "Saving error. Replay level.\n\n\n");
 						PHYSFS_close(fp);
 					}
+					sprintf(m_str[c++], "To next rank:\t%i", toNext);
 					sprintf(m_str[c++], "Vanilla score:\t      %i", Players[Player_num].score); // Show players' base game score at the end of each level, so they can still compete with it when using the mod.
 				}
 			}
