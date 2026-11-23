@@ -854,19 +854,22 @@ int select_mission(int anarchy_mode, char* message, int (*when_selected)(void))
 						totalRankPoints++;
 					}
 					else {
+						totalRankPoints = 0;
 						break; // We found an N/A somewhere, don't return an aggregate rank.
 					}
-				}
-				// Repeat for secret levels.
-				for (c = -1; c <= MAX_SECRET_LEVELS_PER_MISSION; c--) {
-					currentRank = doScoreResult(1, 1, c, mission_list[i].filename);
-					if (currentRank == -1)
-						break; // No more levels found.
-					if (currentRank) {
-						playerRankPoints += adjustRanks(currentRank, 2);
-						totalRankPoints++;
+				}		
+				// Repeat for secret levels if we haven't already deduced that an aggregate shouldn't be returned.
+				if (totalRankPoints) {
+					for (c = -1; c <= MAX_SECRET_LEVELS_PER_MISSION; c--) {
+						currentRank = doScoreResult(1, 1, c, mission_list[i].filename);
+						if (currentRank == -1)
+							break; // No more levels found.
+						if (currentRank) {
+							playerRankPoints += adjustRanks(currentRank, 2);
+							totalRankPoints++;
+						}
+						// N/As on secret levels are allowed as they're not guaranteed to be beatable.
 					}
-					// N/As on secret levels are allowed as they're not guaranteed to be beatable.
 				}
 				// If all levels in the current mission are completed, an aggregate rank set here will show next to it.
 				Ranking.missionRanks[i] = totalRankPoints ? adjustRanks(playerRankPoints / totalRankPoints, 3) : 0;

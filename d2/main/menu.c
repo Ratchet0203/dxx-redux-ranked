@@ -236,6 +236,7 @@ int ranks_menu_keycommand(listbox* lb, d_event* event)
 				PHYSFS_delete(filename);
 				window* wind = window_get_front();
 				window_close(wind);
+				initRankFiles(); // Repopulate rank files so aggregate rank calculator doesn't incorrectly assume the mission ends at the deleted record's level.
 				do_best_ranks_menu();
 			}
 		}
