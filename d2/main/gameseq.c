@@ -908,21 +908,19 @@ int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 			transparent = menu->background;
 			menu->background = oldbackground;
 			return ret;
-		}
-	}
-	if (Ranking.fromBestRanksButton == 1) {
-		switch (event->type) {
 		case EVENT_NEWMENU_SELECTED:
-			if (Ranking.startingLevel > Current_mission->last_level) {
-				nm_messagebox(NULL, 1, "Ok", "Can't start on secret level!\nTry saving before teleporter.");
-				return 1;
-			}
-			else {
-				if (!do_difficulty_menu())
+			if (Ranking.fromBestRanksButton == 1) {
+				if (Ranking.startingLevel < 0) {
+					nm_messagebox(NULL, 1, "Ok", "Can't start on secret level!\nTry saving before teleporter.");
 					return 1;
-				StartNewGame(Ranking.startingLevel);
+				}
+				else {
+					if (!do_difficulty_menu())
+						return 1;
+					StartNewGame(Ranking.startingLevel);
+				}
+				break;
 			}
-			break;
 		}
 	}
 	return 0;

@@ -784,15 +784,13 @@ int endlevel_handler(newmenu* menu, d_event* event, void* userdata) {
 			transparent = menu->background;
 			menu->background = oldbackground;
 			return ret;
-		}
-	}
-	if (Ranking.fromBestRanksButton == 1) {
-		switch (event->type) {
 		case EVENT_NEWMENU_SELECTED:
-			if (!do_difficulty_menu())
-				return 1;
-			StartNewGame(Ranking.startingLevel);
-			break;
+			if (Ranking.fromBestRanksButton == 1) {
+				if (!do_difficulty_menu())
+					return 1;
+				StartNewGame(Ranking.startingLevel);
+				break;
+			}
 		}
 	}
 	return 0;
