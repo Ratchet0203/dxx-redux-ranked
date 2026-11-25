@@ -3524,7 +3524,8 @@ void calculateParTime() // Here is where we have an algorithm run a simulated pa
 // - - - - - - - - - -  END OF PAR TIME ALGORITHM STUFF  - - - - - - - - - - \\
 
 // Populate any missing record files in the current mission, and populate the current level's name.
-void initRankFiles()
+// level_num is used to ensure entering a level, leaving it, then deleting its record will clear its name as well.
+void initRankFiles(int level_num)
 {
 	PHYSFS_file* fp;
 	char filename[256];
@@ -3547,12 +3548,12 @@ void initRankFiles()
 			PHYSFSX_printf(fp, "-1\n");
 			for (int n = 0; n < 8; n++)
 				PHYSFSX_printf(fp, "\n");
-			if (i == Current_level_num)
+			if (i == level_num)
 				PHYSFSX_printf(fp, Current_level_name);
 			else
 				PHYSFSX_printf(fp, "???");
 		}
-		else if (i == Current_level_num) {
+		else if (i == level_num) {
 			PHYSFSX_fgets(buffer, 256, fp);
 			PHYSFS_close(fp);
 			if (!stricmp(buffer, "-1")) {
@@ -3722,7 +3723,7 @@ void StartNewLevelSecret(int level_num, int page_in_textures)
 	// Say player can use FLASH cheat to mark path to exit.
 	Last_level_path_created = -1;
 	
-	initRankFiles();
+	initRankFiles(Current_level_num);
 
 	if (RestartLevel.secretRestarts && !RestartLevel.secretLevelExitedYet) {
 		const char message[256];
@@ -4583,7 +4584,7 @@ void StartNewLevel(int level_num)
 
 	StartNewLevelSub(level_num, 1, 0);
 
-	initRankFiles(); // This MUST be here, because StartNewLevelSub updates the Current_level_name field, and doScoreResult uses the files this edits.
+	initRankFiles(level_num); // This MUST be here, because StartNewLevelSub updates the Current_level_name field, and doScoreResult uses the files this edits.
 	
 	RestartLevel.isResults = 0;
 	if (RestartLevel.restarts) {

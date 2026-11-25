@@ -237,7 +237,7 @@ int ranks_menu_keycommand(listbox* lb, d_event* event)
 				window* wind = window_get_front();
 				window_close(wind);
 				Ranking.lastSelectedItem = citem;
-				initRankFiles(); // Repopulate rank files so aggregate rank calculator doesn't incorrectly assume the mission ends at the deleted record's level.
+				initRankFiles(0); // Repopulate rank files so aggregate rank calculator doesn't incorrectly assume the mission ends at the deleted record's level.
 				do_best_ranks_menu();
 			}
 		}

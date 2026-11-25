@@ -175,7 +175,7 @@ extern int adjustRanks(int value, int mode);
 // Do stuff with ranked records.
 extern void getLevelNameFromRankFile(int level_num, char* buffer);
 extern void deleteRankedSave();
-extern void initRankFiles();
+extern void initRankFiles(int level_num);
 
 extern int thisWallUnlocked(int wall_num, int currentObjectiveType, int currentObjectiveID, int warpBackPointCheck, int index);
 extern int check_gap_size(int seg, int side);

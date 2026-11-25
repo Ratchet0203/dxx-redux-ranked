@@ -1858,7 +1858,7 @@ int state_restore_all_sub(char* filename, int secret_restore)
 	PHYSFS_close(fp);
 
 	// If the player loads into a mission they've never played with the mod, then sets a score on the next level, it will fail to save.
-	initRankFiles();
+	initRankFiles(Current_level_num);
 
 	// Don't disable the mod if the save we're loading is the ranked one.
 	if (strstr(filename, ".sgr") != NULL) {
